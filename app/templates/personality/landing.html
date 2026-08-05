@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Xarakter va hayot uslubi testi{% endblock %}
+{% block bootstrap_css %}{% endblock %}
+{% block bootstrap_js %}{% endblock %}
+{% block body_class %}ref-page ref-page--landing{% endblock %}
+{% block main_class %}ref-main{% endblock %}
+{% block content %}
+<section class="ref-shell" aria-labelledby="landing-title">
+  <article class="ref-card ref-card--landing">
+    <div class="personality-hero-visual">
+      <img
+        src="{{ url_for('static', path='images/personality/personality-hero.png') }}"
+        alt="Xarakterni anglash testi"
+        class="personality-hero-image"
+        loading="eager"
+        decoding="async"
+      >
+    </div>
+
+    <p class="ref-eyebrow">XARAKTER VA HAYOT USLUBI TESTI</p>
+    <h1 class="ref-title" id="landing-title">Siz dangasa emassiz</h1>
+    <p class="ref-lead">Balki o‘zingizga mos bo‘lmagan usulda harakat qilayotgandirsiz.</p>
+    <p class="ref-copy">Xarakteringizning kuchli tomonlarini, motivatsiyangiz nega pasayishini va sizga mos ishlash hamda muloqot usulini aniqlang.</p>
+
+    <div class="ref-meta-grid" aria-label="Test haqida">
+      <div class="ref-meta-item">
+        <span class="ref-meta-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M7 5h10v14H7z" stroke="currentColor" stroke-width="1.6"/><path d="M9 8h6M9 11h6M9 14h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </span>
+        <span class="ref-meta-label">24 ta savol</span>
+      </div>
+      <div class="ref-meta-item">
+        <span class="ref-meta-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="7.5" stroke="currentColor" stroke-width="1.6"/><path d="M12 9v3.5l2 1.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </span>
+        <span class="ref-meta-label">4 daqiqa</span>
+      </div>
+      <div class="ref-meta-item">
+        <span class="ref-meta-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 4.5l2.2 4.4 4.9.7-3.5 3.4.8 4.9L12 15.8l-4.4 2.3.8-4.9-3.5-3.4 4.9-.7L12 4.5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="ref-meta-label">Shaxsiy natija</span>
+      </div>
+    </div>
+
+    <form action="/personality/begin" method="post" class="ref-landing-start-form">
+      <button type="submit" class="ref-cta ref-cta--primary">Xarakterimni aniqlash</button>
+    </form>
+
+    <p class="ref-note">
+      <span class="ref-note-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 3.5l6.5 2.8v5.9c0 3.9-2.7 6.8-6.5 7.8-3.8-1-6.5-3.9-6.5-7.8V6.3L12 3.5z" stroke="currentColor" stroke-width="1.5"/><path d="M9.2 12.2l1.8 1.8 3.8-3.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </span>
+      To‘g‘ri yoki noto‘g‘ri javob yo‘q.
+    </p>
+  </article>
+</section>
+{% endblock %}

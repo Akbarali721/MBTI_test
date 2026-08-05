@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Testdan oldin{% endblock %}
+{% block bootstrap_css %}{% endblock %}
+{% block bootstrap_js %}{% endblock %}
+{% block body_class %}ref-page ref-page--flow {{ theme_class }}{% endblock %}
+{% block main_class %}ref-main mbti-flow-main{% endblock %}
+{% block content %}
+<section class="ref-shell ref-shell--flow">
+  <article class="ref-card mbti-flow-card">
+    {% include "personality/partials/brand_logo.html" %}
+    <h1 class="mbti-flow-title">Testdan oldin</h1>
+    <p class="mbti-flow-text">Javoblarni hozir qanday bo‘lishni xohlayotganingizga emas, odatda qanday harakat qilishingizga qarab belgilang.</p>
+
+    {% if gender_error %}
+    <div class="ref-alert" role="alert">{{ gender_error }}</div>
+    {% endif %}
+
+    <form id="start-form" class="mbti-start-form" action="/personality/start" method="post">
+      <div class="gender-selector" role="radiogroup" aria-label="Jinsni tanlang">
+        <label class="gender-option gender-option--female">
+          <input
+            type="radio"
+            name="gender"
+            value="female"
+            class="gender-option-input"
+            {% if selected_gender == 'female' %}checked{% endif %}
+          >
+          <img
+            src="{{ url_for('static', path='images/personality/gender/female.png') }}"
+            alt="Ayol"
+            class="gender-image"
+          >
+          <span class="gender-title">Ayol</span>
+          <span class="gender-check" aria-hidden="true">✓</span>
+        </label>
+
+        <label class="gender-option gender-option--male">
+          <input
+            type="radio"
+            name="gender"
+            value="male"
+            class="gender-option-input"
+            {% if selected_gender == 'male' %}checked{% endif %}
+          >
+          <img
+            src="{{ url_for('static', path='images/personality/gender/male.png') }}"
+            alt="Erkak"
+            class="gender-image"
+          >
+          <span class="gender-title">Erkak</span>
+          <span class="gender-check" aria-hidden="true">✓</span>
+        </label>
+      </div>
+
+      <button type="submit" id="start-btn" class="ref-cta ref-cta--primary" disabled>Testni boshlash</button>
+    </form>
+
+    <p class="ref-note mbti-flow-note">
+      <span class="ref-note-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 3.5l6.5 2.8v5.9c0 3.9-2.7 6.8-6.5 7.8-3.8-1-6.5-3.9-6.5-7.8V6.3L12 3.5z" stroke="currentColor" stroke-width="1.5"/><path d="M9.2 12.2l1.8 1.8 3.8-3.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </span>
+      To‘g‘ri yoki noto‘g‘ri javob yo‘q.
+    </p>
+  </article>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', path='js/instructions-gender.js') }}?v=1"></script>
+{% endblock %}

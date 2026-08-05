@@ -1,0 +1,59 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Analitika{% endblock %}
+{% set active_nav = 'dashboard' %}
+{% block content %}
+<h1 class="h4 mb-4">Analitika</h1>
+<div class="row g-3">
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="text-muted small">Tashriflar</div>
+        <div class="fs-4 fw-semibold">{{ stats.total_visitors }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="text-muted small">Boshlangan testlar</div>
+        <div class="fs-4 fw-semibold">{{ stats.started_tests }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="text-muted small">Tugallangan</div>
+        <div class="fs-4 fw-semibold">{{ stats.completed_tests }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="text-muted small">Tugallanmagan</div>
+        <div class="fs-4 fw-semibold">{{ stats.incomplete_tests }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="text-muted small">Bugun tashrif</div>
+        <div class="fs-4 fw-semibold">{{ stats.today_visitors }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="text-muted small">Tugatish foizi</div>
+        <div class="fs-4 fw-semibold">{{ stats.completion_rate }}%</div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="mt-4 mb-0">
+  <a class="btn btn-primary" href="/admin/sessions">Barcha sessiyalar</a>
+</p>
+{% endblock %}

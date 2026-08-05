@@ -1,0 +1,27 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Admin kirish{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-sm-8 col-md-5 col-lg-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-4">
+        <h1 class="h5 mb-3">Admin panel</h1>
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+        <form method="post" action="/admin/login">
+          <div class="mb-3">
+            <label class="form-label">Login</label>
+            <input class="form-control" name="username" required autocomplete="username">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Parol</label>
+            <input class="form-control" type="password" name="password" required autocomplete="current-password">
+          </div>
+          <button class="btn btn-primary w-100" type="submit">Kirish</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

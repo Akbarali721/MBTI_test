@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Personality sessiyalar{% endblock %}
+{% block content %}
+<section>
+  <h1 class="h4 mb-3">Xarakter testi sessiyalari</h1>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>User / Telegram</th>
+          <th>Natija</th>
+          <th>Holat</th>
+          <th>Premium</th>
+          <th>Yaratilgan</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in sessions %}
+        <tr>
+          <td>{{ s.id }}</td>
+          <td>
+            {% if s.user_id %}User #{{ s.user_id }}{% elif s.telegram_user_id %}TG {{ s.telegram_user_id }}{% else %}—{% endif %}
+            {% if s.premium_requested and not s.is_premium %}<span class="badge text-bg-warning ms-1">So‘rov</span>{% endif %}
+          </td>
+          <td>{{ s.result_type or "—" }}</td>
+          <td>{{ s.status.value }}</td>
+          <td>{% if s.is_premium %}Ha{% else %}Yo‘q{% endif %}</td>
+          <td>{{ s.created_at }}</td>
+          <td>
+            {% if not s.is_premium %}
+            <form method="post" action="/admin/personality/{{ s.id }}/grant-premium">
+              <button class="btn btn-sm btn-success" type="submit">Premium berish</button>
+            </form>
+            {% else %}
+            <span class="text-muted small">Ochilgan</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

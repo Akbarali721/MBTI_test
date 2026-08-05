@@ -1,0 +1,76 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Premium so‘rovlar{% endblock %}
+{% set active_nav = 'premium' %}
+{% block content %}
+<h1 class="h4 mb-4">Premium so‘rovlar</h1>
+<div class="btn-group flex-wrap mb-3" role="group">
+  {% for key, label in [
+    ('all', 'Hammasi'),
+    ('pending', 'Pending'),
+    ('receipt_sent', 'Receipt sent'),
+    ('approved', 'Approved'),
+    ('rejected', 'Rejected'),
+  ] %}
+  <a href="/admin/premium-requests?filter={{ key }}"
+     class="btn btn-sm {% if current_filter == key %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+    {{ label }}
+  </a>
+  {% endfor %}
+</div>
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 small">
+      <thead class="table-light">
+        <tr>
+          <th>ID</th>
+          <th>Ism</th>
+          <th>Username</th>
+          <th>Telegram ID</th>
+          <th>Session</th>
+          <th>Token</th>
+          <th>MBTI</th>
+          <th>Summa</th>
+          <th>Holat</th>
+          <th>So‘rov vaqti</th>
+          <th>Chek</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in payments %}
+        <tr>
+          <td>#{{ p.id }}</td>
+          <td>{{ p.telegram_first_name or '—' }}</td>
+          <td>{% if p.telegram_username %}@{{ p.telegram_username }}{% else %}—{% endif %}</td>
+          <td>{{ p.telegram_user_id }}</td>
+          <td><a href="/admin/sessions/{{ p.session_id }}">#{{ p.session_id }}</a></td>
+          <td><code>{{ p.session.token[:8] }}…</code></td>
+          <td>{{ p.session.result_type or '—' }}</td>
+          <td>{{ p.amount }}</td>
+          <td><span class="badge text-bg-secondary">{{ p.status }}</span></td>
+          <td class="text-nowrap">{{ p.created_at }}</td>
+          <td>
+            {% if p.receipt_file_id %}
+            <span class="text-success">Telegram’da</span>
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-nowrap">
+            {% if p.status == 'receipt_sent' or p.status == 'pending' %}
+            <form class="d-inline" method="post" action="/admin/premium-requests/{{ p.id }}/approve">
+              <button class="btn btn-sm btn-success" type="submit">Tasdiqlash</button>
+            </form>
+            <form class="d-inline" method="post" action="/admin/premium-requests/{{ p.id }}/reject">
+              <button class="btn btn-sm btn-outline-danger" type="submit">Rad</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="12" class="text-center text-muted py-4">So‘rovlar yo‘q</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<p class="text-muted small mt-3">Chek ko‘rish: foydalanuvchi chek yuborganida bot admin Telegram akkauntiga nusxa yuboradi (ADMIN_TELEGRAM_ID).</p>
+{% endblock %}

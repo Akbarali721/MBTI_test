@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}{{ content.title }}{% endblock %}
+{% block bootstrap_css %}{% endblock %}
+{% block bootstrap_js %}{% endblock %}
+{% block body_class %}ref-page ref-page--flow {{ theme_class }}{% endblock %}
+{% block main_class %}ref-main mbti-flow-main{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', path='css/personality-marketing.css') }}?v=22">
+{% endblock %}
+{% block content %}
+<section class="ref-shell ref-shell--flow {{ theme_class }}">
+  <article class="ref-card mbti-flow-card mbti-result-page">
+    {% include "personality/partials/brand_logo.html" %}
+
+    <p class="mbti-result-eyebrow">Sizning xarakter yo‘nalishingiz <strong>{{ session.result_type }}</strong> tipiga eng yaqin.</p>
+    <h1 class="mbti-flow-title">{{ content.title }}</h1>
+    <p class="mbti-result-type">Tip: {{ session.result_type }}</p>
+
+    <div class="mbti-disclaimer">
+      Bu natija sizning eng yaqin xarakter yo‘nalishingizni ko‘rsatadi. Tibbiy yoki psixologik tashxis emas.
+    </div>
+
+    <p class="mbti-flow-text mbti-flow-text--left">{{ content.short_description }}</p>
+
+    <h2 class="mbti-section-title">Kuchli tomonlar</h2>
+    <ul class="mbti-list">
+      {% for item in strengths %}
+      <li>{{ item }}</li>
+      {% endfor %}
+    </ul>
+
+    <h2 class="mbti-section-title">Qiyin tomonlar</h2>
+    <ul class="mbti-list">
+      {% for item in challenges %}
+      <li>{{ item }}</li>
+      {% endfor %}
+    </ul>
+
+    <h2 class="mbti-section-title">Boshqalar sizni qanday ko‘rishi mumkin</h2>
+    <p class="mbti-flow-text mbti-flow-text--left">{{ content.public_view }}</p>
+
+    <h2 class="mbti-section-title">O‘lchovlar</h2>
+    {% set pairs = [result.ei, result.sn, result.tf, result.jp] %}
+    {% for pair in pairs %}
+    <div class="mbti-dimension-row">
+      <div class="mbti-dimension-labels">
+        <span>{{ pair.left_label }} {{ pair.left_percent }}%</span>
+        <span>{{ pair.right_label }} {{ pair.right_percent }}%</span>
+      </div>
+      <div class="mbti-dimension-track">
+        <div class="mbti-dimension-left" style="width: {{ pair.left_percent }}%"></div>
+        <div class="mbti-dimension-right" style="width: {{ pair.right_percent }}%"></div>
+      </div>
+    </div>
+    {% endfor %}
+
+    <hr class="mbti-flow-divider">
+
+    <h2 class="mbti-flow-title mbti-flow-title--sm">Xarakteringizni bildingiz. Endi undan qanday foydalanishni bilib oling.</h2>
+
+    {% if payment_status == 'approved' %}
+    <p class="mbti-premium-success-badge" role="status">Premium profilingiz ochildi</p>
+    {% endif %}
+
+    {% set premium_sections = [
+      ("Nega motivatsiyangiz pasayadi?", content.motivation_analysis),
+      ("Sizga mos ishlash usuli", content.work_style),
+      ("Sizga mos kasb va muhit", content.career_environment),
+      ("Do‘stlikda qanday odamsiz?", content.friendship_style),
+      ("Munosabatda sizga qanday juft mos?", content.relationship_needs),
+      ("Qaysi odamlar bilan muloqot qiyinroq?", content.difficult_communication),
+      ("7 kunlik shaxsiy tavsiya", content.action_plan),
+    ] %}
+
+    {% for title, body in premium_sections %}
+    <div class="mbti-premium-card {% if not is_premium %}is-locked{% endif %}">
+      <h3>{{ title }}</h3>
+      {% if is_premium %}
+      <p>{{ body }}</p>
+      {% else %}
+      <p>Premium tahlil — ochish uchun to‘lov tasdiqlanishi kerak.</p>
+      <span class="mbti-lock-badge" aria-hidden="true">🔒</span>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    {% if payment_status == 'pending' %}
+    <div class="mbti-premium-status mbti-premium-status--pending">
+      <h3 class="mbti-premium-status__title">To‘lov tekshirilmoqda</h3>
+      <p class="mbti-premium-status__text">Chekingiz administratorga yuborildi. Tasdiqlangach premium natija ochiladi.</p>
+      <p class="mbti-premium-status__code">Test kodi: <strong>{{ payment_code }}</strong></p>
+      <a href="{{ result_page_url }}" class="ref-cta ref-cta--secondary mbti-refresh-btn">Holatni yangilash</a>
+    </div>
+    {% elif payment_status == 'unpaid' %}
+    <div class="mbti-premium-cta">
+      <h3 class="mbti-premium-cta__title">To‘liq xarakter profilingizni oching</h3>
+      <p class="mbti-premium-cta__desc">Kuchli va zaif tomonlaringiz, sizga mos kasblar, ish uslubingiz va shaxsiy rivojlanish yo‘nalishlarini ko‘ring.</p>
+      <p class="mbti-price">{{ premium_price_display }} so‘m</p>
+      <p class="mbti-premium-cta__note">To‘lov tasdiqlangach natija shu sahifada ochiladi.</p>
+    </div>
+    {% endif %}
+
+    <div class="result-actions">
+      {% if payment_status == 'unpaid' %}
+      <button type="button" class="ref-cta ref-cta--primary result-actions__primary" id="open-payment-modal" data-open-payment>
+        Premium natijani ochish
+      </button>
+      {% endif %}
+      <form action="/personality/restart" method="post" class="result-actions__form">
+        <button type="submit" class="ref-cta result-actions__outline">Testni qayta ishlash</button>
+      </form>
+      <a href="/personality" class="result-actions__link">Bosh sahifaga qaytish</a>
+    </div>
+  </article>
+</section>
+
+<dialog class="mbti-payment-dialog" id="payment-modal" aria-labelledby="payment-modal-title">
+  <div class="mbti-payment-dialog__inner">
+    <button type="button" class="mbti-payment-dialog__close" id="close-payment-modal" aria-label="Yopish">&times;</button>
+    <h2 id="payment-modal-title" class="mbti-payment-dialog__title">To‘lovni amalga oshiring</h2>
+
+    <div class="mbti-payment-field">
+      <span class="mbti-payment-field__label">Karta raqami</span>
+      <div class="mbti-payment-field__row">
+        <span class="mbti-payment-field__value" id="payment-card-number">{{ payment_card_number or '—' }}</span>
+        {% if payment_card_number %}
+        <button type="button" class="mbti-copy-btn" data-copy-target="payment-card-number">Nusxalash</button>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="mbti-payment-field">
+      <span class="mbti-payment-field__label">Qabul qiluvchi</span>
+      <span class="mbti-payment-field__value">{{ payment_card_holder or '—' }}</span>
+    </div>
+
+    <div class="mbti-payment-field">
+      <span class="mbti-payment-field__label">To‘lov summasi</span>
+      <span class="mbti-payment-field__value">{{ premium_price_display }} so‘m</span>
+    </div>
+
+    <div class="mbti-payment-field">
+      <span class="mbti-payment-field__label">Test kodi</span>
+      <div class="mbti-payment-field__row">
+        <span class="mbti-payment-field__value mbti-payment-code" id="payment-test-code">{{ payment_code }}</span>
+        <button type="button" class="mbti-copy-btn" data-copy-target="payment-test-code">Nusxalash</button>
+      </div>
+    </div>
+
+    <ol class="mbti-payment-steps">
+      <li>{{ premium_price_display }} so‘m to‘lov qiling.</li>
+      <li>Test kodini nusxalang.</li>
+      <li>«Chekni Telegram orqali yuborish» tugmasini bosing.</li>
+      <li>Botga chek rasmi va test kodini yuboring.</li>
+    </ol>
+
+    {% if payment_support_configured %}
+    <a href="{{ support_bot_open_url }}" target="_blank" rel="noopener noreferrer" class="mbti-telegram-pay-btn">
+      <svg class="mbti-telegram-pay-btn__icon" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path fill="currentColor" d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.48-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.18 1.28l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/>
+      </svg>
+      Chekni Telegram orqali yuborish
+    </a>
+    {% else %}
+    <p class="mbti-payment-unavailable" role="status">To‘lov xizmati vaqtincha mavjud emas. Keyinroq urinib ko‘ring yoki administrator bilan bog‘laning.</p>
+    {% endif %}
+  </div>
+</dialog>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', path='js/result-payment.js') }}?v=2"></script>
+{% endblock %}
