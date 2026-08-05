@@ -26,7 +26,7 @@
             {% if selected_gender == 'female' %}checked{% endif %}
           >
           <img
-            src="{{ url_for('static', path='images/personality/gender/female.png') }}"
+            src="/static/images/personality/gender/female.png"
             alt="Ayol"
             class="gender-image"
           >
@@ -43,7 +43,7 @@
             {% if selected_gender == 'male' %}checked{% endif %}
           >
           <img
-            src="{{ url_for('static', path='images/personality/gender/male.png') }}"
+            src="/static/images/personality/gender/male.png"
             alt="Erkak"
             class="gender-image"
           >
@@ -65,5 +65,5 @@
 </section>
 {% endblock %}
 {% block scripts %}
-<script src="{{ url_for('static', path='js/instructions-gender.js') }}?v=1"></script>
+<script src="/static/js/instructions-gender.js?v=1"></script>
 {% endblock %}

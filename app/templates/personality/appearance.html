@@ -33,7 +33,7 @@
               <span class="ref-choice-check" aria-hidden="true"></span>
               <span class="ref-choice-art-wrap">
                 <img
-                  src="{{ url_for('static', path=option.illustration) }}"
+                  src="/static/{{ option.illustration }}"
                   alt=""
                   class="ref-choice-art"
                   width="88"
@@ -53,5 +53,5 @@
 </section>
 {% endblock %}
 {% block scripts %}
-<script src="{{ url_for('static', path='js/appearance.js') }}"></script>
+<script src="/static/js/appearance.js"></script>
 {% endblock %}
