@@ -48,7 +48,9 @@ def test_personality_marketing_css_served_with_mbti_option(client):
 
     marketing_href = next(h for h in css_hrefs if "personality-marketing.css" in h)
     assert "?v=20" in marketing_href
-    path = marketing_href.replace("http://testserver", "")
+    path = marketing_href.split("?", 1)[0]
+    if not path.startswith("/"):
+        path = marketing_href.replace("http://testserver", "").split("?", 1)[0]
     resp = client.get(path)
     assert resp.status_code == 200
     assert ".ref-page.theme-female" in resp.text
