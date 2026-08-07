@@ -1,0 +1,115 @@
+{% extends "admin/base_admin.html" %}
+{% import "admin/partials/pagination.html" as pager %}
+{% block title %}Bildirishnomalar{% endblock %}
+{% set active_nav = 'notifications' %}
+{% block content %}
+<h1 class="h4 mb-3">Bildirishnoma navbati</h1>
+
+{% set stale = health.worker_seen_at is none or (now - health.worker_seen_at).total_seconds() > 300 %}
+{% if stale %}
+<div class="alert alert-danger">
+  <strong>Ishchi javob bermayapti.</strong>
+  {% if health.worker_seen_at %}
+  Oxirgi belgi: {{ health.worker_seen_at }}.
+  {% else %}
+  Hech qachon ishga tushmagan.
+  {% endif %}
+  Bot jarayoni (<code>python -m app.bot</code>) ishlayotganini tekshiring — u to‘xsa
+  hech bir xabar yetkazilmaydi va navbat bo‘sh ko‘rinishi mumkin.
+</div>
+{% endif %}
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3">
+    <div class="card stat-card h-100"><div class="card-body">
+      <div class="text-muted small">Kutayotgan</div>
+      <div class="fs-4 fw-semibold">{{ health.pending }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card h-100"><div class="card-body">
+      <div class="text-muted small">Muvaffaqiyatsiz</div>
+      <div class="fs-4 fw-semibold {% if health.failed %}text-danger{% endif %}">{{ health.failed }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card h-100"><div class="card-body">
+      <div class="text-muted small">Kechikkan ({{ overdue_minutes }} daq.)</div>
+      <div class="fs-4 fw-semibold {% if health.overdue_pending %}text-warning{% endif %}">
+        {{ health.overdue_pending }}
+      </div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card h-100"><div class="card-body">
+      <div class="text-muted small">Ishchi belgisi</div>
+      <div class="small fw-semibold">{{ health.worker_seen_at or 'yo‘q' }}</div>
+    </div></div>
+  </div>
+</div>
+
+{% if health.unknown_kinds %}
+<div class="alert alert-warning small">
+  Navbatda {{ health.unknown_kinds }} ta qator bor va bu jarayon ularning turini bilmaydi
+  (ehtimol deploy orqaga qaytarilgan). Ular o‘chirilmaydi — yangi versiya ishga tushgach yuboriladi.
+</div>
+{% endif %}
+
+<div class="btn-group flex-wrap mb-3" role="group">
+  {% for name in statuses %}
+  <a href="/admin/notifications?filter={{ name }}"
+     class="btn btn-sm {% if current_filter == name %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+    {{ name }}{% if name != 'all' %} ({{ health.counts.get(name, 0) }}){% endif %}
+  </a>
+  {% endfor %}
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 small">
+      <thead class="table-light">
+        <tr>
+          <th>ID</th>
+          <th>Tur</th>
+          <th>Chat</th>
+          <th>Holat</th>
+          <th class="text-end">Urinish</th>
+          <th>Keyingi urinish</th>
+          <th>Xato</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td>#{{ row.id }}</td>
+          <td><code>{{ row.kind }}</code></td>
+          <td>{{ row.chat_id }}</td>
+          <td><span class="badge text-bg-secondary">{{ row.status }}</span></td>
+          <td class="text-end">{{ row.attempts }}/{{ row.max_attempts }}</td>
+          <td class="text-nowrap">{{ row.next_attempt_at }}</td>
+          {# last_error Telegram matnidan keladi — Jinja avtomatik qochiradi. #}
+          <td class="text-truncate" style="max-width: 260px;">{{ row.last_error or '—' }}</td>
+          <td class="text-nowrap">
+            {% if row.status != 'sent' %}
+            <form class="d-inline" method="post" action="/admin/notifications/{{ row.id }}/retry">
+              <input type="hidden" name="filter" value="{{ current_filter }}">
+              <button class="btn btn-sm btn-outline-primary" type="submit">Qayta urinish</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="text-center text-muted py-4">Bu filtrda qator yo‘q</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{{ pager.render(pagination, '/admin/notifications', {'filter': current_filter}, t) }}
+<p class="text-muted small mt-3">
+  Har bir xabar to‘lov holati bilan bitta tranzaksiyada navbatga yoziladi, shuning uchun
+  tasdiqlangan to‘lov xabarsiz qolmaydi. Yuborishdan oldin holat qayta o‘qiladi: bekor
+  bo‘lgan xabar <code>cancelled</code> bo‘ladi va mijozga yolg‘on ma’lumot bormaydi.
+</p>
+{% endblock %}

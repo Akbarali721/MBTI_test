@@ -1,3 +1,6 @@
+from app.models.admin import AdminAuditLog, AdminUser
+from app.models.analytics import SessionDailyStats
+from app.models.notification import NotificationOutbox, ServiceHeartbeat
 from app.models.payment_request import PaymentRequest
 from app.models.personality import (
     PersonalityAnswer,
@@ -9,12 +12,17 @@ from app.models.personality import (
 from app.models.team import Team, TeamMember
 
 __all__ = [
+    "AdminAuditLog",
+    "AdminUser",
+    "NotificationOutbox",
     "PaymentRequest",
     "PersonalityAnswer",
     "PersonalityOption",
     "PersonalityQuestion",
     "PersonalityResultContent",
     "PersonalityTestSession",
+    "ServiceHeartbeat",
+    "SessionDailyStats",
     "Team",
     "TeamMember",
 ]

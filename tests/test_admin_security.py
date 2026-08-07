@@ -53,8 +53,45 @@ def test_login_starts_a_clean_session(client):
     _login(client)
 
     # Session fixation: kirishdan oldingi hamma narsa o'chadi.
-    assert _session_payload(client.cookies.get("session")) == {"admin_authenticated": True}
+    payload = _session_payload(client.cookies.get("session"))
+    assert PERSONALITY_SESSION_COOKIE_KEY not in payload
+    assert payload["admin_authenticated"] is True
+    # Cookie'da faqat shaxs saqlanadi; rol har so'rovda bazadan o'qiladi, aks holda
+    # rolni pasaytirish ochiq sessiyaga ta'sir qilmasdi.
+    assert payload["admin_username"] == settings.admin_username
+    assert "admin_role" not in payload
     assert client.get("/admin").status_code == 200
+
+
+def test_a_session_without_an_identity_is_rejected(client):
+    """Deploy paytida ochiq qolgan eski cookie'da faqat bayroq bo'ladi.
+
+    Uni "hamma narsaga ruxsat" deb qabul qilish huquq oshirishga olib kelardi.
+    """
+    _login(client)
+    signer = TimestampSigner(str(settings.secret_key))
+    legacy = base64.b64encode(json.dumps({"admin_authenticated": True}).encode()).decode()
+    client.cookies.clear()
+    client.cookies.set("session", signer.sign(legacy).decode())
+
+    blocked = client.get("/admin", follow_redirects=False)
+    assert blocked.status_code == 303
+    assert blocked.headers["location"] == "/admin/login"
+
+
+def test_an_expired_session_is_rejected(client, monkeypatch):
+    """SESSION_MAX_AGE mutlaq chegara bo'lishi kerak.
+
+    Starlette cookie'ni har javobda qayta imzolaydi, ya'ni o'g'irlangan cookie
+    ishlatilib turilsa muddati hech qachon tugamasdi.
+    """
+    _login(client)
+    assert client.get("/admin").status_code == 200
+
+    monkeypatch.setattr(settings, "session_max_age", 0)
+    blocked = client.get("/admin", follow_redirects=False)
+    assert blocked.status_code == 303
+    assert blocked.headers["location"] == "/admin/login"
 
 
 def test_logout_revokes_access(client):

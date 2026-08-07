@@ -155,38 +155,47 @@ def test_pdf_contains_the_premium_sections(client):
     assert payload.count(b"/Type /Page") >= 2 or payload.count(b"/Type/Page") >= 2
 
 
-def test_bot_sends_the_pdf_after_approval(client, monkeypatch):
+def test_the_queue_builds_a_pdf_document_for_a_premium_session(client):
     """Tasdiqlangach mijoz PDFni Telegramda oladi — brauzerga qaytishi shart emas."""
-    import asyncio
-    from unittest.mock import AsyncMock
-
-    from app.bot import handlers
+    from app.bot import messages
 
     token = complete_session(client)
     _grant_premium(client, token)
 
-    session_factory = client.testing_session_factory
-    monkeypatch.setattr(handlers, "SessionLocal", session_factory)
+    with db_session(client) as db:
+        session = session_by_token(db, token)
+        built = messages.premium_pdf_message(db, session.id)
 
-    bot = AsyncMock()
-    asyncio.run(handlers._send_premium_pdf(bot, telegram_user_id=555, token=token))
-
-    bot.send_document.assert_awaited_once()
-    document = bot.send_document.await_args.args[1]
-    assert document.filename.endswith(".pdf")
-    assert document.data.startswith(b"%PDF-")
+    assert built.document_name.endswith(".pdf")
+    assert built.document_bytes.startswith(b"%PDF-")
 
 
-def test_bot_skips_the_pdf_for_a_non_premium_session(client, monkeypatch):
-    import asyncio
-    from unittest.mock import AsyncMock
-
-    from app.bot import handlers
+def test_the_queue_cancels_the_pdf_for_a_non_premium_session(client):
+    """Premium bekor qilingan bo'lsa qator bekor qilinadi, qayta urinilmaydi."""
+    from app.bot import messages
+    from app.models.enums import NotificationStatus
 
     token = complete_session(client)
-    monkeypatch.setattr(handlers, "SessionLocal", client.testing_session_factory)
+    with db_session(client) as db:
+        session = session_by_token(db, token)
+        built = messages.premium_pdf_message(db, session.id)
 
-    bot = AsyncMock()
-    asyncio.run(handlers._send_premium_pdf(bot, telegram_user_id=555, token=token))
+    assert built.status == NotificationStatus.CANCELLED.value
 
-    bot.send_document.assert_not_awaited()
+
+def test_missing_fonts_are_retried_instead_of_failing_forever(client, monkeypatch):
+    """Shriftsiz yig'ilgan image butun navbatni "abadiy muvaffaqiyatsiz" qilmasligi kerak."""
+    from app.bot import messages
+    from app.pdf import result_report
+
+    token = complete_session(client)
+    _grant_premium(client, token)
+    monkeypatch.setattr(result_report, "_register_fonts", lambda: False)
+
+    with db_session(client) as db:
+        session = session_by_token(db, token)
+        built = messages.premium_pdf_message(db, session.id)
+
+    # Terminal holat YO'Q — qator navbatda qoladi va shriftlar qaytarilgach yuboriladi.
+    assert built.status is None
+    assert "shrift" in (built.error or "").lower()

@@ -53,6 +53,99 @@
     </div>
   </div>
 </div>
+<h2 class="h5 mt-5">Voronka</h2>
+<p class="text-muted small mb-2">
+  Sessiyalar BIRINCHI tashrif kuni bo‘yicha guruhlangan. Ya’ni kecha tasdiqlangan
+  eski to‘lov o‘z kogortasida qoladi va bosqichlar hech qachon bir-biridan oshib ketmaydi.
+</p>
+<form class="d-flex flex-wrap gap-2 align-items-center mb-3" method="get" action="/admin">
+  <div class="btn-group btn-group-sm" role="group">
+    {% for option in range_options %}
+    <a href="/admin?range={{ option }}{% if current_variant %}&variant={{ current_variant }}{% endif %}"
+       class="btn {% if current_range == option %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+      {% if option %}{{ option }} kun{% else %}Butun davr{% endif %}
+    </a>
+    {% endfor %}
+  </div>
+  {% if variant_options|length > 1 %}
+  <div class="btn-group btn-group-sm" role="group">
+    <a href="/admin?range={{ current_range }}"
+       class="btn {% if not current_variant %}btn-primary{% else %}btn-outline-secondary{% endif %}">Hammasi</a>
+    {% for name in variant_options %}
+    <a href="/admin?range={{ current_range }}&variant={{ name }}"
+       class="btn {% if current_variant == name %}btn-primary{% else %}btn-outline-secondary{% endif %}">{{ name }}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</form>
+<div class="card border-0 shadow-sm mb-3">
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Bosqich</th>
+          <th class="text-end">Soni</th>
+          <th class="text-end">Birinchidan %</th>
+          <th class="text-end">Oldingisidan %</th>
+          <th style="min-width: 140px;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for stage in funnel.stages %}
+        <tr>
+          <td>{{ t('admin.funnel.' ~ stage.key) }}</td>
+          <td class="text-end fw-semibold">{{ stage.count }}</td>
+          <td class="text-end">{{ stage.of_first }}%</td>
+          <td class="text-end {% if not loop.first and stage.of_previous < 50 %}text-danger{% endif %}">
+            {{ stage.of_previous }}%
+          </td>
+          <td>
+            <div class="progress" style="height: 8px;" role="img"
+                 aria-label="{{ t('admin.funnel.' ~ stage.key) }}: {{ stage.of_first }}%">
+              <div class="progress-bar" style="width: {{ stage.of_first }}%;"></div>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% if funnel.premium_without_payment or funnel.requested_without_payment %}
+<div class="alert alert-warning small">
+  {% if funnel.premium_without_payment %}
+  <div>{{ funnel.premium_without_payment }} ta sessiyada premium to‘lov qatorisiz ochilgan (admin qo‘lda bergan).</div>
+  {% endif %}
+  {% if funnel.requested_without_payment %}
+  <div>{{ funnel.requested_without_payment }} ta sessiyada premium so‘ralgan, lekin to‘lov qatori yo‘q.</div>
+  {% endif %}
+</div>
+{% endif %}
+
+<h2 class="h6 mt-4">Oxirgi 14 kun</h2>
+<div class="table-responsive">
+  <table class="table table-sm align-middle">
+    <thead>
+      <tr>
+        <th>Kun</th>
+        <th class="text-end">Tashrif</th>
+        <th class="text-end">Tugatgan</th>
+        <th class="text-end">Tasdiqlangan</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for day in funnel.days %}
+      <tr>
+        <td class="text-nowrap">{{ day.label }}</td>
+        <td class="text-end">{{ day.visited }}</td>
+        <td class="text-end">{{ day.completed }}</td>
+        <td class="text-end">{{ day.approved }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
 {% if variants %}
 <h2 class="h5 mt-5">Savol to‘plamlari (A/B)</h2>
 <p class="text-muted small mb-2">

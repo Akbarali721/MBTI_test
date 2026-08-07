@@ -17,6 +17,11 @@
     {{ label }}
   </a>
   {% endfor %}
+  {% if request.state.admin and request.state.admin.can('export_data') %}
+  <a class="btn btn-sm btn-outline-success ms-2" href="/admin/export/payments.csv?filter={{ current_filter }}">
+    CSV yuklab olish
+  </a>
+  {% endif %}
 </div>
 <div class="card border-0 shadow-sm">
   <div class="table-responsive">
@@ -32,6 +37,7 @@
           <th>MBTI</th>
           <th>Summa</th>
           <th>Holat</th>
+          <th>Kim hal qildi</th>
           <th>So‘rov vaqti</th>
           <th>Chek</th>
           <th></th>
@@ -49,6 +55,8 @@
           <td>{{ p.session.result_type or '—' }}</td>
           <td class="text-nowrap">{{ format_price(p.amount or 0) }} {{ t('result.currency') }}</td>
           <td><span class="badge text-bg-secondary">{{ t('admin.status.' ~ p.status) }}</span></td>
+          {# Eski qatorlarda "web-admin" yoki "telegram:<id>" bo'lishi mumkin. #}
+          <td class="text-nowrap">{{ p.approved_by or '—' }}</td>
           <td class="text-nowrap">{{ p.created_at }}</td>
           <td>
             {% if p.receipt_file_id %}
@@ -72,7 +80,7 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="12" class="text-center text-muted py-4">So‘rovlar yo‘q</td></tr>
+        <tr><td colspan="13" class="text-center text-muted py-4">So‘rovlar yo‘q</td></tr>
         {% endfor %}
       </tbody>
     </table>

@@ -4,9 +4,12 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config, event, pool
 
 from alembic import context
+
+# Paket `__init__` barcha modellarni import qiladi — autogenerate to'liq metadata ko'rishi
+# uchun aynan shu import kerak (alohida modullarni sanash bittasini unutishga olib keladi).
+from app import models  # noqa: F401
 from app.config import settings
 from app.database import Base
-from app.models import payment_request, personality  # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)

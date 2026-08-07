@@ -37,7 +37,7 @@ from app.services.premium_payment_service import (
     premium_deeplink_url,
     support_bot_public_url,
 )
-from app.services.result_pdf import build_pdf_bytes
+from app.services.result_pdf import PdfFontsUnavailable, PdfNotPremium, build_pdf_bytes
 from app.templating import templates
 
 router = APIRouter(prefix="/personality", tags=["personality"])
@@ -422,10 +422,13 @@ def personality_result_pdf(
         # Pullik kontent PDF orqali chetlab o'tilmasligi kerak.
         return RedirectResponse(url=f"/personality/result/{token}", status_code=303)
 
-    payload = build_pdf_bytes(db, token, lang=resolve_lang(request), base_url=str(request.base_url))
-    if payload is None:
-        logger.error("PDF yaratilmadi: shriftlar topilmadi yoki sessiya premium emas")
-        raise StarletteHTTPException(status_code=503)
+    try:
+        payload = build_pdf_bytes(db, token, lang=resolve_lang(request), base_url=str(request.base_url))
+    except PdfNotPremium:
+        return RedirectResponse(url=f"/personality/result/{token}", status_code=303)
+    except PdfFontsUnavailable:
+        logger.error("PDF yaratilmadi: shriftlar topilmadi (scripts/fetch_pdf_fonts.py)")
+        raise StarletteHTTPException(status_code=503) from None
 
     filename = pdf_filename(session.result_type or "natija")
     return Response(

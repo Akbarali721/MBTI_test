@@ -144,3 +144,120 @@ def test_migrated_schema_has_the_team_tables(tmp_path):
     assert {"invite_code", "manage_code"} <= _column_names(database_url, "teams")
     assert "share_code" in _column_names(database_url, "personality_test_sessions")
     assert "variant" in _column_names(database_url, "personality_test_sessions")
+
+
+@pytest.mark.slow
+def test_migrated_schema_has_the_operations_tables(tmp_path):
+    database_url = f"sqlite:///{(tmp_path / 'ops.db').as_posix()}"
+    result = _run_alembic(["upgrade", "head"], database_url)
+    assert result.returncode == 0, result.stderr or result.stdout
+
+    tables = _table_names(database_url)
+    assert {
+        "admin_users",
+        "admin_audit_log",
+        "notification_outbox",
+        "service_heartbeat",
+        "session_daily_stats",
+    } <= tables
+    assert {"role", "telegram_user_id", "is_active"} <= _column_names(database_url, "admin_users")
+    assert {"dedup_key", "next_attempt_at", "lease_expires_at"} <= _column_names(
+        database_url, "notification_outbox"
+    )
+    assert "anonymized_at" in _column_names(database_url, "personality_test_sessions")
+
+
+@pytest.mark.slow
+def test_migrated_outbox_enforces_its_constraints(tmp_path):
+    """CHECK va noyob indeks `create_all` bilan qurilgan test bazasida ko'rinmaydi.
+
+    Aynan shu farq avval 001 dagi nomsiz UNIQUE nuqsonini yashirgan edi.
+    """
+    from sqlalchemy import text
+    from sqlalchemy.exc import IntegrityError
+
+    database_url = f"sqlite:///{(tmp_path / 'outbox.db').as_posix()}"
+    assert _run_alembic(["upgrade", "head"], database_url).returncode == 0
+
+    insert = text(
+        "INSERT INTO notification_outbox"
+        " (kind, chat_id, params, schema_version, status, attempts, max_attempts,"
+        "  dedup_key, next_attempt_at, created_at)"
+        " VALUES ('user_approved', 1, '{}', 1, :status, 0, 8, :key,"
+        "         '2026-01-01 00:00:00', '2026-01-01 00:00:00')"
+    )
+    engine = create_engine(database_url)
+    try:
+        with engine.begin() as connection:
+            connection.execute(insert, {"status": "pending", "key": "bir-xil"})
+
+        with pytest.raises(IntegrityError), engine.begin() as connection:
+            connection.execute(insert, {"status": "pending", "key": "bir-xil"})
+
+        with pytest.raises(IntegrityError), engine.begin() as connection:
+            connection.execute(insert, {"status": "yolgon-holat", "key": "boshqa"})
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.slow
+def test_the_rollup_table_keeps_one_row_per_day_and_variant(tmp_path):
+    from sqlalchemy import text
+    from sqlalchemy.exc import IntegrityError
+
+    database_url = f"sqlite:///{(tmp_path / 'rollup.db').as_posix()}"
+    assert _run_alembic(["upgrade", "head"], database_url).returncode == 0
+
+    insert = text(
+        "INSERT INTO session_daily_stats (day, variant, visited, updated_at)"
+        " VALUES ('2026-01-01 00:00:00', 'A', 1, '2026-01-01 00:00:00')"
+    )
+    engine = create_engine(database_url)
+    try:
+        with engine.begin() as connection:
+            connection.execute(insert)
+        with pytest.raises(IntegrityError), engine.begin() as connection:
+            connection.execute(insert)
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.slow
+def test_started_at_is_backfilled_for_legacy_rows(tmp_path):
+    """003 migratsiyasi ustunni backfill'siz qo'shgan edi.
+
+    Natijada eski tugallangan sessiyalarda `started_at` NULL bo'lib, voronkada
+    "tugatgan > boshlagan" ko'rinishi chiqardi.
+    """
+    from sqlalchemy import text
+
+    database_url = f"sqlite:///{(tmp_path / 'backfill.db').as_posix()}"
+    assert _run_alembic(["upgrade", "014_outbox"], database_url).returncode == 0
+
+    engine = create_engine(database_url)
+    try:
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "INSERT INTO personality_test_sessions"
+                    " (token, status, current_question_index, e_score, i_score, s_score, n_score,"
+                    "  t_score, f_score, j_score, p_score, is_premium, premium_requested,"
+                    "  total_questions, answered_questions, created_at, completed_at, started_at)"
+                    " VALUES ('eski-token', 'completed', 24, 0,0,0,0,0,0,0,0, 0, 0, 24, 24,"
+                    "         '2026-01-01 00:00:00', '2026-01-01 00:10:00', NULL)"
+                )
+            )
+    finally:
+        engine.dispose()
+
+    assert _run_alembic(["upgrade", "head"], database_url).returncode == 0
+
+    engine = create_engine(database_url)
+    try:
+        with engine.connect() as connection:
+            started_at = connection.execute(
+                text("SELECT started_at FROM personality_test_sessions WHERE token = 'eski-token'")
+            ).scalar()
+    finally:
+        engine.dispose()
+    assert started_at is not None

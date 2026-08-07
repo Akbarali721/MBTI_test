@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -10,6 +12,7 @@ from app.models.personality import (
 )
 from app.repositories.personality_repository import PersonalityRepository
 from app.services.personality_scoring import calculate_personality_result
+from app.services.premium_payment_service import enqueue_premium_granted
 
 
 class PersonalityService:
@@ -139,9 +142,35 @@ class PersonalityService:
         return self.repo.request_premium(session)
 
     def grant_premium(self, session_id: int) -> PersonalityTestSession:
+        """Admin qo'lda premium ochadi (masalan to'lov boshqa kanal orqali kelgan).
+
+        Tugallanmagan sessiyaga premium berib bo'lmaydi: aks holda natijasi yo'q
+        sessiya "pullik" bo'lib qolardi va saqlash siyosati uchun ham chalkash
+        holat yaratardi.
+        """
+        existing = self.repo.get_session_by_id(session_id)
+        if not existing:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        if existing.status != PersonalitySessionStatus.COMPLETED:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Testni tugatmagan sessiyaga premium berib bo‘lmaydi",
+            )
+        already_premium = existing.is_premium
+
         session = self.repo.set_premium(session_id, is_premium=True)
         if not session:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+
+        now = datetime.now(timezone.utc)
+        session.premium_requested = True
+        session.premium_requested_at = session.premium_requested_at or now
+        self.repo.db.flush()
+
+        if not already_premium:
+            # Qo'lda ochilgan premium ham mijozga xabar qilinadi — avval bu yo'l
+            # butunlay jim edi va mijoz premium ochilganini bilmasdi.
+            enqueue_premium_granted(self.repo.db, session=session, chat_id=session.telegram_user_id)
         return session
 
     def set_appearance(self, token: str, theme: AppearanceTheme) -> PersonalityTestSession:

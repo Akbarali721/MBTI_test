@@ -1,5 +1,5 @@
 import enum
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
@@ -82,8 +82,19 @@ class PersonalityTestSession(Base):
     source: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_activity_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # Python tomonidagi default ham bor: voronka barcha vaqt belgilarini bitta soatdan
+    # olishi kerak, aks holda DB soati bilan ilova soati orasidagi farq kun chegarasida
+    # sessiyani noto'g'ri kunga tushiradi.
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        default=lambda: datetime.now(timezone.utc),
+        index=True,
+    )
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Saqlash siyosati bo'yicha anonimlashtirilgan sessiya: javoblar o'chirilgan,
+    # shaxsiy maydonlar tozalangan, lekin qator voronkada qolgan.
+    anonymized_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     answers: Mapped[list["PersonalityAnswer"]] = relationship(
         back_populates="session", cascade="all, delete-orphan"

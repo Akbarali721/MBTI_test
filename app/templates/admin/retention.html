@@ -1,0 +1,59 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Saqlash siyosati{% endblock %}
+{% set active_nav = 'retention' %}
+{% block content %}
+<h1 class="h4 mb-3">Ma’lumotlarni saqlash siyosati</h1>
+
+<div class="alert alert-secondary small">
+  Bu sahifa faqat <strong>hisobot</strong> beradi va hech narsani o‘chirmaydi. Tozalash
+  ataylab faqat buyruq satrida bajariladi:
+  <code>python -m app.retention --apply</code>. Shunda brauzerdagi ikkinchi bosish,
+  proksi timeouti yoki ikki adminning bir vaqtda bosishi yarim bajarilgan tozalashga
+  olib kelmaydi.
+  {% if last_run %}<div class="mt-2">Oxirgi bajarilgan tozalash: {{ last_run }}.</div>{% endif %}
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Qoida</th>
+          <th class="text-end">Muddat</th>
+          <th>Kesish chegarasi</th>
+          <th class="text-end">Hozir mos keladi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for rule in report.rules %}
+        <tr>
+          <td>{{ labels.get(rule.rule, rule.rule) }}</td>
+          <td class="text-end">
+            {% if rule.enabled %}{{ rule.days }} kun{% else %}<span class="text-muted">o‘chirilgan</span>{% endif %}
+          </td>
+          <td class="small text-nowrap">{{ rule.cutoff or '—' }}</td>
+          <td class="text-end fw-semibold">{{ rule.candidates }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<h2 class="h6 mt-4">Nima hech qachon o‘chirilmaydi</h2>
+<ul class="small text-muted">
+  <li>To‘lov qatorlari va ular bog‘langan sessiyalar — pul izi buzilmasligi kerak.</li>
+  <li>Premium ochilgan yoki premium so‘ralgan sessiyalar.</li>
+  <li>Jamoa panelida hisoblanadigan sessiyalar — aks holda HR paneli jimgina kichrayardi.</li>
+  <li>Yuborilmagan bildirishnomalar (<code>pending</code> / <code>sending</code>) — qancha eski bo‘lsa ham.</li>
+  <li>Auditning pul, rol va eksportga tegishli yozuvlari.</li>
+</ul>
+
+<h2 class="h6 mt-4">O‘chirish voronkani buzmaydi</h2>
+<p class="small text-muted mb-0">
+  Sessiya o‘chirilishidan oldin uning kuni va to‘plami bo‘yicha sanoqlari kunlik agregatga
+  yoziladi. Shuning uchun tozalashdan keyin ham "tashrif" soni va tugatish foizi
+  o‘zgarmaydi. Tugallanmagan sessiyalar esa umuman o‘chirilmaydi — javoblari va shaxsiy
+  maydonlari tozalanadi, qator hisobotda qoladi.
+</p>
+{% endblock %}

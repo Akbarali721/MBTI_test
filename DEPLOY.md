@@ -78,6 +78,21 @@ WEB_PORT=8000
 docker compose exec web python -m app.seed --help
 ```
 
+### A.2.1. Admin hisoblari (ixtiyoriy, lekin tavsiya etiladi)
+
+`.env` dagi hisob — zaxira yoʻl. Kundalik ish uchun nomli hisoblar yarating:
+
+```bash
+docker compose exec web python -m app.admins create --username erkin --role owner
+docker compose exec web python -m app.admins create --username dilnoza --role moderator \
+    --telegram-id 123456789
+docker compose exec web python -m app.admins list
+```
+
+Parol buyruq satrida emas, soʻrov orqali kiritiladi — shell tarixida qolmaydi.
+Rollar: `owner` (hammasi), `moderator` (toʻlovlar, sessiyalar, eksport),
+`viewer` (faqat umumiy koʻrsatkichlar — shaxsiy maʼlumot va cheklarni koʻrmaydi).
+
 ### A.3. Yangilash (deploy)
 
 ```bash
@@ -98,6 +113,13 @@ docker compose restart bot
 docker compose exec web alembic current
 docker compose exec db psql -U mbti -d mbti
 docker compose down                     # toʻxtatish (volume saqlanadi)
+
+# Maʼlumotlarni saqlash siyosati: avval koʻring, keyin bajaring
+docker compose exec web python -m app.retention
+docker compose exec web python -m app.retention --apply
+
+# Admin hisoblari
+docker compose exec web python -m app.admins list
 ```
 
 > `docker compose down -v` **bazani oʻchiradi** — `pgdata` volume yoʻqoladi.
@@ -113,6 +135,22 @@ gunzip -c backup-2026-08-06.sql.gz | docker compose exec -T db psql -U mbti -d m
 ```
 
 Backupni cron'ga qoʻying va nusxani boshqa serverda saqlang.
+
+### A.6. Saqlash siyosatini rejalashtirish
+
+Tozalash **avtomatik ishlamaydi** — uni siz rejalashtirasiz. Host crontab'iga:
+
+```cron
+# Har kuni 04:15 da (backupdan KEYIN)
+15 4 * * * cd /opt/akbar_mbti && docker compose exec -T web python -m app.retention --apply \
+    >> /var/log/mbti-retention.log 2>&1
+```
+
+Nima boʻlishini oldindan koʻrish uchun `--apply` siz ishlating yoki `/admin/retention`
+sahifasini oching. Sahifa hech narsani oʻchirmaydi.
+
+> Konteyner ichida cron yoʻq (image'da faqat `curl` bor va u root'siz ishlaydi),
+> shuning uchun jadval hostdan boshqariladi.
 
 ---
 
@@ -267,6 +305,13 @@ tushgandan keyin yangilanadi.
   (HEALTHCHECK har 30 soniyada `/health` ni soʻraydi)
 - Loglar: `docker compose logs -f` yoki `journalctl -u mbti-web -u mbti-bot -f`
 - Uptime monitoring (UptimeRobot va h.k.) ni `/health` ga ulang
+- **Bildirishnoma navbati**: `/admin/notifications`. U yerda ishchining oxirgi belgisi
+  (heartbeat) va kechikkan xabarlar soni koʻrinadi. Ishchi **bot jarayonida** ishlaydi,
+  shuning uchun bot toʻxsa hech bir xabar yetkazilmaydi va sahifa buni ogohlantirish
+  sifatida koʻrsatadi.
+- Navbat holati ataylab `/health` ga qoʻshilmagan: u Docker HEALTHCHECK va bot
+  konteynerining start sharti hamdir, ya'ni navbat toʻlib qolsa web qayta ishga
+  tushirilardi va bot umuman koʻtarilmasdi — navbat esa hech qachon boʻshamasdi.
 
 ---
 
@@ -280,7 +325,11 @@ tushgandan keyin yangilanadi.
 | `alembic upgrade head` xatolik beradi | Baza sxemasi qoʻlda oʻzgartirilgan yoki revision uzilgan | `alembic current` va `alembic history` ni solishtiring |
 | Bot javob bermaydi | `BOT_TOKEN` boʻsh/notoʻgʻri, yoki bir vaqtda ikkinchi polling jarayoni ishlayapti | Loglarni koʻring; **bitta** bot jarayoni ishlashi shart |
 | Deep-link `t.me/...?start=premium_...` ochilmaydi | `BOT_USERNAME` `BOT_TOKEN` egasi bilan mos emas | Ikkalasini bitta botdan oling |
-| Botdagi "Tasdiqlash" tugmasi ishlamaydi | `ADMIN_TELEGRAM_ID` notoʻgʻri | Oʻz ID ingizni @userinfobot dan olib qoʻying |
+| Botdagi "Tasdiqlash" tugmasi ishlamaydi | `ADMIN_TELEGRAM_ID`/`ADMIN_TELEGRAM_IDS` notoʻgʻri, yoki hisob roli `viewer` | Oʻz ID ingizni @userinfobot dan oling; rolni `python -m app.admins list` bilan tekshiring |
+| Mijozga xabar/PDF bormayapti | Bot jarayoni toʻxtagan — navbat ishchisi oʻsha yerda | `/admin/notifications` da heartbeat'ni koʻring, `docker compose restart bot`. Xabarlar yoʻqolmaydi, navbatda kutadi |
+| `/admin/notifications` da koʻp `failed` | Telegram xatosi qaytarilmagan (bloklangan foydalanuvchi, yaroqsiz chat) | Qatordagi xatoni oʻqing; tuzatilgach "Qayta urinish" tugmasi urinishlar hisobini nolga qaytaradi |
+| Panelga hech kim kira olmayapti | Oxirgi ega oʻchirilgan yoki `ADMIN_ENV_LOGIN_ENABLED=false` | `python -m app.admins activate --username <login>` yoki `set-password` |
+| Tozalashdan keyin voronka sonlari oʻzgardi | Bunday boʻlmasligi kerak — oʻchirilgan sessiyalar avval kunlik agregatga yigʻiladi | `session_daily_stats` jadvalini tekshiring va xatoni xabar qiling |
 | Natija havolalari `http://` boʻlib chiqadi | Reverse proxy `X-Forwarded-Proto` yubormayapti yoki `PUBLIC_BASE_URL` `http://` | nginx konfigi va `.env` ni tuzating |
 | Admin panelga kira olmayapman | `ADMIN_PASSWORD_HASH` formati mos emas (bcrypt `$2b$...` boʻlishi kerak) | `python -c "from app.config import hash_password; print(hash_password('parol'))"` bilan qayta hosil qiling |
 | Kirgandan keyin darhol chiqib ketadi | `SECRET_KEY` deploylar orasida oʻzgargan | `SECRET_KEY` ni barqaror saqlang (secret store'da) |

@@ -17,6 +17,16 @@ from app.models.personality import PersonalityTestSession
 from app.personality.payment_code import find_sessions_by_payment_code
 from app.repositories.payment_repository import UNOWNED_TELEGRAM_IDS, PaymentRepository
 from app.repositories.personality_repository import PersonalityRepository
+from app.services.admin_service import admin_chat_ids
+from app.services.notification_outbox import (
+    ADMIN_RECEIPT,
+    PREMIUM_PDF,
+    USER_APPROVED,
+    USER_REJECTED,
+    dedup_key,
+    enqueue,
+    event_stamp,
+)
 
 RESULT_ACCESS_QUERY_KEY = "access"
 MIN_SESSION_TOKEN_LENGTH = 24
@@ -105,6 +115,44 @@ def premium_deeplink_url(token: str) -> str | None:
     if not username:
         return None
     return f"https://t.me/{username}?start=premium_{token}"
+
+
+def enqueue_premium_granted(
+    db: Session,
+    *,
+    session: PersonalityTestSession,
+    chat_id: int | None,
+) -> None:
+    """Premium ochilganda mijozga xabar va PDF hisobotni navbatga qo'yadi.
+
+    Telegram ID bo'lmasa (masalan admin qo'lda ochgan, mijoz esa botga kirmagan)
+    yuboradigan manzil yo'q — bu holat admin panelida ko'rinadi.
+
+    dedup_key HODISADAN, ya'ni `session.premium_approved_at` dan olinadi va to'lov
+    qatoridan emas. Sababi: "premium ochildi" sessiya uchun BIR MARTALIK hodisa.
+    Ikki ishlab chiqaruvchi (admin qo'lda ochishi va to'lovni tasdiqlashi) turli
+    ustundan vaqt olganda kalitlar farq qilib, mijoz ikkita xabar va ikkita PDF
+    olardi — yuborish paytidagi tekshiruv ham buni to'sa olmaydi, chunki ikkalasida
+    ham sessiya haqiqatan premium.
+    """
+    if not chat_id:
+        return
+    stamp = event_stamp(session.premium_approved_at)
+    params = {"session_id": session.id}
+    enqueue(
+        db,
+        kind=USER_APPROVED,
+        chat_id=chat_id,
+        params=params,
+        key=dedup_key(USER_APPROVED, chat_id, session.id, stamp),
+    )
+    enqueue(
+        db,
+        kind=PREMIUM_PDF,
+        chat_id=chat_id,
+        params=params,
+        key=dedup_key(PREMIUM_PDF, chat_id, session.id, stamp),
+    )
 
 
 class PremiumPaymentService:
@@ -224,6 +272,10 @@ class PremiumPaymentService:
         payment.status = PAYMENT_STATUS_RECEIPT_SENT
         payment.receipt_sent_at = now
         payment.rejected_at = None
+        # Bildirishnoma AYNAN shu tranzaksiyada yoziladi: chek saqlanib, adminga
+        # xabar navbatga tushmay qolgan holat bo'lmasligi kerak.
+        self.db.flush()
+        self._enqueue_admin_receipt(payment)
         self.db.commit()
         self.db.refresh(payment)
         return ReceiptOutcome(code="saved", payment=payment)
@@ -248,8 +300,11 @@ class PremiumPaymentService:
 
         session.is_premium = True
         session.premium_requested = True
+        session.premium_requested_at = session.premium_requested_at or now
         session.premium_approved_at = session.premium_approved_at or now
 
+        self.db.flush()
+        enqueue_premium_granted(self.db, session=session, chat_id=payment.telegram_user_id)
         self.db.commit()
         self.db.refresh(payment)
         self.db.refresh(session)
@@ -275,6 +330,17 @@ class PremiumPaymentService:
         payment.rejected_at = now
         payment.approved_by = approved_by
 
+        self.db.flush()
+        if payment.telegram_user_id:
+            enqueue(
+                self.db,
+                kind=USER_REJECTED,
+                chat_id=payment.telegram_user_id,
+                params={"payment_id": payment.id, "session_id": session.id},
+                key=dedup_key(
+                    USER_REJECTED, payment.telegram_user_id, payment.id, event_stamp(payment.rejected_at)
+                ),
+            )
         self.db.commit()
         self.db.refresh(payment)
         self.db.refresh(session)
@@ -358,6 +424,18 @@ class PremiumPaymentService:
         )
         self.db.refresh(session)
         return payment
+
+    def _enqueue_admin_receipt(self, payment: PaymentRequest) -> None:
+        """Chek haqida BARCHA moderatorlarga xabar (bittasi javob bermay qolmasin)."""
+        stamp = event_stamp(payment.receipt_sent_at)
+        for chat_id in admin_chat_ids(self.db):
+            enqueue(
+                self.db,
+                kind=ADMIN_RECEIPT,
+                chat_id=chat_id,
+                params={"payment_id": payment.id, "session_id": payment.session_id},
+                key=dedup_key(ADMIN_RECEIPT, chat_id, payment.id, stamp),
+            )
 
     def _session_by_full_token(self, value: str) -> PersonalityTestSession | None:
         cleaned = value.strip().lower()

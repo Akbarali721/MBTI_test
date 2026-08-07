@@ -31,11 +31,19 @@ from aiogram.types import (
 from pydantic import Field
 from sqlalchemy import func, select
 
-from app.bot import handlers
+from app.bot import handlers, messages
 from app.config import settings
+from app.models.enums import AdminRole
+from app.models.notification import NotificationOutbox
 from app.models.payment_request import PaymentRequest
 from app.models.personality import PersonalityTestSession
-from app.services import premium_payment_service
+from app.services import admin_service, premium_payment_service
+from app.services.notification_outbox import (
+    ADMIN_RECEIPT,
+    PREMIUM_PDF,
+    USER_APPROVED,
+    USER_REJECTED,
+)
 from app.services.premium_payment_service import PremiumPaymentService
 from tests.helpers import (
     complete_session,
@@ -359,8 +367,47 @@ def test_photo_receipt_is_saved_and_forwarded_to_admin(bot_db, client, admin_id)
         assert payment.receipt_type == "photo"
         assert payment.receipt_file_id == "photo-file"
     assert "Chek qabul qilindi" in log.texts("answer")[0]
-    assert f"Payment ID: {payment_id}" in log.last_text("send_photo")
+    # Xabar to'g'ridan-to'g'ri yuborilmaydi: u chek bilan bitta tranzaksiyada
+    # navbatga yoziladi, shuning uchun bot qayta ishga tushsa ham yo'qolmaydi.
+    assert "send_photo" not in log.names()
+    with db_session(client) as db:
+        row = db.scalar(select(NotificationOutbox).where(NotificationOutbox.kind == ADMIN_RECEIPT))
+        assert row is not None
+        assert row.chat_id == ADMIN_ID
+        assert row.params["payment_id"] == payment_id
     assert run(state.get_data()) == {}
+
+
+def test_receipt_notifies_every_configured_admin(bot_db, client, monkeypatch):
+    """Bitta admin javob bermay qolsa ham chek moderatsiyaga tushishi kerak."""
+    monkeypatch.setattr(settings, "admin_telegram_id", None)
+    monkeypatch.setattr(settings, "admin_telegram_ids", f"{ADMIN_ID},{ADMIN_ID + 7}")
+    token = complete_session(client)
+    payment_id = open_payment(client, token, 1009)
+    log, state = CallLog(), make_state(1009)
+    run(state.update_data(payment_id=payment_id))
+
+    run(handlers.on_receipt_photo(make_message(log, user_id=1009, photo=True), state, make_bot(log)))
+
+    with db_session(client) as db:
+        rows = db.scalars(select(NotificationOutbox).where(NotificationOutbox.kind == ADMIN_RECEIPT)).all()
+    assert sorted(row.chat_id for row in rows) == [ADMIN_ID, ADMIN_ID + 7]
+
+
+def test_a_corrected_receipt_is_not_deduplicated_away(bot_db, client, admin_id):
+    """Xira chekdan keyin aniqrogʻi kelsa, admin ikkinchisini ham koʻrishi kerak."""
+    token = complete_session(client)
+    payment_id = open_payment(client, token, 1010)
+    state = make_state(1010)
+
+    for _ in range(2):
+        run(state.update_data(payment_id=payment_id))
+        log = CallLog()
+        run(handlers.on_receipt_photo(make_message(log, user_id=1010, photo=True), state, make_bot(log)))
+
+    with db_session(client) as db:
+        rows = db.scalars(select(NotificationOutbox).where(NotificationOutbox.kind == ADMIN_RECEIPT)).all()
+    assert len(rows) == 2, "dedup_key hodisa vaqtini ham oʻz ichiga olishi kerak"
 
 
 def test_document_receipt_uses_send_document(bot_db, client, admin_id):
@@ -371,11 +418,13 @@ def test_document_receipt_uses_send_document(bot_db, client, admin_id):
 
     run(handlers.on_receipt_document(make_message(log, user_id=1002, document=True), state, make_bot(log)))
 
-    assert "send_document" in log.names()
     with db_session(client) as db:
         payment = db.get(PaymentRequest, payment_id)
         assert payment.receipt_type == "document"
         assert payment.receipt_file_id == "doc-file"
+        # Ishchi hujjatni aynan hujjat sifatida yuboradi.
+        built = messages.admin_receipt_message(db, payment_id)
+    assert built.document_file_id == "doc-file"
 
 
 def test_receipt_without_an_open_request_explains_next_step(bot_db, admin_id):
@@ -429,6 +478,7 @@ def test_receipt_after_rejection_creates_a_new_audit_row(bot_db, client, admin_i
 
 def test_receipt_warns_user_when_admin_is_not_configured(bot_db, client, monkeypatch):
     monkeypatch.setattr(settings, "admin_telegram_id", None)
+    monkeypatch.setattr(settings, "admin_telegram_ids", "")
     token = complete_session(client)
     payment_id = open_payment(client, token, 1005)
     log, state = CallLog(), make_state(1005)
@@ -442,16 +492,46 @@ def test_receipt_warns_user_when_admin_is_not_configured(bot_db, client, monkeyp
 # --------------------------------------------------------------------------- moderatsiya
 
 
-def test_is_admin_is_fail_closed_without_admin_telegram_id(bot_db, monkeypatch):
+def test_moderation_is_fail_closed_without_any_configured_admin(bot_db, monkeypatch):
     monkeypatch.setattr(settings, "admin_telegram_id", None)
+    monkeypatch.setattr(settings, "admin_telegram_ids", "")
     log = CallLog()
     query = make_callback(log, "premium_approve:1", user_id=ADMIN_ID)
 
-    assert handlers._is_admin(query) is False
+    assert run(handlers._resolve_admin(ADMIN_ID)) is None
 
     run(handlers.cb_approve(query, make_bot(log)))
     assert log.last_text("callback_answer") == "Ruxsat yo‘q"
     assert "send_message" not in log.names()
+
+
+def test_a_viewer_with_a_telegram_id_cannot_moderate(bot_db, client, monkeypatch):
+    """Bazada qatori bor kuzatuvchi botda tugma bosib premium ocha olmasligi kerak."""
+    monkeypatch.setattr(settings, "admin_telegram_id", None)
+    monkeypatch.setattr(settings, "admin_telegram_ids", "")
+    token = complete_session(client)
+    payment_id = open_payment(client, token, 2010)
+    viewer_id = 987654
+    with db_session(client) as db:
+        created = admin_service.create_user(
+            db,
+            username="kuzatuvchi",
+            password="juda-kuchli-parol",
+            role=AdminRole.VIEWER,
+            telegram_user_id=viewer_id,
+        )
+        assert created.ok, created.error
+
+    log = CallLog()
+    run(
+        handlers.cb_approve(
+            make_callback(log, f"premium_approve:{payment_id}", user_id=viewer_id), make_bot(log)
+        )
+    )
+
+    assert log.last_text("callback_answer") == "Ruxsat yo‘q"
+    with db_session(client) as db:
+        assert session_by_token(db, token).is_premium is False
 
 
 def test_stranger_cannot_moderate_a_payment(bot_db, client, admin_id):
@@ -481,13 +561,14 @@ def test_approve_answers_the_callback_before_messaging_the_user(bot_db, client, 
         )
     )
 
-    names = log.names()
-    assert "callback_answer" in names and "send_message" in names
-    assert names.index("callback_answer") < names.index("send_message"), names
     assert log.last_text("callback_answer") == "Tasdiqlandi"
-    assert "To‘lov tasdiqlandi" in log.last_text("send_message")
+    # Mijozga xabar navbat orqali ketadi — bu yerdan ikkinchi marta yuborilmasligi kerak.
+    assert "send_message" not in log.names()
+    assert "send_document" not in log.names()
     with db_session(client) as db:
         assert session_by_token(db, token).is_premium is True
+        kinds = set(db.scalars(select(NotificationOutbox.kind)).all())
+    assert {USER_APPROVED, PREMIUM_PDF} <= kinds
 
 
 def test_reject_answers_the_callback_first_and_keeps_premium_closed(bot_db, client, admin_id):
@@ -501,12 +582,12 @@ def test_reject_answers_the_callback_first_and_keeps_premium_closed(bot_db, clie
         )
     )
 
-    names = log.names()
-    assert names.index("callback_answer") < names.index("send_message"), names
     assert log.last_text("callback_answer") == "Rad etildi"
-    assert "To‘lovni tasdiqlab bo‘lmadi" in log.last_text("send_message")
+    assert "send_message" not in log.names()
     with db_session(client) as db:
         assert session_by_token(db, token).is_premium is False
+        kinds = set(db.scalars(select(NotificationOutbox.kind)).all())
+    assert USER_REJECTED in kinds
 
 
 def test_moderation_clears_the_inline_keyboard(bot_db, client, admin_id):

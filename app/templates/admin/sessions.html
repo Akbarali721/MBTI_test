@@ -5,14 +5,21 @@
 {% block content %}
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
   <h1 class="h4 mb-0">Sessiyalar</h1>
-  <form class="d-flex gap-2 flex-wrap" method="get" action="/admin/sessions">
-    <input type="hidden" name="filter" value="{{ current_filter }}">
-    <input class="form-control form-control-sm" name="code" value="{{ search_code }}" placeholder="Test kodi (masalan 0155ac4f)" style="min-width: 200px;">
-    <button class="btn btn-sm btn-outline-primary" type="submit">Qidirish</button>
-    {% if search_code %}
-    <a class="btn btn-sm btn-link" href="/admin/sessions?filter={{ current_filter }}">Tozalash</a>
+  <div class="d-flex gap-2 flex-wrap align-items-center">
+    <form class="d-flex gap-2 flex-wrap" method="get" action="/admin/sessions">
+      <input type="hidden" name="filter" value="{{ current_filter }}">
+      <input class="form-control form-control-sm" name="code" value="{{ search_code }}" placeholder="Test kodi (masalan 0155ac4f)" style="min-width: 200px;">
+      <button class="btn btn-sm btn-outline-primary" type="submit">Qidirish</button>
+      {% if search_code %}
+      <a class="btn btn-sm btn-link" href="/admin/sessions?filter={{ current_filter }}">Tozalash</a>
+      {% endif %}
+    </form>
+    {% if request.state.admin and request.state.admin.can('export_data') %}
+    <a class="btn btn-sm btn-outline-success" href="/admin/export/sessions.csv?filter={{ current_filter }}">
+      CSV yuklab olish
+    </a>
     {% endif %}
-  </form>
+  </div>
 </div>
 <div class="btn-group flex-wrap mb-3" role="group">
   {% for key, label in [

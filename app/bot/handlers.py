@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import re
 from collections.abc import Awaitable, Callable
@@ -12,29 +13,24 @@ from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from aiogram.filters import CommandObject, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import (
-    BufferedInputFile,
-    CallbackQuery,
-    ErrorEvent,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    Message,
-)
+from aiogram.types import CallbackQuery, ErrorEvent, Message
 from sqlalchemy.orm import Session
 
+from app.authz import ACTOR_TELEGRAM, MODERATE_PAYMENTS, AdminIdentity
+from app.bot.keyboards import premium_result_keyboard, result_keyboard, site_keyboard
+from app.bot.outbox_worker import run_worker
 from app.config import settings
 from app.database import SessionLocal
-from app.pdf import pdf_filename
-from app.repositories.payment_repository import PaymentRepository
-from app.repositories.personality_repository import PersonalityRepository
+from app.models.enums import AdminRole
+from app.services import audit_service
+from app.services.admin_service import admin_chat_ids, telegram_identity
+from app.services.notification_outbox import health as outbox_health
 from app.services.premium_payment_service import (
     PremiumPaymentService,
     format_price_uzs,
     parse_premium_session_token,
     premium_bot_username,
-    signed_result_url_for_token,
 )
-from app.services.result_pdf import build_pdf_bytes
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +73,8 @@ class _PaymentView:
     result_type: str | None = None
     telegram_user_id: int | None = None
     matches: int = 0
+    # Chek qaysi adminlarga navbatga qo'yilgani — 0 bo'lsa moderatsiya sozlanmagan.
+    admin_targets: int = 0
 
 
 async def _run_db(fn: Callable[[Session], T]) -> T:
@@ -92,38 +90,31 @@ async def _run_db(fn: Callable[[Session], T]) -> T:
     return await asyncio.to_thread(_call)
 
 
-async def _send_premium_pdf(bot: Bot, telegram_user_id: int, token: str | None) -> None:
-    """Tasdiqlangach hisobotni darhol yuboramiz — mijoz brauzerga qaytmasa ham qo'lida qoladi."""
-    if not token:
-        return
+async def _run_db_commit(fn: Callable[[Session], T]) -> T:
+    """`_run_db` ga o'xshash, lekin natijani COMMIT qiladi."""
 
-    def _work(db: Session) -> tuple[bytes | None, str]:
-        session = PersonalityRepository(db).get_session_by_token(token)
-        result_type = (session.result_type if session else None) or "natija"
-        payload = build_pdf_bytes(db, token, base_url=settings.public_base_url)
-        return payload, result_type
+    def _call() -> T:
+        db = SessionLocal()
+        try:
+            result = fn(db)
+            db.commit()
+            return result
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
 
-    try:
-        payload, result_type = await _run_db(_work)
-    except Exception:
-        logger.exception("PDF hisobotni tayyorlab bo‘lmadi: token=%s", token)
-        return
-    if payload is None:
-        logger.warning("PDF hisobot yaratilmadi (shrift yoki premium holati): token=%s", token)
-        return
-
-    await _safe_telegram(
-        "send_document",
-        bot.send_document(
-            telegram_user_id,
-            BufferedInputFile(payload, filename=pdf_filename(result_type)),
-            caption="📄 Premium tahlilingiz PDF sifatida.",
-        ),
-    )
+    return await asyncio.to_thread(_call)
 
 
 async def _safe_telegram(action: str, coro: Awaitable[object]) -> bool:
-    """Telegram chaqiruvi handlerni yiqitmasligi kerak; True — chaqiruv o‘tdi."""
+    """Telegram chaqiruvi handlerni yiqitmasligi kerak; True — chaqiruv o‘tdi.
+
+    DIQQAT: bu yordamchi faqat interaktiv handlerlar uchun. Navbat ishchisi undan
+    foydalanmaydi — u xato TURINI bilishi kerak (bloklangan foydalanuvchi va tarmoq
+    uzilishi butunlay boshqacha muomala talab qiladi).
+    """
     try:
         await coro
         return True
@@ -134,41 +125,6 @@ async def _safe_telegram(action: str, coro: Awaitable[object]) -> bool:
     except Exception:
         logger.exception("Telegram (%s) kutilmagan xato", action)
     return False
-
-
-def _result_keyboard(token: str, label: str = "Natijaga qaytish") -> InlineKeyboardMarkup | None:
-    # Lokal PUBLIC_BASE_URL bilan Telegram tugmani rad etadi, shuning uchun tugmasiz yuboriladi.
-    if settings.public_base_url_is_local:
-        return None
-    return InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text=label, url=signed_result_url_for_token(token))]]
-    )
-
-
-def _premium_result_keyboard(token: str | None) -> InlineKeyboardMarkup | None:
-    if not token:
-        return None
-    return _result_keyboard(token, "📊 Premium natijani ko‘rish")
-
-
-def _site_keyboard() -> InlineKeyboardMarkup | None:
-    if settings.public_base_url_is_local:
-        return None
-    base = settings.public_base_url.rstrip("/")
-    return InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text="🌐 Testni ochish", url=f"{base}/personality")]]
-    )
-
-
-def _admin_receipt_keyboard(payment_id: int) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(text="✅ Tasdiqlash", callback_data=f"premium_approve:{payment_id}"),
-                InlineKeyboardButton(text="❌ Rad etish", callback_data=f"premium_reject:{payment_id}"),
-            ]
-        ]
-    )
 
 
 def _payment_instructions(result_type: str | None) -> str:
@@ -194,7 +150,7 @@ async def cmd_start_deeplink(message: Message, command: CommandObject, state: FS
 
     token = parse_premium_session_token(command.args or "")
     if not token:
-        await _safe_telegram("answer", message.answer(WELCOME_TEXT, reply_markup=_site_keyboard()))
+        await _safe_telegram("answer", message.answer(WELCOME_TEXT, reply_markup=site_keyboard()))
         return
 
     def _work(db: Session) -> _PaymentView:
@@ -223,7 +179,7 @@ async def cmd_start_deeplink(message: Message, command: CommandObject, state: FS
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext) -> None:
     await state.clear()
-    await _safe_telegram("answer", message.answer(WELCOME_TEXT, reply_markup=_site_keyboard()))
+    await _safe_telegram("answer", message.answer(WELCOME_TEXT, reply_markup=site_keyboard()))
 
 
 @router.message(F.text)
@@ -233,12 +189,12 @@ async def on_text(message: Message, state: FSMContext) -> None:
     if not user:
         return
     if text.startswith("/"):
-        await _safe_telegram("answer", message.answer(HELP_TEXT, reply_markup=_site_keyboard()))
+        await _safe_telegram("answer", message.answer(HELP_TEXT, reply_markup=site_keyboard()))
         return
 
     candidates = _CODE_CANDIDATE_RE.findall(text)[:_MAX_CODE_CANDIDATES]
     if not candidates:
-        await _safe_telegram("answer", message.answer(HELP_TEXT, reply_markup=_site_keyboard()))
+        await _safe_telegram("answer", message.answer(HELP_TEXT, reply_markup=site_keyboard()))
         return
 
     def _work(db: Session) -> _PaymentView:
@@ -280,7 +236,7 @@ async def _reply_for_session_view(
     not_found_text: str,
 ) -> None:
     if view.code in ("not_found", "invalid_token"):
-        await _safe_telegram("answer", message.answer(not_found_text, reply_markup=_site_keyboard()))
+        await _safe_telegram("answer", message.answer(not_found_text, reply_markup=site_keyboard()))
         return
     if view.code == "ambiguous":
         await _safe_telegram(
@@ -294,7 +250,7 @@ async def _reply_for_session_view(
     if view.code == "incomplete":
         await _safe_telegram(
             "answer",
-            message.answer("Avval testni oxirigacha tugating.", reply_markup=_site_keyboard()),
+            message.answer("Avval testni oxirigacha tugating.", reply_markup=site_keyboard()),
         )
         return
     if view.code == "already_premium":
@@ -302,7 +258,7 @@ async def _reply_for_session_view(
             "answer",
             message.answer(
                 "Premium tahlilingiz allaqachon ochilgan.",
-                reply_markup=_premium_result_keyboard(view.session_token),
+                reply_markup=premium_result_keyboard(view.session_token),
             ),
         )
         return
@@ -328,7 +284,7 @@ async def _reply_for_session_view(
         "answer",
         message.answer(
             _payment_instructions(view.result_type),
-            reply_markup=_result_keyboard(view.session_token),
+            reply_markup=result_keyboard(view.session_token),
         ),
     )
 
@@ -345,7 +301,7 @@ async def on_receipt_document(message: Message, state: FSMContext, bot: Bot) -> 
 
 @router.message()
 async def on_unknown(message: Message) -> None:
-    await _safe_telegram("answer", message.answer(HELP_TEXT, reply_markup=_site_keyboard()))
+    await _safe_telegram("answer", message.answer(HELP_TEXT, reply_markup=site_keyboard()))
 
 
 async def _handle_receipt(message: Message, state: FSMContext, bot: Bot, *, receipt_type: str) -> None:
@@ -378,6 +334,7 @@ async def _handle_receipt(message: Message, state: FSMContext, bot: Bot, *, rece
             code=outcome.code,
             payment_id=payment.id if payment else None,
             session_token=payment.session.token if payment and payment.session else None,
+            admin_targets=len(admin_chat_ids(db)),
         )
 
     view = await _run_db(_work)
@@ -396,7 +353,7 @@ async def _handle_receipt(message: Message, state: FSMContext, bot: Bot, *, rece
             "answer",
             message.answer(
                 "Premium allaqachon ochilgan.",
-                reply_markup=_premium_result_keyboard(view.session_token),
+                reply_markup=premium_result_keyboard(view.session_token),
             ),
         )
         return
@@ -414,8 +371,11 @@ async def _handle_receipt(message: Message, state: FSMContext, bot: Bot, *, rece
         message.answer("✅ Chek qabul qilindi.\n\nAdmin tekshirgach, premium tahlilingiz ochiladi."),
     )
 
-    if not await _notify_admin_receipt(bot, message, view.payment_id):
-        logger.error("Premium chek #%s adminga yetkazilmadi", view.payment_id)
+    # Adminga xabar `attach_receipt` ichida, chek bilan BIR tranzaksiyada navbatga
+    # qo'yildi. Bu yerda faqat manzil borligini tekshiramiz: hech qanday admin
+    # sozlanmagan bo'lsa, xabar hech qachon yetib bormaydi va mijoz buni bilishi kerak.
+    if not view.admin_targets:
+        logger.error("Hech qanday admin sozlanmagan: #%s cheki moderatsiyaga bormaydi", view.payment_id)
         await _safe_telegram(
             "answer",
             message.answer(
@@ -438,50 +398,6 @@ def _as_payment_id(raw: object) -> int | None:
     return None
 
 
-def _admin_caption(db: Session, payment_id: int) -> str | None:
-    payment = PaymentRepository(db).get_by_id_with_session(payment_id)
-    if not payment or not payment.session:
-        return None
-    session = payment.session
-    username = f"@{payment.telegram_username}" if payment.telegram_username else "—"
-    return (
-        "Yangi premium chek\n\n"
-        f"Payment ID: {payment.id}\n"
-        f"User: {payment.telegram_first_name or '—'}\n"
-        f"Username: {username}\n"
-        f"Telegram ID: {payment.telegram_user_id or '—'}\n"
-        f"Session ID: {session.id}\n"
-        f"Test kodi: {session.payment_code or '—'}\n"
-        f"MBTI: {session.result_type or '—'}\n"
-        f"Amount: {format_price_uzs(payment.amount)} so‘m"
-    )
-
-
-async def _notify_admin_receipt(bot: Bot, message: Message, payment_id: int) -> bool:
-    admin_id = settings.admin_telegram_id
-    if not admin_id:
-        logger.error("ADMIN_TELEGRAM_ID sozlanmagan: #%s cheki moderatsiyaga yuborilmadi", payment_id)
-        return False
-
-    caption = await _run_db(lambda db: _admin_caption(db, payment_id))
-    if caption is None:
-        logger.error("#%s to‘lov yoki uning sessiyasi topilmadi", payment_id)
-        return False
-
-    keyboard = _admin_receipt_keyboard(payment_id)
-    if message.photo:
-        return await _safe_telegram(
-            "send_photo",
-            bot.send_photo(admin_id, message.photo[-1].file_id, caption=caption, reply_markup=keyboard),
-        )
-    if message.document:
-        return await _safe_telegram(
-            "send_document",
-            bot.send_document(admin_id, message.document.file_id, caption=caption, reply_markup=keyboard),
-        )
-    return await _safe_telegram("send_message", bot.send_message(admin_id, caption, reply_markup=keyboard))
-
-
 @router.callback_query(F.data.startswith("premium_approve:"))
 async def cb_approve(query: CallbackQuery, bot: Bot) -> None:
     await _moderate(query, bot, approve=True)
@@ -493,7 +409,14 @@ async def cb_reject(query: CallbackQuery, bot: Bot) -> None:
 
 
 async def _moderate(query: CallbackQuery, bot: Bot, *, approve: bool) -> None:
-    if not _is_admin(query):
+    user = query.from_user
+    if user is None:
+        return
+
+    # Rol tekshiruvi: `admin_users` da qatori bor "kuzatuvchi" ham botda tugma
+    # bosib to'lov tasdiqlay olmasligi kerak.
+    identity = await _resolve_admin(user.id)
+    if identity is None or not identity.can(MODERATE_PAYMENTS):
         await _safe_telegram("callback_answer", query.answer("Ruxsat yo‘q", show_alert=True))
         return
 
@@ -503,7 +426,7 @@ async def _moderate(query: CallbackQuery, bot: Bot, *, approve: bool) -> None:
         await _safe_telegram("callback_answer", query.answer("Noto‘g‘ri so‘rov", show_alert=True))
         return
 
-    actor = f"telegram:{query.from_user.id}"
+    actor = identity.audit_actor
 
     def _work(db: Session) -> _PaymentView:
         service = PremiumPaymentService(db)
@@ -512,6 +435,14 @@ async def _moderate(query: CallbackQuery, bot: Bot, *, approve: bool) -> None:
             if approve
             else service.reject_payment(payment_id, approved_by=actor)
         )
+        if outcome.code in ("approved", "rejected"):
+            audit_service.record(
+                db,
+                identity,
+                audit_service.PAYMENT_APPROVED if approve else audit_service.PAYMENT_REJECTED,
+                target_type="payment",
+                target_id=payment_id,
+            )
         return _PaymentView(
             code=outcome.code,
             payment_id=outcome.payment.id if outcome.payment else None,
@@ -519,7 +450,7 @@ async def _moderate(query: CallbackQuery, bot: Bot, *, approve: bool) -> None:
             telegram_user_id=outcome.payment.telegram_user_id if outcome.payment else None,
         )
 
-    view = await _run_db(_work)
+    view = await _run_db_commit(_work)
 
     # Avval tugmani javobsiz qoldirmaymiz va klaviaturani tozalaymiz: mijozga xabar
     # yuborish muvaffaqiyatsiz bo'lsa ham admin panelida "aylanish" qolmaydi.
@@ -531,6 +462,8 @@ async def _moderate(query: CallbackQuery, bot: Bot, *, approve: bool) -> None:
     if not done:
         return
 
+    # Mijozga xabar va PDF `approve_payment`/`reject_payment` ichida navbatga
+    # qo'yildi — bu yerdan to'g'ridan-to'g'ri yuborish takroriy xabar bo'lardi.
     if not view.telegram_user_id:
         logger.warning("#%s to‘lovda Telegram ID yo‘q — foydalanuvchiga xabar yuborilmadi", payment_id)
         if isinstance(query.message, Message):
@@ -540,28 +473,6 @@ async def _moderate(query: CallbackQuery, bot: Bot, *, approve: bool) -> None:
                     f"#{payment_id}: foydalanuvchining Telegram ID si yo‘q, unga xabar yuborilmadi."
                 ),
             )
-        return
-
-    if approve:
-        await _safe_telegram(
-            "send_message",
-            bot.send_message(
-                view.telegram_user_id,
-                "✅ To‘lov tasdiqlandi!\n\nPremium MBTI tahlilingiz ochildi.",
-                reply_markup=_premium_result_keyboard(view.session_token),
-            ),
-        )
-        await _send_premium_pdf(bot, view.telegram_user_id, view.session_token)
-        return
-
-    await _safe_telegram(
-        "send_message",
-        bot.send_message(
-            view.telegram_user_id,
-            "❌ To‘lovni tasdiqlab bo‘lmadi.\n\n"
-            "Iltimos, to‘g‘ri chekni qayta yuboring yoki admin bilan bog‘laning.",
-        ),
-    )
 
 
 _MODERATION_ANSWERS = {
@@ -586,10 +497,26 @@ def _payment_id_from_callback(data: str | None) -> int | None:
         return None
 
 
-def _is_admin(query: CallbackQuery) -> bool:
-    if settings.admin_telegram_id is None:
-        return False
-    return query.from_user is not None and query.from_user.id == settings.admin_telegram_id
+async def _resolve_admin(telegram_user_id: int) -> AdminIdentity | None:
+    """Telegram foydalanuvchisi uchun admin shaxsi.
+
+    `.env` ro'yxati avval va HECH QANDAY I/O siz tekshiriladi: baza javob bermay
+    qolsa ham asosiy egasi moderatsiya qila olishi kerak. Bazaga murojaat esa
+    `_run_db` orqali, ya'ni event loop bloklanmaydi.
+    """
+    if telegram_user_id in settings.admin_telegram_id_set:
+        return AdminIdentity(
+            username=str(telegram_user_id),
+            role=AdminRole.OWNER,
+            telegram_user_id=telegram_user_id,
+            actor_type=ACTOR_TELEGRAM,
+        )
+    try:
+        return await _run_db(lambda db: telegram_identity(db, telegram_user_id))
+    except Exception:
+        # Fail-closed: baza yo'q bo'lsa faqat `.env` dagi adminlar ishlaydi.
+        logger.exception("Admin ro‘yxatini o‘qib bo‘lmadi")
+        return None
 
 
 ERROR_TEXT = "Xatolik yuz berdi. Birozdan so‘ng qayta urinib ko‘ring."
@@ -641,8 +568,24 @@ async def check_bot_configuration(bot: Bot) -> list[str]:
                 f"lekin token '@{actual}' botiga tegishli — foydalanuvchi boshqa botga yuborilmoqda"
             )
 
-    if settings.admin_telegram_id is None:
-        problems.append("ADMIN_TELEGRAM_ID sozlanmagan — cheklar moderatsiyaga bormaydi")
+    try:
+        targets = await _run_db(admin_chat_ids)
+    except Exception:
+        logger.exception("Admin ro‘yxatini o‘qib bo‘lmadi")
+        targets = sorted(settings.admin_telegram_id_set)
+    if not targets:
+        problems.append(
+            "Hech qanday admin sozlanmagan (ADMIN_TELEGRAM_IDS yoki admin_users) — "
+            "cheklar moderatsiyaga bormaydi"
+        )
+
+    try:
+        overdue = await _run_db(lambda db: outbox_health(db).overdue_pending)
+    except Exception:
+        logger.exception("Bildirishnoma navbatini o‘qib bo‘lmadi")
+        overdue = 0
+    if overdue:
+        problems.append(f"Navbatda {overdue} ta kechikkan bildirishnoma bor")
 
     if settings.public_base_url_is_local:
         problems.append(
@@ -656,10 +599,21 @@ async def run_bot() -> None:
     if not settings.bot_token:
         raise RuntimeError("BOT_TOKEN is not configured")
     bot = Bot(token=settings.bot_token)
+    worker: asyncio.Task[None] | None = None
     try:
         for problem in await check_bot_configuration(bot):
             logger.warning("Bot sozlamasi ogohlantirishi: %s", problem)
         dp = create_dispatcher()
+        # Navbat ishchisi AYNAN shu jarayonda: bot konteyneri yagona nusxada
+        # ishlaydi, uvicorn esa bir nechta ishchi bilan ishga tushishi mumkin —
+        # u yerda navbat bir necha marta yuborilardi.
+        worker = asyncio.create_task(run_worker(bot))
         await dp.start_polling(bot)
     finally:
+        if worker is not None:
+            # Sessiya yopilishidan OLDIN to'xtatiladi, aks holda yuborish o'rtasida
+            # "Session is closed" xatosi chiqib, qator noto'g'ri belgilanardi.
+            worker.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await worker
         await bot.session.close()

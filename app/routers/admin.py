@@ -14,10 +14,32 @@ from slowapi.util import get_remote_address
 from sqlalchemy.orm import Session
 from starlette.responses import Response
 
+from app.authz import (
+    EXPORT_DATA,
+    MANAGE_USERS,
+    MODERATE_PAYMENTS,
+    VIEW_AGGREGATE,
+    VIEW_AUDIT,
+    VIEW_OPS,
+    VIEW_PII,
+    AdminIdentity,
+    requires,
+    role_label,
+)
 from app.config import settings
-from app.dependencies import get_db_session, require_admin, verify_admin_credentials
+from app.dependencies import (
+    current_admin,
+    get_db_session,
+    require_admin,
+    start_admin_session,
+    verify_admin_credentials,
+)
+from app.models.enums import AdminRole
+from app.models.notification import OUTBOX_WORKER_HEARTBEAT, RETENTION_HEARTBEAT
 from app.personality.payment_code import payment_code_for_session
+from app.repositories.admin_repository import AdminRepository
 from app.repositories.payment_repository import PaymentRepository
+from app.services import admin_service, audit_service, csv_export, notification_outbox, retention_service
 from app.services.admin_analytics_service import (
     DEFAULT_PAGE_SIZE,
     AdminAnalyticsService,
@@ -27,6 +49,7 @@ from app.services.admin_analytics_service import (
 from app.services.personality_service import PersonalityService
 from app.services.premium_payment_service import PremiumPaymentService, format_price_uzs
 from app.templating import templates
+from app.timeutils import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -67,11 +90,19 @@ def admin_login_page(request: Request) -> Response:
 @login_limiter.limit(settings.rate_limit_login)
 def admin_login(
     request: Request,
+    db: Session = Depends(get_db_session),
     username: str = Form(...),
     password: str = Form(...),
 ):
-    if not verify_admin_credentials(username, password):
+    identity = verify_admin_credentials(username, password, db)
+    if identity is None:
         logger.warning("Admin panelga muvaffaqiyatsiz kirish urinishi")
+        audit_service.record(
+            db,
+            None,
+            audit_service.LOGIN_FAILED,
+            detail={"login": (username or "")[:32]},
+        )
         return templates.TemplateResponse(
             request,
             "admin/login.html",
@@ -79,8 +110,8 @@ def admin_login(
             status_code=401,
         )
     # Session fixation'ga qarshi: kirishdan oldin eski sessiya tarkibi tashlanadi.
-    request.session.clear()
-    request.session["admin_authenticated"] = True
+    start_admin_session(request, identity)
+    audit_service.record(db, identity, audit_service.LOGIN_SUCCESS)
     return RedirectResponse(url="/admin", status_code=303)
 
 
@@ -91,12 +122,18 @@ def admin_logout(request: Request) -> RedirectResponse:
 
 
 @router.get("", response_class=HTMLResponse, response_model=None)
+@requires(VIEW_AGGREGATE)
 def admin_dashboard(
     request: Request,
     db: Session = Depends(get_db_session),
+    admin: AdminIdentity = Depends(current_admin),
+    range: int = Query(default=30, ge=0, le=365),
+    variant: str | None = Query(default=None),
 ) -> Response:
     service = AdminAnalyticsService(db)
     variants = service.variant_stats()
+    known = [row.variant for row in variants]
+    chosen = variant if variant in known else None
     return templates.TemplateResponse(
         request,
         "admin/dashboard.html",
@@ -104,11 +141,18 @@ def admin_dashboard(
             "stats": service.dashboard_stats(),
             # Bitta to'plam bo'lsa taqqoslashning ma'nosi yo'q.
             "variants": variants if len(variants) > 1 else [],
+            "funnel": service.funnel(days=range or None, variant=chosen),
+            "range_options": (7, 30, 90, 0),
+            "current_range": range,
+            "variant_options": known,
+            "current_variant": chosen,
+            "admin": admin,
         },
     )
 
 
 @router.get("/sessions", response_class=HTMLResponse, response_model=None)
+@requires(VIEW_PII)
 def admin_sessions_list(
     request: Request,
     db: Session = Depends(get_db_session),
@@ -139,6 +183,7 @@ def admin_sessions_list(
 
 
 @router.get("/sessions/{session_id}", response_class=HTMLResponse, response_model=None)
+@requires(VIEW_PII)
 def admin_session_detail(
     request: Request,
     session_id: int,
@@ -159,20 +204,28 @@ def admin_session_detail(
 
 
 @router.get("/personality/sessions", response_model=None)
+@requires(VIEW_PII)
 def admin_personality_sessions_legacy() -> RedirectResponse:
     return RedirectResponse(url="/admin/sessions", status_code=303)
 
 
 @router.post("/personality/{session_id}/grant-premium")
+@requires(MODERATE_PAYMENTS)
 def admin_grant_premium(
     session_id: int,
     db: Session = Depends(get_db_session),
+    admin: AdminIdentity = Depends(current_admin),
 ) -> RedirectResponse:
     PersonalityService(db).grant_premium(session_id)
+    # Bu marshrut pulsiz premium ochadi va avval hech qanday iz qoldirmasdi.
+    audit_service.record(
+        db, admin, audit_service.PREMIUM_GRANTED, target_type="session", target_id=session_id
+    )
     return RedirectResponse(url=f"/admin/sessions/{session_id}", status_code=303)
 
 
 @router.get("/premium-requests", response_class=HTMLResponse, response_model=None)
+@requires(VIEW_PII)
 def admin_premium_requests(
     request: Request,
     db: Session = Depends(get_db_session),
@@ -205,24 +258,37 @@ def admin_premium_requests(
 
 
 @router.post("/premium-requests/{payment_id}/approve")
+@requires(MODERATE_PAYMENTS)
 def admin_premium_approve(
     payment_id: int,
     db: Session = Depends(get_db_session),
+    admin: AdminIdentity = Depends(current_admin),
 ) -> RedirectResponse:
-    PremiumPaymentService(db).approve_payment(payment_id, approved_by="web-admin")
+    outcome = PremiumPaymentService(db).approve_payment(payment_id, approved_by=admin.audit_actor)
+    if outcome.code == "approved":
+        audit_service.record(
+            db, admin, audit_service.PAYMENT_APPROVED, target_type="payment", target_id=payment_id
+        )
     return RedirectResponse(url="/admin/premium-requests", status_code=303)
 
 
 @router.post("/premium-requests/{payment_id}/reject")
+@requires(MODERATE_PAYMENTS)
 def admin_premium_reject(
     payment_id: int,
     db: Session = Depends(get_db_session),
+    admin: AdminIdentity = Depends(current_admin),
 ) -> RedirectResponse:
-    PremiumPaymentService(db).reject_payment(payment_id, approved_by="web-admin")
+    outcome = PremiumPaymentService(db).reject_payment(payment_id, approved_by=admin.audit_actor)
+    if outcome.code == "rejected":
+        audit_service.record(
+            db, admin, audit_service.PAYMENT_REJECTED, target_type="payment", target_id=payment_id
+        )
     return RedirectResponse(url="/admin/premium-requests", status_code=303)
 
 
 @router.get("/premium-requests/{payment_id}/receipt", response_model=None)
+@requires(VIEW_PII)
 def admin_premium_receipt(
     payment_id: int,
     db: Session = Depends(get_db_session),
@@ -300,3 +366,350 @@ def _stream_connection(connection: HTTPResponse) -> Iterator[bytes]:
             if not chunk:
                 return
             yield chunk
+
+
+# --- Eksport ---
+
+
+def _csv_response(file: csv_export.CsvFile) -> Response:
+    # Fayl nomi faqat ASCII; RFC 5987 shakli kelajakda nom o'zgarsa ham xavfsiz qoladi.
+    encoded = quote(file.filename)
+    disposition = f"attachment; filename=\"{file.filename}\"; filename*=UTF-8''{encoded}"
+    return Response(
+        content=file.content,
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": disposition,
+            # Shaxsiy ma'lumotli fayl keshda qolmasligi kerak.
+            "Cache-Control": "private, no-store, max-age=0",
+            "Pragma": "no-cache",
+            "X-Robots-Tag": "noindex, nofollow",
+        },
+    )
+
+
+def _export_error(exc: Exception) -> HTTPException:
+    if isinstance(exc, csv_export.ExportTooLarge):
+        return HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Juda ko‘p qator ({exc.total} > {exc.limit}). Sana oralig‘ini toraytiring.",
+        )
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.get("/export/sessions.csv", response_model=None)
+@requires(EXPORT_DATA)
+def admin_export_sessions(
+    db: Session = Depends(get_db_session),
+    admin: AdminIdentity = Depends(current_admin),
+    filter: str = Query(default="all"),
+    date_from: str | None = Query(default=None),
+    date_to: str | None = Query(default=None),
+) -> Response:
+    try:
+        filters = csv_export.session_filters(filter, date_from, date_to)
+        file = csv_export.export_sessions(db, filters)
+    except (csv_export.ExportFilterError, csv_export.ExportTooLarge) as exc:
+        raise _export_error(exc) from None
+
+    # Audit yozuvi javobdan OLDIN saqlanadi: yuklab olish uzilib qolsa ham
+    # "kim nimani chiqardi" yozuvi qolishi kerak.
+    audit_service.record(
+        db,
+        admin,
+        audit_service.EXPORT_SESSIONS,
+        detail={"filtr": filters.describe(), "qator": file.rows},
+    )
+    db.commit()
+    return _csv_response(file)
+
+
+@router.get("/export/payments.csv", response_model=None)
+@requires(EXPORT_DATA)
+def admin_export_payments(
+    db: Session = Depends(get_db_session),
+    admin: AdminIdentity = Depends(current_admin),
+    filter: str = Query(default="all"),
+    date_from: str | None = Query(default=None),
+    date_to: str | None = Query(default=None),
+) -> Response:
+    try:
+        filters = csv_export.payment_filters(filter, date_from, date_to)
+        file = csv_export.export_payments(db, filters)
+    except (csv_export.ExportFilterError, csv_export.ExportTooLarge) as exc:
+        raise _export_error(exc) from None
+
+    audit_service.record(
+        db,
+        admin,
+        audit_service.EXPORT_PAYMENTS,
+        detail={"filtr": filters.describe(), "qator": file.rows},
+    )
+    db.commit()
+    return _csv_response(file)
+
+
+# --- Adminlar ---
+
+
+@router.get("/users", response_class=HTMLResponse, response_model=None)
+@requires(MANAGE_USERS)
+def admin_users(
+    request: Request,
+    db: Session = Depends(get_db_session),
+    admin: AdminIdentity = Depends(current_admin),
+    error: str | None = Query(default=None),
+) -> Response:
+    return templates.TemplateResponse(
+        request,
+        "admin/users.html",
+        {
+            "users": AdminRepository(db).list_users(),
+            "roles": list(AdminRole),
+            "role_label": role_label,
+            "admin": admin,
+            "error": error,
+            "env_login": settings.admin_env_login_enabled,
+            "env_username": admin_service.env_admin_username(),
+        },
+    )
+
+
+def _users_redirect(error: str | None = None) -> RedirectResponse:
+    target = "/admin/users" + (f"?error={quote(error)}" if error else "")
+    return RedirectResponse(url=target, status_code=303)
+
+
+@router.post("/users", response_model=None)
+@requires(MANAGE_USERS)
+def admin_users_create(
+    db: Session = Depends(get_db_session),
+    admin: AdminIdentity = Depends(current_admin),
+    username: str = Form(...),
+    password: str = Form(...),
+    role: str = Form(default=AdminRole.MODERATOR.value),
+    telegram_user_id: str = Form(default=""),
+) -> Response:
+    try:
+        chosen = AdminRole(role)
+    except ValueError:
+        return _users_redirect("Noma'lum rol")
+
+    telegram_id: int | None = None
+    cleaned_id = (telegram_user_id or "").strip()
+    if cleaned_id:
+        try:
+            telegram_id = int(cleaned_id)
+        except ValueError:
+            return _users_redirect("Telegram ID raqam bo'lishi kerak")
+
+    result = admin_service.create_user(
+        db, username=username, password=password, role=chosen, telegram_user_id=telegram_id
+    )
+    if not result.ok or result.user is None:
+        return _users_redirect(result.error)
+    audit_service.record(
+        db,
+        admin,
+        audit_service.USER_CREATED,
+        target_type="admin_user",
+        target_id=result.user.id,
+        detail={"login": result.user.username, "rol": chosen.value},
+    )
+    return _users_redirect()
+
+
+@router.post("/users/{user_id}/role", response_model=None)
+@requires(MANAGE_USERS)
+def admin_users_role(
+    user_id: int,
+    db: Session = Depends(get_db_session),
+    admin: AdminIdentity = Depends(current_admin),
+    role: str = Form(...),
+) -> Response:
+    user = AdminRepository(db).get_by_id(user_id)
+    if user is None:
+        return _users_redirect("Hisob topilmadi")
+    try:
+        chosen = AdminRole(role)
+    except ValueError:
+        return _users_redirect("Noma'lum rol")
+
+    result = admin_service.set_role(db, user, chosen, actor=admin)
+    if not result.ok:
+        return _users_redirect(result.error)
+    audit_service.record(
+        db,
+        admin,
+        audit_service.USER_ROLE_CHANGED,
+        target_type="admin_user",
+        target_id=user_id,
+        detail={"login": user.username, "rol": chosen.value},
+    )
+    return _users_redirect()
+
+
+@router.post("/users/{user_id}/active", response_model=None)
+@requires(MANAGE_USERS)
+def admin_users_active(
+    user_id: int,
+    db: Session = Depends(get_db_session),
+    admin: AdminIdentity = Depends(current_admin),
+    active: str = Form(default="0"),
+) -> Response:
+    user = AdminRepository(db).get_by_id(user_id)
+    if user is None:
+        return _users_redirect("Hisob topilmadi")
+
+    wanted = active == "1"
+    result = admin_service.set_active(db, user, wanted, actor=admin)
+    if not result.ok:
+        return _users_redirect(result.error)
+    audit_service.record(
+        db,
+        admin,
+        audit_service.USER_ACTIVATED if wanted else audit_service.USER_DEACTIVATED,
+        target_type="admin_user",
+        target_id=user_id,
+        detail={"login": user.username},
+    )
+    return _users_redirect()
+
+
+@router.post("/users/{user_id}/password", response_model=None)
+@requires(MANAGE_USERS)
+def admin_users_password(
+    user_id: int,
+    db: Session = Depends(get_db_session),
+    admin: AdminIdentity = Depends(current_admin),
+    password: str = Form(...),
+) -> Response:
+    user = AdminRepository(db).get_by_id(user_id)
+    if user is None:
+        return _users_redirect("Hisob topilmadi")
+    result = admin_service.set_password(db, user, password)
+    if not result.ok:
+        return _users_redirect(result.error)
+    audit_service.record(
+        db,
+        admin,
+        audit_service.USER_PASSWORD_CHANGED,
+        target_type="admin_user",
+        target_id=user_id,
+        detail={"login": user.username},
+    )
+    return _users_redirect()
+
+
+# --- Audit jurnali ---
+
+
+@router.get("/audit", response_class=HTMLResponse, response_model=None)
+@requires(VIEW_AUDIT)
+def admin_audit(
+    request: Request,
+    db: Session = Depends(get_db_session),
+    action: str = Query(default="all"),
+    page: int = Query(default=1, ge=1),
+) -> Response:
+    repo = AdminRepository(db)
+    current = normalize_page(page)
+    entries = repo.list_audit(
+        action=action, limit=DEFAULT_PAGE_SIZE, offset=(current - 1) * DEFAULT_PAGE_SIZE
+    )
+    pagination = Page(
+        items=entries,
+        total=repo.count_audit(action=action),
+        page=current,
+        page_size=DEFAULT_PAGE_SIZE,
+    )
+    return templates.TemplateResponse(
+        request,
+        "admin/audit.html",
+        {
+            "entries": entries,
+            "pagination": pagination,
+            "current_action": action,
+            "actions": sorted(audit_service.NEVER_PURGED_ACTIONS | {audit_service.LOGIN_SUCCESS}),
+        },
+    )
+
+
+# --- Bildirishnoma navbati ---
+
+
+@router.get("/notifications", response_class=HTMLResponse, response_model=None)
+@requires(VIEW_OPS)
+def admin_notifications(
+    request: Request,
+    db: Session = Depends(get_db_session),
+    filter: str = Query(default="pending"),
+    page: int = Query(default=1, ge=1),
+) -> Response:
+    current = normalize_page(page)
+    rows, total = notification_outbox.list_for_admin(
+        db,
+        status_filter=filter,
+        limit=DEFAULT_PAGE_SIZE,
+        offset=(current - 1) * DEFAULT_PAGE_SIZE,
+    )
+    seen_at = notification_outbox.heartbeat_seen_at(db, OUTBOX_WORKER_HEARTBEAT)
+    return templates.TemplateResponse(
+        request,
+        "admin/notifications.html",
+        {
+            "rows": rows,
+            "pagination": Page(items=rows, total=total, page=current, page_size=DEFAULT_PAGE_SIZE),
+            "current_filter": filter,
+            "health": notification_outbox.health(db, worker_seen_at=seen_at),
+            "statuses": notification_outbox.ADMIN_STATUS_FILTERS,
+            "now": utcnow(),
+            "overdue_minutes": settings.outbox_overdue_minutes,
+        },
+    )
+
+
+@router.post("/notifications/{outbox_id}/retry", response_model=None)
+@requires(VIEW_OPS)
+def admin_notification_retry(
+    outbox_id: int,
+    db: Session = Depends(get_db_session),
+    admin: AdminIdentity = Depends(current_admin),
+    filter: str = Form(default="failed"),
+) -> RedirectResponse:
+    if notification_outbox.retry_now(db, outbox_id):
+        audit_service.record(
+            db,
+            admin,
+            audit_service.NOTIFICATION_RETRIED,
+            target_type="notification",
+            target_id=outbox_id,
+        )
+    return RedirectResponse(url=f"/admin/notifications?filter={quote(filter)}", status_code=303)
+
+
+# --- Saqlash siyosati ---
+
+
+@router.get("/retention", response_class=HTMLResponse, response_model=None)
+@requires(VIEW_OPS)
+def admin_retention(
+    request: Request,
+    db: Session = Depends(get_db_session),
+) -> Response:
+    """Faqat hisobot.
+
+    O'chirish ATAYLAB bu yerda emas: `python -m app.retention --apply`. Shunda
+    brauzerdagi ikkinchi bosish yoki proksi timeouti yarim bajarilgan tozalashga
+    olib kelmaydi, hech qanday qulf va CSRF himoyasi ham kerak bo'lmaydi.
+    """
+    report = retention_service.run(db, dry_run=True)
+    return templates.TemplateResponse(
+        request,
+        "admin/retention.html",
+        {
+            "report": report,
+            "labels": retention_service.RULE_LABELS,
+            "last_run": notification_outbox.heartbeat_seen_at(db, RETENTION_HEARTBEAT),
+        },
+    )

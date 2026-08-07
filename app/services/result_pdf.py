@@ -69,15 +69,31 @@ def build_report(db: Session, token: str, *, lang: str, base_url: str) -> PdfRep
     )
 
 
+class PdfNotPremium(Exception):
+    """Sessiya premium emas — hisobot chiqarilmaydi (qayta urinishning ma'nosi yo'q)."""
+
+
+class PdfFontsUnavailable(Exception):
+    """Shriftlar yig'ilmada yo'q — bu deploy nuqsoni, vaqtinchalik xato deb qaraladi."""
+
+
 def build_pdf_bytes(
     db: Session,
     token: str,
     *,
     lang: str = DEFAULT_LANG,
     base_url: str,
-) -> bytes | None:
-    """Premium bo'lmagan sessiya uchun ham None qaytaradi — pullik kontent chetlab o'tilmasin."""
+) -> bytes:
+    """Ikki xil muvaffaqiyatsizlik ATAYLAB ajratilgan.
+
+    Avval ikkalasi ham `None` qaytarardi. Natijada shriftsiz yig'ilgan bitta image
+    butun navbatni bir necha soniyada "abadiy muvaffaqiyatsiz" qilib qo'yishi mumkin
+    edi va uni premium bekor qilingan holatdan ajratib bo'lmasdi.
+    """
     session = PersonalityService(db).get_session_or_404(token)
     if not session.is_premium:
-        return None
-    return build_result_pdf(build_report(db, token, lang=lang, base_url=base_url))
+        raise PdfNotPremium(token)
+    payload = build_result_pdf(build_report(db, token, lang=lang, base_url=base_url))
+    if payload is None:
+        raise PdfFontsUnavailable(token)
+    return payload

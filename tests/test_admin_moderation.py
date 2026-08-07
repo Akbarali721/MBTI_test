@@ -92,7 +92,8 @@ def test_admin_can_approve_a_payment_from_the_panel(client, payment):
 
     with db_session(client) as db:
         assert session_by_token(db, token).is_premium is True
-        assert db.get(PaymentRequest, payment_id).approved_by == "web-admin"
+        # Endi aniq kim tasdiqlagani yoziladi, "web-admin" degan umumiy nom emas.
+        assert db.get(PaymentRequest, payment_id).approved_by == f"web:{settings.admin_username}"
 
 
 def test_admin_can_reject_a_payment_from_the_panel(client, payment):

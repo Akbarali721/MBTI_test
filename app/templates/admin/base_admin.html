@@ -25,17 +25,29 @@
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="adminNav">
+        {# Havolalar rol bo'yicha ko'rsatiladi. Bu qulaylik uchun — haqiqiy tekshiruv
+           har doim serverda, require_admin ichida bajariladi. #}
+        {% set admin = request.state.admin %}
         <ul class="navbar-nav me-auto">
+          {% for key, href, label, permission in [
+            ('dashboard', '/admin', 'Bosh sahifa', 'view_aggregate'),
+            ('sessions', '/admin/sessions', 'Sessiyalar', 'view_pii'),
+            ('premium', '/admin/premium-requests', 'Premium so‘rovlar', 'view_pii'),
+            ('notifications', '/admin/notifications', 'Bildirishnomalar', 'view_ops'),
+            ('retention', '/admin/retention', 'Saqlash siyosati', 'view_ops'),
+            ('users', '/admin/users', 'Adminlar', 'manage_users'),
+            ('audit', '/admin/audit', 'Audit', 'view_audit'),
+          ] %}
+          {% if admin and admin.can(permission) %}
           <li class="nav-item">
-            <a class="nav-link {% if active_nav == 'dashboard' %}active{% endif %}" href="/admin">Bosh sahifa</a>
+            <a class="nav-link {% if active_nav == key %}active{% endif %}" href="{{ href }}">{{ label }}</a>
           </li>
-          <li class="nav-item">
-            <a class="nav-link {% if active_nav == 'sessions' %}active{% endif %}" href="/admin/sessions">Sessiyalar</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link {% if active_nav == 'premium' %}active{% endif %}" href="/admin/premium-requests">Premium so‘rovlar</a>
-          </li>
+          {% endif %}
+          {% endfor %}
         </ul>
+        {% if admin %}
+        <span class="navbar-text me-3 small text-white-50">{{ admin.username }}</span>
+        {% endif %}
         <a class="nav-link" href="/admin/logout">Chiqish</a>
       </div>
     </div>

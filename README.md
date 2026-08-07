@@ -41,6 +41,42 @@ Loyiha ikki jarayondan iborat:
     `QUESTION_VARIANTS` bilan boshqariladi, natijalar admin panelida solishtiriladi.
   - **Botda toʻliq test** — `/test` buyrugʻi bilan testni Telegram ichida topshirish
     (veb bilan bir xil savollar va bir xil ball hisoblash).
+- Operatsion imkoniyatlar:
+  - **Chek rasmi admin panelida** — Telegram `getFile` ni proxy qiluvchi autentifikatsiyalangan
+    endpoint; bot tokeni brauzerga chiqmaydi.
+  - **Koʻp admin va rollar** `/admin/users` — `egasi` / `moderator` / `kuzatuvchi`. Ruxsat
+    tekshiruvi bitta joyda va **fail-closed**: ruxsati eʼlon qilinmagan admin marshruti
+    hech kimga ochilmaydi. Rol cookieʼda saqlanmaydi, har soʻrovda bazadan oʻqiladi —
+    hisobni oʻchirish yoki rolni pasaytirish darhol kuchga kiradi.
+  - **Audit jurnali** `/admin/audit` — kirish, moderatsiya, eksport va hisob oʻzgarishlari.
+    Yozuvda token, toʻlov kodi yoki chek `file_id` saqlanmaydi.
+  - **Voronka** `/admin` — tashrif → boshlandi → tugadi → toʻlov soʻrovi → chek → tasdiq.
+    Kogorta birinchi tashrif kuni boʻyicha, shuning uchun bosqichlar bir-biridan oshib
+    ketmaydi. 7/30/90 kun va savol toʻplami boʻyicha filtr, oxirgi 14 kun dinamikasi.
+  - **CSV eksport** — sessiyalar va toʻlovlar (Excel uchun BOM + `;`). Token, toʻlov kodi,
+    ulashish kodi va chek `file_id` **hech qachon** chiqmaydi; matn kataklari formulaga
+    aylanmaydi.
+  - **Bildirishnoma navbati** `/admin/notifications` — har xabar holat oʻzgarishi bilan bitta
+    tranzaksiyada navbatga yoziladi, bot jarayonidagi ishchi uni yetkazadi va qayta urinadi.
+  - **Maʼlumotlarni saqlash siyosati** `/admin/retention` — eskirgan sessiyalarni tozalash;
+    buzgʻunchi amallar faqat CLI da.
+
+### Operatsion buyruqlar
+
+```bash
+python -m app.admins list                                  # admin hisoblari
+python -m app.admins create --username dilnoza --role moderator --telegram-id 123456
+python -m app.admins set-password --username dilnoza       # parol soʻraladi (tarixda qolmaydi)
+python -m app.admins set-role --username dilnoza --role viewer
+python -m app.admins deactivate --username dilnoza
+
+python -m app.retention                                    # nima oʻchirilishini koʻrsatadi
+python -m app.retention --apply                            # siyosatni bajaradi
+python -m app.retention --apply --rule visited --max-rows 5000
+```
+
+`python -m app.admins` — panelga kira olmay qolganda ("oxirgi egani oʻchirib qoʻydim",
+"parolni unutdim") ishlatiladigan zaxira yoʻl.
 
 ### Savol toʻplamlari (A/B test)
 
@@ -203,6 +239,9 @@ cp .env.example .env      # Windows: copy .env.example .env
 | `ADMIN_USERNAME` | `/admin/login` uchun login | `DEBUG=false` da `admin` boʻlishi mumkin emas |
 | `ADMIN_PASSWORD_HASH` | Admin parolining **bcrypt hash'i** — ochiq parol hech qayerda saqlanmaydi | Productionda majburiy; quyidagi buyruq bilan hosil qilinadi |
 | `ADMIN_PASSWORD` | Faqat lokal qulaylik uchun ochiq parol: `DEBUG=true` da ishga tushishda hashlanadi | `DEBUG=false` da **qabul qilinmaydi**; `admin` qiymati taqiqlangan |
+| `ADMIN_ENV_LOGIN_ENABLED` | `.env` dagi zaxira hisob bilan kirishni yoqadi | Standart `true`. `false` qilishdan **oldin** bazada faol egani yarating (`python -m app.admins create`) |
+
+Qoʻshimcha hisoblar bazada saqlanadi (`/admin/users` yoki `python -m app.admins`). `.env` dagi hisob — zaxira yoʻl: u uchun bazada qator yaratilmaydi va u har doim `egasi` huquqida ishlaydi. Bazada shu nom bilan qator boʻlsa, **oʻsha qator hokim** — ya'ni uni oʻchirish `.env` orqali kirishni ham yopadi.
 
 ### Telegram
 
@@ -211,7 +250,8 @@ cp .env.example .env      # Windows: copy .env.example .env
 | `BOT_TOKEN` | @BotFather bergan token; bot shu token bilan ishga tushadi | Boʻsh boʻlsa `python -m app.bot` ishlamaydi |
 | `BOT_USERNAME` | Chekni **haqiqatda qabul qiladigan** bot username'i (`@` siz). Deep-link shundan quriladi: `https://t.me/<BOT_USERNAME>?start=premium_<token>` | `BOT_TOKEN` egasi bilan **bitta va oʻsha** bot boʻlishi shart |
 | `PAYMENT_SUPPORT_BOT_USERNAME` | Koʻrsatiladigan qoʻllab-quvvatlash boti | `BOT_USERNAME` boʻsh boʻlsa zaxira sifatida ishlatiladi |
-| `ADMIN_TELEGRAM_ID` | Botda "Tasdiqlash / Rad etish" tugmalarini bosishga ruxsat etilgan Telegram user ID (raqam) | ID ni @userinfobot dan oling |
+| `ADMIN_TELEGRAM_ID` | Botda moderatsiya qila oladigan asosiy Telegram user ID (raqam) | ID ni @userinfobot dan oling |
+| `ADMIN_TELEGRAM_IDS` | Bir nechta ID, vergul bilan: `111,222`. `ADMIN_TELEGRAM_ID` bilan birlashtiriladi | Chek **hammasiga** yuboriladi. `admin_users` dagi Telegram ID lar ham qoʻshiladi, lekin ular roli boʻyicha cheklanadi |
 
 ### Premium toʻlov
 
@@ -234,12 +274,37 @@ cp .env.example .env      # Windows: copy .env.example .env
 | `RATE_LIMIT_LOGIN` | Admin login uchun qatʼiyroq cheklov (brute-force'ga qarshi) | `5/minute` |
 | `RATE_LIMIT_STORAGE_URI` | slowapi saqlagichi | `memory://` yoki `redis://host:6379`. Bir nechta worker boʻlsa Redis kerak |
 
+### Bildirishnoma navbati
+
+| Kalit | Nima qiladi | Eslatma |
+| --- | --- | --- |
+| `OUTBOX_MAX_ATTEMPTS` | Bitta xabar uchun urinishlar soni | Standart `8`. Flood-limit urinish hisoblanmaydi |
+| `OUTBOX_POLL_SECONDS` | Navbat boʻsh boʻlganda ishchi qancha kutadi | Standart `5` |
+| `OUTBOX_BATCH_SIZE` | Bir yurishda nechta qator band qilinadi | Standart `5` |
+| `OUTBOX_LEASE_SECONDS` | Band qilingan qator shuncha vaqtdan keyin qaytariladi | Standart `180`. Jarayon oʻlsa qator yoʻqolmaydi |
+| `OUTBOX_OVERDUE_MINUTES` | Shundan uzoq kutgan xabar panelda ogohlantirish sifatida koʻrinadi | Standart `15` |
+
+### Eksport va saqlash muddati
+
+| Kalit | Nima qiladi | Eslatma |
+| --- | --- | --- |
+| `EXPORT_MAX_ROWS` | CSV eksportdagi qatorlar chegarasi | Standart `50000`; oshsa 400 va "diapazonni toraytiring" |
+| `RETENTION_VISITED_DAYS` | Boshlanmagan sessiyalar shuncha kundan keyin **oʻchiriladi** | Standart `30`. **`0` = qoida oʻchirilgan**, manfiy qiymat qabul qilinmaydi |
+| `RETENTION_INCOMPLETE_DAYS` | Tashlab ketilgan sessiyalar shuncha kundan keyin **anonimlashtiriladi** | Standart `90`. Qator oʻchirilmaydi — voronka tarixi buzilmaydi |
+| `RETENTION_OUTBOX_DAYS` | Yakunlangan bildirishnomalar shuncha kundan keyin oʻchiriladi | Standart `30`. Yuborilmagan xabar **hech qachon** oʻchirilmaydi |
+| `RETENTION_AUDIT_DAYS` | Auditning oddiy yozuvlari (kirish) shuncha kundan keyin oʻchiriladi | Standart `730`. Pul, rol va eksport yozuvlari hech qachon tozalanmaydi |
+
+Toʻlov qatori, jamoa aʼzosi yoki premiumga tegishli sessiya **hech bir qoida bilan**
+oʻchirilmaydi: shart soʻrovning oʻzida (`NOT EXISTS`) va oʻchirishdan oldin yana bir marta
+tekshiriladi. Oʻchiriladigan sessiyalar avval kunlik agregatga yigʻiladi, shuning uchun
+voronka va A/B sonlari tozalashdan keyin ham oʻzgarmaydi.
+
 ### Xavfsizlik va sessiya
 
 | Kalit | Nima qiladi | Eslatma |
 | --- | --- | --- |
 | `SECURE_COOKIES` | Cookie'ni faqat HTTPS'ga bogʻlaydi va HSTS sarlavhasini qoʻshadi | Koʻrsatilmasa `DEBUG` boʻyicha aniqlanadi (prod: yoqiq) |
-| `SESSION_MAX_AGE` | Admin sessiya cookie'sining amal qilish muddati (sekund) | Standart `28800` (8 soat) |
+| `SESSION_MAX_AGE` | Admin sessiyasining **mutlaq** muddati (sekund) | Standart `28800` (8 soat). Kirish vaqti sessiyada saqlanadi, shuning uchun cookieʼni ishlatib turish muddatni uzaytirmaydi |
 | `TRUSTED_PROXIES` | `X-Forwarded-*` sarlavhalariga ishoniladigan proxy manzillari (vergul bilan) | Standart `127.0.0.1`; hammasi uchun `*` |
 | `CONTENT_SECURITY_POLICY` | CSP sarlavhasini toʻliq almashtiradi | Koʻrsatilmasa qatʼiy standart (`default-src 'self'`, faqat `/static`) |
 

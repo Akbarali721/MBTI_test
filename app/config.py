@@ -44,13 +44,51 @@ DEFAULT_CSP = (
 
 DEFAULT_LOG_LEVEL = "INFO"
 
+# Admin paroli uchun eng kam talab — .env dagi hisob ham, bazadagi hisob ham
+# shu bir xil qoidadan o'tadi.
+MIN_ADMIN_PASSWORD_LENGTH = 10
+WEAK_ADMIN_PASSWORDS = frozenset({"admin", "admin123", "password", "parol", "12345678", "qwerty"})
+
+RETENTION_FIELDS = (
+    "retention_visited_days",
+    "retention_incomplete_days",
+    "retention_outbox_days",
+    "retention_audit_days",
+)
+
 
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def verify_password(password: str, password_hash: str) -> bool:
+def admin_credential_problems(username: str, password: str | None, *, debug: bool) -> list[str]:
+    """Login/parol siyosati — `.env` tekshiruvi va hisob yaratish uchun bitta manba.
+
+    Aks holda bazadagi hisoblar `.env` hisobidan past talabga tushib qolardi:
+    validator import vaqtida faqat `.env` qiymatlarini ko'radi.
+    """
+    problems: list[str] = []
+    cleaned = (username or "").strip()
+    if not cleaned:
+        problems.append("Login bo'sh bo'lishi mumkin emas")
+    elif cleaned.lower() == "admin" and not debug:
+        problems.append("Production'da login 'admin' bo'lishi mumkin emas")
+
+    if password is None:
+        return problems
+    if password.strip().lower() in WEAK_ADMIN_PASSWORDS:
+        problems.append("Parol juda oson (taqiqlangan ro'yxatda)")
+    elif len(password) < MIN_ADMIN_PASSWORD_LENGTH:
+        problems.append(f"Parol kamida {MIN_ADMIN_PASSWORD_LENGTH} belgidan iborat bo'lishi kerak")
+    return problems
+
+
+def verify_password(password: str, password_hash: str | None) -> bool:
     """passlib noto'g'ri formatdagi hash uchun ValueError otadi; uni False deb qaraymiz."""
+    if not password_hash:
+        # Hash yo'q (masalan hali faollashtirilmagan hisob): passlib None uchun
+        # TypeError otardi va login 500 bilan yiqilardi.
+        return False
     try:
         return pwd_context.verify(password, password_hash)
     except ValueError:
@@ -67,6 +105,9 @@ class Settings(BaseSettings):
     admin_username: str = "admin"
     admin_password: str = ""
     admin_password_hash: str = ""
+    # false bo'lsa `.env` dagi zaxira hisob bilan kirish o'chiriladi va hisoblar
+    # faqat bazada bo'ladi. Shunda `.env` dagi ADMIN_* qiymatlari talab qilinmaydi.
+    admin_env_login_enabled: bool = True
 
     bot_username: str = ""
     bot_token: str = ""
@@ -77,7 +118,30 @@ class Settings(BaseSettings):
     payment_card_holder: str = ""
     payment_support_bot_username: str = ""
     admin_telegram_id: int | None = None
+    # Vergul bilan ajratilgan ro'yxat. `list[int]` deb e'lon qilinsa pydantic-settings
+    # qiymatni JSON deb o'qiydi va "111,222" import vaqtida SettingsError beradi —
+    # shuning uchun trusted_proxies bilan bir xil naqsh ishlatiladi.
+    admin_telegram_ids: str = ""
     public_base_url: str = "http://127.0.0.1:8000"
+
+    # --- Bildirishnoma navbati ---
+    outbox_max_attempts: int = 8
+    outbox_poll_seconds: int = 5
+    outbox_batch_size: int = 5
+    # Ishchi qatorni shu muddatga "ijaraga oladi"; jarayon o'lsa qator shundan keyin
+    # qaytadan olinadi.
+    outbox_lease_seconds: int = 180
+    # Shu vaqtdan uzoq kutgan qator admin sahifasida ogohlantirish sifatida ko'rinadi.
+    outbox_overdue_minutes: int = 15
+
+    # --- Eksport ---
+    export_max_rows: int = 50_000
+
+    # --- Ma'lumotlarni saqlash muddati (kun; 0 = qoida o'chirilgan) ---
+    retention_visited_days: int = 30
+    retention_incomplete_days: int = 90
+    retention_outbox_days: int = 30
+    retention_audit_days: int = 730
 
     sentry_dsn: str = ""
     sentry_traces_sample_rate: float = 0.0
@@ -125,9 +189,39 @@ class Settings(BaseSettings):
             return not self.debug
         return self.secure_cookies
 
+    @field_validator(*RETENTION_FIELDS, mode="after")
+    @classmethod
+    def _no_negative_retention(cls, value: int) -> int:
+        # Manfiy qiymat "kesish chegarasi = hozir" degani bo'lib, butun jadvalni
+        # o'chirib yuborardi. 0 esa ataylab "qoida o'chirilgan" degani.
+        if value < 0:
+            raise ValueError("saqlash muddati manfiy bo'lishi mumkin emas (0 = o'chirilgan)")
+        return value
+
     @property
     def trusted_proxy_hosts(self) -> list[str]:
         return [host.strip() for host in self.trusted_proxies.split(",") if host.strip()]
+
+    @property
+    def admin_telegram_id_set(self) -> frozenset[int]:
+        """ADMIN_TELEGRAM_IDS + eski ADMIN_TELEGRAM_ID birlashmasi."""
+        ids: set[int] = set()
+        if self.admin_telegram_id:
+            ids.add(int(self.admin_telegram_id))
+        for chunk in self.admin_telegram_ids.split(","):
+            cleaned = chunk.strip()
+            if not cleaned:
+                continue
+            try:
+                ids.add(int(cleaned))
+            except ValueError:
+                logger.warning("ADMIN_TELEGRAM_IDS dagi qiymat raqam emas, o'tkazib yuborildi")
+        return frozenset(ids)
+
+    def retention_days(self, rule: str) -> int | None:
+        """Qoida uchun kun soni; 0 bo'lsa None (ya'ni qoida bajarilmaydi)."""
+        value = int(getattr(self, f"retention_{rule}_days"))
+        return value or None
 
     @property
     def secret_key_is_weak(self) -> bool:
@@ -149,11 +243,12 @@ class Settings(BaseSettings):
                 '`python -c "import secrets; print(secrets.token_urlsafe(48))"` bilan yangisini yarating'
             )
 
-        if self.admin_password == "admin":
-            problems.append("ADMIN_PASSWORD sifatida 'admin' ishlatilmoqda")
+        if self.admin_env_login_enabled:
+            if self.admin_password == "admin":
+                problems.append("ADMIN_PASSWORD sifatida 'admin' ishlatilmoqda")
 
-        if self.admin_username == "admin" and not self.debug:
-            problems.append("Production'da ADMIN_USERNAME 'admin' bo'lishi mumkin emas")
+            if self.admin_username == "admin" and not self.debug:
+                problems.append("Production'da ADMIN_USERNAME 'admin' bo'lishi mumkin emas")
 
         if self.public_base_url_is_local and not self.debug:
             problems.append(
@@ -161,7 +256,10 @@ class Settings(BaseSettings):
                 f"{self.public_base_url}"
             )
 
-        if not self.admin_password_hash:
+        if not self.admin_env_login_enabled:
+            # Hisoblar faqat bazada: `.env` dagi ADMIN_* talab qilinmaydi.
+            pass
+        elif not self.admin_password_hash:
             if not self.admin_password:
                 problems.append(
                     "ADMIN_PASSWORD_HASH ham, ADMIN_PASSWORD ham berilmagan, admin panelga kirib bo'lmaydi"

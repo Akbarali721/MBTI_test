@@ -1,9 +1,9 @@
 import json
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Any, cast
 
-from sqlalchemy import Table, delete, func, select
+from sqlalchemy import Table, func, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.config import settings
@@ -273,19 +273,29 @@ class PersonalityRepository:
         return updated
 
     def delete_stale_visited_sessions(self, *, older_than_days: int) -> int:
-        """Hech qachon boshlanmagan (VISITED) eski sessiyalarni o'chiradi."""
-        cutoff = datetime.now(timezone.utc) - timedelta(days=max(0, older_than_days))
-        activity = func.coalesce(PersonalityTestSession.last_activity_at, PersonalityTestSession.created_at)
-        stmt = select(PersonalityTestSession.id).where(
-            PersonalityTestSession.status == PersonalitySessionStatus.VISITED,
-            activity < cutoff,
+        """Hech qachon boshlanmagan (VISITED) eski sessiyalarni o'chiradi.
+
+        O'chirishning O'ZI bu yerda emas: butun mantiq (xavfsizlik shartlari va
+        eng muhimi — o'chirishdan oldin kunlik agregatga yig'ish) saqlash siyosati
+        xizmatida. Ikkinchi, mustaqil o'chirish yo'li bo'lsa, u agregat qadamini
+        o'tkazib yuborib voronka tarixini jimgina yo'q qilardi.
+
+        `older_than_days` KLAMP QILINMAYDI: avval `max(0, ...)` bor edi va 0 (yoki
+        manfiy) qiymat kesish chegarasini "hozir" qilib, jadvaldagi BARCHA VISITED
+        qatorlarni o'chirib yuborardi — sozlamada "o'chirilgan" deb o'qiladigan qiymat.
+        """
+        if older_than_days < 1:
+            raise ValueError("older_than_days kamida 1 bo'lishi kerak (0 = qoida o'chirilgan)")
+        from app.services import retention_service
+
+        report = retention_service.run(
+            self.db,
+            dry_run=False,
+            rules=[retention_service.RULE_VISITED],
+            days_override={retention_service.RULE_VISITED: older_than_days},
         )
-        ids = list(self.db.scalars(stmt).all())
-        if not ids:
-            return 0
-        self.db.execute(delete(PersonalityTestSession).where(PersonalityTestSession.id.in_(ids)))
         self.db.expire_all()
-        return len(ids)
+        return report.rules[0].affected
 
     def update_session_progress(self, session: PersonalityTestSession, index: int) -> None:
         session.current_question_index = index
@@ -327,6 +337,8 @@ class PersonalityRepository:
 
     def request_premium(self, session: PersonalityTestSession) -> PersonalityTestSession:
         session.premium_requested = True
+        # Vaqt belgisisiz "premium so'raldi" voronkada sanab bo'lmaydigan holat edi.
+        session.premium_requested_at = session.premium_requested_at or datetime.now(timezone.utc)
         self.db.flush()
         self.db.refresh(session)
         return session

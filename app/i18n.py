@@ -370,6 +370,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.receipt.view": "Chekni ochish",
         "admin.receipt.alt": "Yuborilgan chek",
         "admin.receipt.none": "Chek yo‘q",
+        "admin.funnel.visited": "Tashrif",
+        "admin.funnel.started": "Test boshlandi",
+        "admin.funnel.completed": "Test tugatildi",
+        "admin.funnel.payment_started": "To‘lov so‘rovi ochildi",
+        "admin.funnel.receipt_sent": "Chek yuborildi",
+        "admin.funnel.approved": "Tasdiqlandi",
     },
     "ru": {
         # Общее
@@ -685,6 +691,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "admin.receipt.view": "Открыть чек",
         "admin.receipt.alt": "Отправленный чек",
         "admin.receipt.none": "Чека нет",
+        "admin.funnel.visited": "Визит",
+        "admin.funnel.started": "Тест начат",
+        "admin.funnel.completed": "Тест завершён",
+        "admin.funnel.payment_started": "Заявка на оплату",
+        "admin.funnel.receipt_sent": "Чек отправлен",
+        "admin.funnel.approved": "Подтверждено",
     },
 }
 
