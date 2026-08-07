@@ -96,3 +96,51 @@ def test_upgrade_is_idempotent_when_run_twice(tmp_path):
     assert first.returncode == 0, first.stderr or first.stdout
     second = _run_alembic(["upgrade", "head"], database_url)
     assert second.returncode == 0, second.stderr or second.stdout
+
+
+@pytest.mark.slow
+def test_migrated_schema_allows_two_question_variants(tmp_path):
+    """001 migratsiyasi order_number'ni NOMSIZ unique qilgan edi.
+
+    Model create_all bilan qurilganda bu cheklov yo'q, shuning uchun faqat
+    haqiqiy migratsiya zanjiri ustida sinash bu nuqsonni ochadi.
+    """
+    from sqlalchemy import text
+
+    database_url = f"sqlite:///{(tmp_path / 'variants.db').as_posix()}"
+    result = _run_alembic(["upgrade", "head"], database_url)
+    assert result.returncode == 0, result.stderr or result.stdout
+
+    engine = create_engine(database_url)
+    try:
+        with engine.begin() as connection:
+            for variant in ("A", "B"):
+                connection.execute(
+                    text(
+                        "INSERT INTO personality_questions (text, dimension, order_number, is_active, variant)"
+                        " VALUES (:text, 'EI', 1, 1, :variant)"
+                    ),
+                    {"text": f"{variant} savoli", "variant": variant},
+                )
+            rows = (
+                connection.execute(text("SELECT variant FROM personality_questions ORDER BY variant"))
+                .scalars()
+                .all()
+            )
+    finally:
+        engine.dispose()
+
+    assert rows == ["A", "B"]
+
+
+@pytest.mark.slow
+def test_migrated_schema_has_the_team_tables(tmp_path):
+    database_url = f"sqlite:///{(tmp_path / 'teams.db').as_posix()}"
+    result = _run_alembic(["upgrade", "head"], database_url)
+    assert result.returncode == 0, result.stderr or result.stdout
+
+    tables = _table_names(database_url)
+    assert {"teams", "team_members"} <= tables
+    assert {"invite_code", "manage_code"} <= _column_names(database_url, "teams")
+    assert "share_code" in _column_names(database_url, "personality_test_sessions")
+    assert "variant" in _column_names(database_url, "personality_test_sessions")

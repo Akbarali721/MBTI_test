@@ -3,11 +3,14 @@ import logging
 from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.responses import Response
 
 from app.config import settings
 from app.dependencies import get_db_session
 from app.i18n import resolve_lang
 from app.models.enums import AppearanceTheme, PersonalitySessionStatus
+from app.pdf import pdf_filename
 from app.personality.payment_code import payment_code_for_session
 from app.personality.session_binding import (
     bind_personality_session,
@@ -34,6 +37,7 @@ from app.services.premium_payment_service import (
     premium_deeplink_url,
     support_bot_public_url,
 )
+from app.services.result_pdf import build_pdf_bytes
 from app.templating import templates
 
 router = APIRouter(prefix="/personality", tags=["personality"])
@@ -400,6 +404,35 @@ def personality_result(
         }
     )
     return templates.TemplateResponse(request, "personality/result.html", ctx)
+
+
+@router.get("/result/{token}/pdf", response_model=None)
+def personality_result_pdf(
+    request: Request,
+    token: str,
+    db: Session = Depends(get_db_session),
+    access: str | None = Query(default=None),
+) -> Response:
+    """Premium natijaning PDF nusxasi — faqat egasi va faqat to'lov tasdiqlangach."""
+    denied = _require_session_owner(request, token, db, access=access)
+    if denied:
+        return denied
+    session = PersonalityService(db).get_session_or_404(token)
+    if not session.is_premium:
+        # Pullik kontent PDF orqali chetlab o'tilmasligi kerak.
+        return RedirectResponse(url=f"/personality/result/{token}", status_code=303)
+
+    payload = build_pdf_bytes(db, token, lang=resolve_lang(request), base_url=str(request.base_url))
+    if payload is None:
+        logger.error("PDF yaratilmadi: shriftlar topilmadi yoki sessiya premium emas")
+        raise StarletteHTTPException(status_code=503)
+
+    filename = pdf_filename(session.result_type or "natija")
+    return Response(
+        content=payload,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 def _support_bot_redirect_url(token: str) -> str:

@@ -585,8 +585,15 @@ def test_configuration_self_check_reports_every_problem(monkeypatch):
 
 
 def test_dispatcher_registers_the_router_and_error_handler():
+    """aiogram routeri faqat bitta dispatcherga ulanadi — shuning uchun butun
+    to'plamda create_dispatcher() aynan shu yerda bir marta chaqiriladi."""
+    from app.bot import test_flow
+
     dispatcher = handlers.create_dispatcher()
     assert handlers.router in dispatcher.sub_routers
+    # Test oqimi to'lov handlerlaridan oldin turishi kerak, aks holda /test va
+    # javob callback'lari umumiy matn/fallback handleriga tushib ketadi.
+    assert dispatcher.sub_routers.index(test_flow.router) < dispatcher.sub_routers.index(handlers.router)
     assert dispatcher.errors.handlers
 
 

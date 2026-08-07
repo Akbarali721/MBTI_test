@@ -146,7 +146,7 @@ def test_instructions_shows_single_logo(client):
 def test_relationship_route_still_available(client):
     response = client.get("/relationship")
     assert response.status_code == 200
-    assert t("relationship.title", "uz") in response.text
+    assert t("compat.title", "uz") in response.text
 
 
 def test_completed_session_is_readable_from_the_database(client):

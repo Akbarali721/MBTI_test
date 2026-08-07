@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.models.enums import PersonalityDimension
 from app.models.personality import (
     DEFAULT_CONTENT_LANGUAGE,
+    DEFAULT_VARIANT,
     PersonalityAnswer,
     PersonalityOption,
     PersonalityQuestion,
@@ -80,8 +81,10 @@ def _option_scores(dimension: PersonalityDimension, option_index: int) -> dict[s
     return scores
 
 
-def questions_are_empty(db: Session) -> bool:
-    count = db.scalar(select(func.count()).select_from(PersonalityQuestion))
+def questions_are_empty(db: Session, variant: str = DEFAULT_VARIANT) -> bool:
+    count = db.scalar(
+        select(func.count()).select_from(PersonalityQuestion).where(PersonalityQuestion.variant == variant)
+    )
     return int(count or 0) == 0
 
 
@@ -120,14 +123,15 @@ def _sync_options(db: Session, question: PersonalityQuestion, option_texts: list
         db.delete(option)
 
 
-def _sync_questions(db: Session) -> int:
-    existing = {
-        question.order_number: question for question in db.scalars(select(PersonalityQuestion)).unique().all()
-    }
+def _sync_questions(db: Session, variant: str = DEFAULT_VARIANT) -> int:
+    stmt = select(PersonalityQuestion).where(PersonalityQuestion.variant == variant)
+    existing = {question.order_number: question for question in db.scalars(stmt).unique().all()}
     for order, (text, dimension, option_texts) in enumerate(PERSONALITY_QUESTIONS_UZ, start=1):
         question = existing.pop(order, None)
         if question is None:
-            question = PersonalityQuestion(text=text, dimension=dimension, order_number=order, is_active=True)
+            question = PersonalityQuestion(
+                text=text, dimension=dimension, order_number=order, variant=variant, is_active=True
+            )
             db.add(question)
             db.flush()
         else:
@@ -144,11 +148,15 @@ def _sync_questions(db: Session) -> int:
     return len(PERSONALITY_QUESTIONS_UZ)
 
 
-def seed_personality_questions(db: Session, *, force: bool = False) -> int:
-    """Savollarni yuklaydi. force=False bo'lsa faqat jadval bo'sh bo'lganda ishlaydi."""
-    if not force and not questions_are_empty(db):
+def seed_personality_questions(db: Session, *, force: bool = False, variant: str = DEFAULT_VARIANT) -> int:
+    """Savollarni yuklaydi. force=False bo'lsa faqat to'plam bo'sh bo'lganda ishlaydi.
+
+    A/B test uchun: `--variant B` bilan yuklab, so'ng B to'plamini tahrirlash mumkin —
+    A to'plamiga tegilmaydi.
+    """
+    if not force and not questions_are_empty(db, variant):
         return 0
-    count = _sync_questions(db)
+    count = _sync_questions(db, variant)
     db.commit()
     return count
 

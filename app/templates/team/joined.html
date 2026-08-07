@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t('team.joined_title') }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex">{% endblock %}
+{% block bootstrap_css %}{% endblock %}
+{% block bootstrap_js %}{% endblock %}
+{% block body_class %}mbti-flow-body{% endblock %}
+
+{% block content %}
+<section class="mbti-flow-card">
+  {% include "personality/partials/brand_logo.html" %}
+  <h1 class="mbti-flow-title">{{ t('team.joined_title') }}</h1>
+  <p class="mbti-flow-text">{{ t('team.joined_text', team=team.name) }}</p>
+  <a href="/personality" class="ref-cta ref-cta--primary">{{ t('common.back_home') }}</a>
+</section>
+{% endblock %}

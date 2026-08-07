@@ -29,6 +29,43 @@ Loyiha ikki jarayondan iborat:
   - **Test tarixi** `/personality/history` — shu brauzerda tugallangan testlar va birinchi
     hamda oxirgi urinish orasidagi oʻlchov siljishi.
   - **Ikki til** (oʻzbek/rus): interfeys, oʻlchov nomlari va 16 tipning natija kontenti.
+- Mahsulot imkoniyatlari:
+  - **Juftlik mosligi** `/relationship` — ikki tipni solishtiradi, natija manzili
+    (`/relationship/INFP-ESTJ`) sessiyaga bogʻlanmagan va ulashiladi.
+  - **PDF hisobot** `/personality/result/{token}/pdf` — faqat premium va faqat egasi uchun;
+    toʻlov tasdiqlangach bot uni Telegramga ham yuboradi.
+  - **Jamoa / HR rejimi** `/team` — taklif havolasi boʻyicha xodimlar qoʻshiladi, panelda
+    tarkib, oʻlchovlar muvozanati va boʻshliqlar koʻrinadi. Taklif kodi va boshqaruv kodi
+    ataylab ajratilgan: havolani olgan xodim panelni ocha olmaydi.
+  - **Savol banki va A/B test** — bir nechta savol toʻplami yonma-yon yashaydi, taqsimot
+    `QUESTION_VARIANTS` bilan boshqariladi, natijalar admin panelida solishtiriladi.
+  - **Botda toʻliq test** — `/test` buyrugʻi bilan testni Telegram ichida topshirish
+    (veb bilan bir xil savollar va bir xil ball hisoblash).
+
+### Savol toʻplamlari (A/B test)
+
+```bash
+python -m app.seed --variant B --yes     # B toʻplamini yuklash (soʻng uni tahrirlaysiz)
+```
+
+Soʻng `.env` da taqsimotni yoqing:
+
+```
+QUESTION_VARIANTS=A:70,B:30
+```
+
+Variant sessiya yaratilganda bir marta tanlanadi va test davomida oʻzgarmaydi. Ikkitadan
+ortiq toʻplam boʻlsa, admin paneli boshiga voronka jadvali chiqadi (tashrif → tugatish →
+premium konversiyasi).
+
+### PDF shriftlari
+
+`app/pdf/fonts/` da subset qilingan Inter (lotin + kirill, ~67 KB) saqlanadi — reportlabʼning
+oʻrnatilgan shriftlarida kirill ham, oʻzbek tutuq belgisi ham yoʻq. Yangilash:
+
+```bash
+python scripts/fetch_pdf_fonts.py
+```
 
 ### Open Graph rasmlari
 

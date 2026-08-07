@@ -95,11 +95,16 @@ def admin_dashboard(
     request: Request,
     db: Session = Depends(get_db_session),
 ) -> Response:
-    stats = AdminAnalyticsService(db).dashboard_stats()
+    service = AdminAnalyticsService(db)
+    variants = service.variant_stats()
     return templates.TemplateResponse(
         request,
         "admin/dashboard.html",
-        {"stats": stats},
+        {
+            "stats": service.dashboard_stats(),
+            # Bitta to'plam bo'lsa taqqoslashning ma'nosi yo'q.
+            "variants": variants if len(variants) > 1 else [],
+        },
     )
 
 

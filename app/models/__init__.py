@@ -6,6 +6,7 @@ from app.models.personality import (
     PersonalityResultContent,
     PersonalityTestSession,
 )
+from app.models.team import Team, TeamMember
 
 __all__ = [
     "PaymentRequest",
@@ -14,4 +15,6 @@ __all__ = [
     "PersonalityQuestion",
     "PersonalityResultContent",
     "PersonalityTestSession",
+    "Team",
+    "TeamMember",
 ]

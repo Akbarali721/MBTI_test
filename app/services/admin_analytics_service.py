@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Generic, TypeVar
 
-from sqlalchemy import ColumnElement, func, select
+from sqlalchemy import ColumnElement, case, func, select
 from sqlalchemy.orm import Session
 
 from app.models.enums import PersonalitySessionStatus
@@ -97,9 +97,51 @@ class AdminDashboardStats:
     completion_rate: float
 
 
+@dataclass(frozen=True)
+class VariantStats:
+    """Bitta savol to'plami bo'yicha voronka: ko'rgan -> tugatgan -> to'lagan."""
+
+    variant: str
+    visitors: int
+    completed: int
+    premium: int
+
+    @property
+    def completion_rate(self) -> float:
+        return round(self.completed / self.visitors * 100, 1) if self.visitors else 0.0
+
+    @property
+    def premium_rate(self) -> float:
+        """Konversiya tugatganlarga nisbatan — A/B da asosiy ko'rsatkich shu."""
+        return round(self.premium / self.completed * 100, 1) if self.completed else 0.0
+
+
 class AdminAnalyticsService:
     def __init__(self, db: Session) -> None:
         self.db = db
+
+    def variant_stats(self) -> list[VariantStats]:
+        """Har to'plam uchun voronka — bitta guruhlangan so'rov bilan."""
+        completed = PersonalitySessionStatus.COMPLETED
+        stmt = (
+            select(
+                PersonalityTestSession.variant,
+                func.count(),
+                func.sum(case((PersonalityTestSession.status == completed, 1), else_=0)),
+                func.sum(case((PersonalityTestSession.is_premium.is_(True), 1), else_=0)),
+            )
+            .group_by(PersonalityTestSession.variant)
+            .order_by(PersonalityTestSession.variant)
+        )
+        return [
+            VariantStats(
+                variant=row[0],
+                visitors=int(row[1] or 0),
+                completed=int(row[2] or 0),
+                premium=int(row[3] or 0),
+            )
+            for row in self.db.execute(stmt).all()
+        ]
 
     def dashboard_stats(self) -> AdminDashboardStats:
         total = self._scalar_count(select(func.count()).select_from(PersonalityTestSession))

@@ -23,7 +23,7 @@ from app.observability import (
     init_sentry,
 )
 from app.paths import STATIC_DIR
-from app.routers import admin, personality, relationship, share
+from app.routers import admin, personality, relationship, share, team
 from app.templating import render_template_or_none
 
 logger = logging.getLogger(__name__)
@@ -122,6 +122,7 @@ app.include_router(admin.public_router)
 app.include_router(admin.router)
 app.include_router(relationship.router)
 app.include_router(share.router)
+app.include_router(team.router)
 
 
 def _wants_html(request: Request) -> bool:

@@ -132,6 +132,10 @@
         {{ t('result.open_premium') }}
       </button>
       {% endif %}
+      {% if is_premium %}
+      <a href="/personality/result/{{ token }}/pdf" class="ref-cta result-actions__outline">{{ t('pdf.download') }}</a>
+      {% endif %}
+      <a href="/relationship" class="ref-cta result-actions__outline">{{ t('compat.result_cta') }}</a>
       {% if history_count > 1 %}
       <a href="/personality/history" class="ref-cta result-actions__outline">{{ t('history.link', count=history_count) }}</a>
       {% endif %}

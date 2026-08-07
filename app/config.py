@@ -71,6 +71,8 @@ class Settings(BaseSettings):
     bot_username: str = ""
     bot_token: str = ""
     premium_price: int = 9990
+    # Savol to'plamlari taqsimoti: "A" yoki vaznli "A:70,B:30".
+    question_variants: str = "A"
     payment_card_number: str = ""
     payment_card_holder: str = ""
     payment_support_bot_username: str = ""

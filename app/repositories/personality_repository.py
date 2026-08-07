@@ -6,9 +6,11 @@ from typing import Any, cast
 from sqlalchemy import Table, delete, func, select
 from sqlalchemy.orm import Session, joinedload
 
+from app.config import settings
 from app.models.enums import AppearanceTheme, PersonalitySessionStatus
 from app.models.personality import (
     DEFAULT_CONTENT_LANGUAGE,
+    DEFAULT_VARIANT,
     PersonalityAnswer,
     PersonalityOption,
     PersonalityQuestion,
@@ -17,6 +19,7 @@ from app.models.personality import (
 )
 from app.personality.payment_code import generate_payment_code
 from app.personality.share_code import generate_share_code
+from app.personality.variants import choose_variant, normalize_variant
 from app.services.personality_scoring import calculate_personality_result
 
 SCORE_KEYS = ("e", "i", "s", "n", "t", "f", "j", "p")
@@ -33,14 +36,18 @@ class PersonalityRepository:
         telegram_user_id: int | None = None,
         source: str | None = None,
         status: PersonalitySessionStatus = PersonalitySessionStatus.VISITED,
+        variant: str | None = None,
     ) -> PersonalityTestSession:
         now = datetime.now(timezone.utc)
-        total = self.count_active_questions()
+        # Variant sessiya yaratilganda bir marta tanlanadi va o'zgarmaydi.
+        chosen = normalize_variant(variant) if variant else choose_variant(settings.question_variants)
+        total = self.count_active_questions(chosen)
         token = uuid.uuid4().hex
         session = PersonalityTestSession(
             token=token,
             payment_code=generate_payment_code(self.db, token),
             share_code=generate_share_code(self.db),
+            variant=chosen,
             user_id=user_id,
             telegram_user_id=telegram_user_id,
             status=status,
@@ -113,28 +120,39 @@ class PersonalityRepository:
         stmt = select(PersonalityTestSession).order_by(PersonalityTestSession.created_at.desc()).limit(limit)
         return list(self.db.scalars(stmt).all())
 
-    def count_active_questions(self) -> int:
+    def count_active_questions(self, variant: str = DEFAULT_VARIANT) -> int:
         stmt = (
             select(func.count())
             .select_from(PersonalityQuestion)
-            .where(PersonalityQuestion.is_active.is_(True))
+            .where(
+                PersonalityQuestion.is_active.is_(True),
+                PersonalityQuestion.variant == variant,
+            )
         )
         return int(self.db.scalar(stmt) or 0)
 
-    def get_active_questions_ordered(self) -> list[PersonalityQuestion]:
+    def get_active_questions_ordered(self, variant: str = DEFAULT_VARIANT) -> list[PersonalityQuestion]:
         stmt = (
             select(PersonalityQuestion)
-            .where(PersonalityQuestion.is_active.is_(True))
+            .where(
+                PersonalityQuestion.is_active.is_(True),
+                PersonalityQuestion.variant == variant,
+            )
             .options(joinedload(PersonalityQuestion.options))
             .order_by(PersonalityQuestion.order_number)
         )
         return list(self.db.scalars(stmt).unique().all())
 
-    def get_question_by_order(self, order_number: int) -> PersonalityQuestion | None:
+    def get_question_by_order(
+        self, order_number: int, variant: str = DEFAULT_VARIANT
+    ) -> PersonalityQuestion | None:
         stmt = (
             select(PersonalityQuestion)
-            .where(PersonalityQuestion.is_active.is_(True))
-            .where(PersonalityQuestion.order_number == order_number)
+            .where(
+                PersonalityQuestion.is_active.is_(True),
+                PersonalityQuestion.variant == variant,
+                PersonalityQuestion.order_number == order_number,
+            )
             .options(joinedload(PersonalityQuestion.options))
         )
         return self.db.scalar(stmt)

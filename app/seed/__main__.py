@@ -2,6 +2,7 @@
 
 python -m app.seed                          savol va natija kontentini (uz + ru) yuklaydi
 python -m app.seed --language ru            faqat bitta til kontentini yuklaydi
+python -m app.seed --variant B              savollarni B to'plamiga yuklaydi (A/B test)
 python -m app.seed --force --yes            mavjud kontentni joyida almashtiradi
 python -m app.seed --recompute              mavjud sessiya ballarini qayta hisoblaydi
 python -m app.seed --purge-visited --days 30  eskirgan VISITED sessiyalarni o'chiradi
@@ -13,6 +14,8 @@ import sys
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
+from app.models.personality import DEFAULT_VARIANT
+from app.personality.variants import normalize_variant
 from app.repositories.personality_repository import PersonalityRepository
 from app.seed.personality_placeholders import (
     SEED_LANGUAGES,
@@ -50,6 +53,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help=f"--purge-visited uchun kunlar chegarasi (standart: {DEFAULT_PURGE_DAYS})",
     )
     parser.add_argument(
+        "--variant",
+        default=DEFAULT_VARIANT,
+        help=f"Savollar qaysi to'plamga yuklanadi (standart: {DEFAULT_VARIANT}). A/B test uchun.",
+    )
+    parser.add_argument(
         "--language",
         choices=SEED_LANGUAGES,
         default=None,
@@ -65,12 +73,13 @@ def _confirm(prompt: str) -> bool:
     return answer in ("y", "yes", "ha")
 
 
-def _run_seed(db: Session, *, force: bool, language: str | None) -> int:
-    questions = seed_personality_questions(db, force=force)
+def _run_seed(db: Session, *, force: bool, language: str | None, variant: str = DEFAULT_VARIANT) -> int:
+    chosen = normalize_variant(variant)
+    questions = seed_personality_questions(db, force=force, variant=chosen)
     if questions:
-        print(f"Savollar yuklandi/yangilandi: {questions} ta")
-    elif not questions_are_empty(db):
-        print("Savollar allaqachon mavjud, o'zgartirilmadi (--force bilan almashtiring)")
+        print(f"Savollar yuklandi/yangilandi: {questions} ta ({chosen} to'plami)")
+    elif not questions_are_empty(db, chosen):
+        print(f"{chosen} to'plamida savollar bor, o'zgartirilmadi (--force bilan almashtiring)")
 
     languages = (language,) if language else SEED_LANGUAGES
     for code in languages:
@@ -110,7 +119,7 @@ def main(argv: list[str] | None = None) -> int:
             return _run_recompute(db)
         if args.purge_visited:
             return _run_purge(db, args.days)
-        return _run_seed(db, force=args.force, language=args.language)
+        return _run_seed(db, force=args.force, language=args.language, variant=args.variant)
     except Exception:
         db.rollback()
         raise

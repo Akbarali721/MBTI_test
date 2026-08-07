@@ -187,9 +187,171 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "administrator bilan bog‘laning."
         ),
         # Munosabat testi (placeholder)
-        "relationship.title": "Munosabat testi",
-        "relationship.text": ("Bu bo‘lim tayyorlanmoqda. Xarakter testi alohida mahsulot sifatida ishlaydi."),
-        "relationship.cta": "Xarakter testiga o‘tish",
+        # Juftlik mosligi
+        "compat.page_title": "Juftlik mosligi",
+        "compat.page_desc": (
+            "Ikki xarakter tipini solishtiring: qayerda o‘xshaysiz, qayerda bir-biringizni to‘ldirasiz."
+        ),
+        "compat.eyebrow": "Juftlik mosligi",
+        "compat.title": "Ikkingiz bir-biringizga qanchalik mos?",
+        "compat.intro": (
+            "O‘z tipingizni va sherigingiznikini tanlang. Natija to‘rt o‘lchov bo‘yicha "
+            "o‘xshashlik va to‘ldiruvchanlikni ko‘rsatadi."
+        ),
+        "compat.your_type": "Sizning tipingiz",
+        "compat.partner_type": "Sherigingiz tipi",
+        "compat.choose": "Tanlang",
+        "compat.submit": "Solishtirish",
+        "compat.error_invalid": "Ikkala tipni ham ro‘yxatdan tanlang.",
+        "compat.unknown_type": "Tipingizni bilmaysizmi?",
+        "compat.take_test": "Testni topshirish",
+        "compat.disclaimer": (
+            "Bu tahlil qoidalarga asoslangan izoh, ilmiy o‘lchov emas. Hech bir juftlik "
+            "«mos emas» degan xulosa chiqarilmaydi — faqat kuch va ishqalanish nuqtalari ko‘rsatiladi."
+        ),
+        "compat.result_title": "{left} va {right} — juftlik mosligi",
+        "compat.og_title": "{left} + {right}: moslik {score}%",
+        "compat.by_dimension": "O‘lchovlar bo‘yicha",
+        "compat.same": "O‘xshash",
+        "compat.different": "Farqli",
+        "compat.strengths": "Nima ishlaydi",
+        "compat.frictions": "Qayerda ishqalanish bo‘lishi mumkin",
+        "compat.advice": "Nima qilish kerak",
+        "compat.compare_another": "Boshqa juftlikni solishtirish",
+        "compat.result_cta": "Juftlik mosligini tekshirish",
+        # Jamoa / HR rejimi
+        "team.eyebrow": "Jamoa rejimi",
+        "team.page_title": "Jamoa tahlili",
+        "team.page_desc": (
+            "Xodimlaringiz xarakter tiplarini bitta panelda ko‘ring va jamoa tarkibidagi bo‘shliqlarni "
+            "aniqlang."
+        ),
+        "team.title": "Jamoangiz qanday tuzilgan?",
+        "team.intro": (
+            "Jamoa yarating, taklif havolasini xodimlarga yuboring — natijalar bitta panelda yig‘iladi."
+        ),
+        "team.name_label": "Jamoa nomi",
+        "team.name_placeholder": "Masalan: Marketing bo‘limi",
+        "team.create": "Jamoa yaratish",
+        "team.step_1": "Jamoa nomini kiriting va yarating.",
+        "team.step_2": "Taklif havolasini xodimlarga yuboring — ular testni topshiradi.",
+        "team.step_3": "Panelda tarkib, muvozanat va bo‘shliqlarni ko‘ring.",
+        "team.privacy_note": (
+            "Panelga faqat boshqaruv havolasi bilan kiriladi. Uni saqlab qo‘ying — tiklash imkoni yo‘q."
+        ),
+        "team.error_empty_name": "Jamoa nomini kiriting.",
+        "team.error_full": "Jamoa to‘lgan — yangi a’zo qo‘shib bo‘lmaydi.",
+        "team.dashboard_title": "{team} — jamoa paneli",
+        "team.invite_title": "Taklif havolasi",
+        "team.invite_desc": (
+            "Shu havolani xodimlarga yuboring. U faqat jamoaga qo‘shilish uchun, panelni ochmaydi."
+        ),
+        "team.manage_note": "Brauzer manzilidagi boshqaruv havolasini hech kimga bermang.",
+        "team.stat_members": "A’zo",
+        "team.stat_types": "Turli tip",
+        "team.empty": "Hozircha hech kim qo‘shilmagan. Taklif havolasini yuboring.",
+        "team.balance_title": "O‘lchovlar muvozanati",
+        "team.insight_title": "E’tibor bering",
+        "team.insight_skew": (
+            "Jamoa {pole} tomonga sezilarli qiyshaygan — qarama-qarshi yondashuv yetishmasligi mumkin."
+        ),
+        "team.insight_missing": "Jamoada {pole} umuman yo‘q — bu ko‘r nuqta bo‘lishi mumkin.",
+        "team.types_title": "Tiplar taqsimoti",
+        "team.members_title": "A’zolar",
+        "team.disclaimer": (
+            "Bu tahlil jamoa tarkibini tushunish uchun; kadrlar bo‘yicha qaror uchun yagona asos bo‘la "
+            "olmaydi."
+        ),
+        "team.join_title": "{team} jamoasiga qo‘shilish",
+        "team.join_ready": "Sizning tipingiz: {type}. Panelda ko‘rinadigan ismni kiriting.",
+        "team.your_name": "Ismingiz",
+        "team.your_name_placeholder": "Masalan: Dilnoza",
+        "team.join_button": "Jamoaga qo‘shilish",
+        "team.join_privacy": (
+            "Jamoa egasi faqat ismingizni va xarakter tipingizni ko‘radi — javoblaringizni emas."
+        ),
+        "team.join_needs_test": "Jamoaga qo‘shilish uchun avval testni tugating.",
+        "team.take_test": "Testni boshlash",
+        "team.join_return_hint": "Test tugagach shu havolaga qayting.",
+        "team.joined_title": "Qo‘shildingiz",
+        "team.joined_text": "Natijangiz «{team}» jamoasi paneliga qo‘shildi.",
+        # PDF hisobot
+        "pdf.generated": "Hisobot tayyorlangan sana:",
+        "pdf.download": "PDF hisobotni yuklab olish",
+        "compat.band_high": "Yuqori moslik",
+        "compat.band_high_short": "Moslik {score}% — tabiiy tushunish.",
+        "compat.band_high_desc": (
+            "Siz dunyoni o‘xshash ko‘rasiz va o‘xshash sur’atda yashaysiz. Bunday juftlikda "
+            "asosiy xavf — bir xil ko‘r nuqtalar: ikkalangiz ham e’tibor bermaydigan narsalar bo‘ladi."
+        ),
+        "compat.band_medium": "Yaxshi moslik",
+        "compat.band_medium_short": "Moslik {score}% — o‘xshashlik ham, to‘ldiruvchanlik ham bor.",
+        "compat.band_medium_desc": (
+            "Ba’zi o‘lchovlarda o‘xshaysiz, ba’zilarida bir-biringizni to‘ldirasiz. Bu ko‘pincha "
+            "eng barqaror kombinatsiya: yetarlicha umumiylik ham, yetarlicha yangilik ham bor."
+        ),
+        "compat.band_growing": "Rivojlanadigan moslik",
+        "compat.band_growing_short": "Moslik {score}% — farqlar ko‘p, lekin ular to‘siq emas.",
+        "compat.band_growing_desc": (
+            "Siz ko‘p narsani turlicha qilasiz. Bu juftlik ishlamaydi degani emas — shunchaki "
+            "kelishuvni ochiq aytib qo‘yish kerak bo‘ladi, chunki u o‘z-o‘zidan yuzaga kelmaydi."
+        ),
+        # O'lchovlar bo'yicha izoh
+        "compat.ei.same_e": "Ikkalangiz ham odamlar orasida quvvat olasiz — birga chiqish oson.",
+        "compat.ei.same_i": (
+            "Ikkalangiz ham tinchlikni qadrlaysiz — yolg‘iz vaqtni tushuntirish shart emas."
+        ),
+        "compat.ei.diff": (
+            "Biringiz muloqotdan quvvat olasiz, ikkinchingiz tinchlikdan — bu bir-biringizni muvozanatlaydi."
+        ),
+        "compat.sn.same_s": "Ikkalangiz ham aniq faktlar va amaliy tafsilotlarga tayanasiz.",
+        "compat.sn.same_n": "Ikkalangiz ham g‘oya va imkoniyatlar tilida gaplashasiz.",
+        "compat.sn.diff": (
+            "Biringiz aniqlikka, ikkinchingiz g‘oyaga qaraysiz — bu eng ko‘p tushunmovchilik "
+            "tug‘diradigan farq."
+        ),
+        "compat.tf.same_t": ("Ikkalangiz ham qarorni mantiq bilan olasiz — bahs shaxsiy qabul qilinmaydi."),
+        "compat.tf.same_f": "Ikkalangiz ham odamlarning hissiyotini hisobga olasiz.",
+        "compat.tf.diff": (
+            "Biringiz mantiqqa, ikkinchingiz hissiyotga tayanadi — qaror sifati oshadi, lekin nizoda "
+            "uslub farq qiladi."
+        ),
+        "compat.jp.same_j": "Ikkalangiz ham reja va aniqlikni yoqtirasiz — kelishish oson.",
+        "compat.jp.same_p": "Ikkalangiz ham moslashuvchansiz — qattiq jadval kerak emas.",
+        "compat.jp.diff": (
+            "Biri rejalashtiradi, ikkinchisi moslashadi — kundalik hayotda eng ko‘p seziladigan farq shu."
+        ),
+        # Kuchli tomonlar
+        "compat.strength.ei_same": "Dam olish va muloqot sur’ati bir xil — kelishuv talab qilmaydi.",
+        "compat.strength.sn_same": (
+            "Bir-biringizni yarim so‘zdan tushunasiz: axborotni bir xil qayta ishlaysiz."
+        ),
+        "compat.strength.tf_same": "Qaror qabul qilish mezoni bir xil — muhim tanlovlarda tez kelishasiz.",
+        "compat.strength.jp_same": "Vaqt va tartibga munosabat bir xil — kundalik ishqalanish kam.",
+        "compat.strength.all_diff": (
+            "Hamma o‘lchovda farq qilasiz — bu juftlikda o‘rganadigan narsa ko‘p, "
+            "chunki har biringiz ikkinchisining ko‘r nuqtasini ko‘rasiz."
+        ),
+        # Ishqalanish
+        "compat.friction.ei": "Dam olish usuli farq qiladi: biriga odam kerak, ikkinchisiga tinchlik.",
+        "compat.friction.sn": "Suhbatda biriga tafsilot, ikkinchisiga umumiy manzara kerak bo‘ladi.",
+        "compat.friction.tf": "Nizoda biri yechim izlaydi, ikkinchisi avval eshitilishni kutadi.",
+        "compat.friction.jp": "Reja va o‘z-o‘zidan bo‘lish o‘rtasidagi tortishuv takrorlanib turadi.",
+        # Maslahat
+        "compat.advice.ei": (
+            "Birgalikdagi vaqt bilan yolg‘iz vaqtni oldindan kelishib oling — ikkalasi ham normal."
+        ),
+        "compat.advice.sn": (
+            "Muhim suhbatda avval umumiy manzarani, keyin tafsilotni ayting — ikkalangiz ham yetib boradi."
+        ),
+        "compat.advice.tf": "Nizo boshlanganda so‘rang: hozir yechim kerakmi yoki eshitilish kerakmi?",
+        "compat.advice.jp": (
+            "Reja kerak bo‘lgan joyni va erkin qoldiriladigan joyni oldindan ajratib qo‘ying."
+        ),
+        "compat.advice.identical": (
+            "Barcha o‘lchovda bir xilsiz. Kuchli tomoni — tushunish oson; xavfi — ko‘r nuqtalar ham bir xil. "
+            "Muhim qarorlarda ataylab tashqi fikr so‘rang."
+        ),
         # Xato sahifalari
         "errors.retry": "Qayta urinish",
         "errors.help_404": "Manzilni tekshiring yoki bosh sahifadan qaytadan boshlang.",
@@ -357,9 +519,154 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "Сервис оплаты временно недоступен. Попробуйте позже или свяжитесь с администратором."
         ),
         # Тест отношений (заглушка)
-        "relationship.title": "Тест отношений",
-        "relationship.text": ("Этот раздел готовится. Тест характера работает как отдельный продукт."),
-        "relationship.cta": "Перейти к тесту характера",
+        # Совместимость пары
+        "compat.page_title": "Совместимость пары",
+        "compat.page_desc": "Сравните два типа характера: где вы похожи, а где дополняете друг друга.",
+        "compat.eyebrow": "Совместимость пары",
+        "compat.title": "Насколько вы подходите друг другу?",
+        "compat.intro": (
+            "Выберите свой тип и тип партнёра. Результат покажет сходство и "
+            "взаимодополняемость по четырём шкалам."
+        ),
+        "compat.your_type": "Ваш тип",
+        "compat.partner_type": "Тип партнёра",
+        "compat.choose": "Выберите",
+        "compat.submit": "Сравнить",
+        "compat.error_invalid": "Выберите оба типа из списка.",
+        "compat.unknown_type": "Не знаете свой тип?",
+        "compat.take_test": "Пройти тест",
+        "compat.disclaimer": (
+            "Это разбор на основе правил, а не научное измерение. Ни одна пара не получает "
+            "вывод «не подходите» — показываются только точки силы и трения."
+        ),
+        "compat.result_title": "{left} и {right} — совместимость пары",
+        "compat.og_title": "{left} + {right}: совместимость {score}%",
+        "compat.by_dimension": "По шкалам",
+        "compat.same": "Схожи",
+        "compat.different": "Различны",
+        "compat.strengths": "Что работает",
+        "compat.frictions": "Где возможно трение",
+        "compat.advice": "Что делать",
+        "compat.compare_another": "Сравнить другую пару",
+        "compat.result_cta": "Проверить совместимость пары",
+        # Командный / HR-режим
+        "team.eyebrow": "Командный режим",
+        "team.page_title": "Анализ команды",
+        "team.page_desc": (
+            "Посмотрите типы характера сотрудников в одной панели и найдите пробелы в составе команды."
+        ),
+        "team.title": "Как устроена ваша команда?",
+        "team.intro": (
+            "Создайте команду и отправьте сотрудникам ссылку-приглашение — результаты соберутся в одной "
+            "панели."
+        ),
+        "team.name_label": "Название команды",
+        "team.name_placeholder": "Например: Отдел маркетинга",
+        "team.create": "Создать команду",
+        "team.step_1": "Введите название команды и создайте её.",
+        "team.step_2": "Отправьте ссылку-приглашение сотрудникам — они пройдут тест.",
+        "team.step_3": "Смотрите состав, баланс и пробелы в панели.",
+        "team.privacy_note": (
+            "В панель можно войти только по ссылке управления. Сохраните её — восстановить нельзя."
+        ),
+        "team.error_empty_name": "Введите название команды.",
+        "team.error_full": "Команда заполнена — добавить участника нельзя.",
+        "team.dashboard_title": "{team} — панель команды",
+        "team.invite_title": "Ссылка-приглашение",
+        "team.invite_desc": (
+            "Отправьте эту ссылку сотрудникам. Она только для вступления и не открывает панель."
+        ),
+        "team.manage_note": "Никому не передавайте ссылку управления из адресной строки.",
+        "team.stat_members": "Участников",
+        "team.stat_types": "Разных типов",
+        "team.empty": "Пока никто не присоединился. Отправьте ссылку-приглашение.",
+        "team.balance_title": "Баланс шкал",
+        "team.insight_title": "Обратите внимание",
+        "team.insight_skew": (
+            "Команда заметно смещена в сторону «{pole}» — может не хватать противоположного подхода."
+        ),
+        "team.insight_missing": "В команде совсем нет «{pole}» — это возможная слепая зона.",
+        "team.types_title": "Распределение типов",
+        "team.members_title": "Участники",
+        "team.disclaimer": (
+            "Этот разбор помогает понять состав команды и не может быть единственным основанием для "
+            "кадровых решений."
+        ),
+        "team.join_title": "Присоединиться к команде «{team}»",
+        "team.join_ready": "Ваш тип: {type}. Введите имя, которое увидят в панели.",
+        "team.your_name": "Ваше имя",
+        "team.your_name_placeholder": "Например: Дильноза",
+        "team.join_button": "Присоединиться",
+        "team.join_privacy": "Владелец команды видит только ваше имя и тип характера — не ваши ответы.",
+        "team.join_needs_test": "Чтобы присоединиться, сначала пройдите тест.",
+        "team.take_test": "Начать тест",
+        "team.join_return_hint": "После теста вернитесь по этой ссылке.",
+        "team.joined_title": "Вы присоединились",
+        "team.joined_text": "Ваш результат добавлен в панель команды «{team}».",
+        # PDF-отчёт
+        "pdf.generated": "Отчёт сформирован:",
+        "pdf.download": "Скачать PDF-отчёт",
+        "compat.band_high": "Высокая совместимость",
+        "compat.band_high_short": "Совместимость {score}% — понимание даётся легко.",
+        "compat.band_high_desc": (
+            "Вы похоже смотрите на мир и живёте в похожем ритме. Главный риск такой пары — "
+            "одинаковые слепые зоны: есть вещи, которых не заметит ни один из вас."
+        ),
+        "compat.band_medium": "Хорошая совместимость",
+        "compat.band_medium_short": "Совместимость {score}% — есть и сходство, и взаимодополнение.",
+        "compat.band_medium_desc": (
+            "По одним шкалам вы похожи, по другим дополняете друг друга. Часто это самая "
+            "устойчивая комбинация: достаточно общего и достаточно нового."
+        ),
+        "compat.band_growing": "Совместимость, требующая работы",
+        "compat.band_growing_short": "Совместимость {score}% — различий много, но они не преграда.",
+        "compat.band_growing_desc": (
+            "Многое вы делаете по-разному. Это не значит, что пара не работает — просто "
+            "договорённости придётся проговаривать вслух, сами собой они не возникнут."
+        ),
+        # Пояснения по шкалам
+        "compat.ei.same_e": "Оба набираетесь энергии среди людей — выходить вместе легко.",
+        "compat.ei.same_i": "Оба цените тишину — время наедине не нужно объяснять.",
+        "compat.ei.diff": "Один заряжается общением, другой тишиной — это уравновешивает вас.",
+        "compat.sn.same_s": "Оба опираетесь на факты и практические детали.",
+        "compat.sn.same_n": "Оба говорите на языке идей и возможностей.",
+        "compat.sn.diff": (
+            "Один смотрит на конкретику, другой на идею — это различие чаще всего рождает недопонимание."
+        ),
+        "compat.tf.same_t": "Оба решаете логикой — спор не воспринимается как личное.",
+        "compat.tf.same_f": "Оба учитываете чувства людей.",
+        "compat.tf.diff": (
+            "Один опирается на логику, другой на чувства — качество решений растёт, но стиль в конфликте "
+            "разный."
+        ),
+        "compat.jp.same_j": "Оба любите план и определённость — договориться просто.",
+        "compat.jp.same_p": "Оба гибкие — жёсткий график не нужен.",
+        "compat.jp.diff": "Один планирует, другой подстраивается — в быту это заметно чаще всего.",
+        # Сильные стороны
+        "compat.strength.ei_same": "Ритм отдыха и общения совпадает — не требует переговоров.",
+        "compat.strength.sn_same": "Понимаете друг друга с полуслова: одинаково обрабатываете информацию.",
+        "compat.strength.tf_same": "Критерий принятия решений один — в важном выборе договариваетесь быстро.",
+        "compat.strength.jp_same": "Отношение к времени и порядку совпадает — бытового трения мало.",
+        "compat.strength.all_diff": (
+            "Вы различаетесь по всем шкалам — в такой паре многому учатся, "
+            "потому что каждый видит слепую зону другого."
+        ),
+        # Трение
+        "compat.friction.ei": "Способ восстановиться разный: одному нужны люди, другому тишина.",
+        "compat.friction.sn": "В разговоре одному нужны детали, другому общая картина.",
+        "compat.friction.tf": "В конфликте один ищет решение, другой сначала ждёт, что его услышат.",
+        "compat.friction.jp": "Спор между планом и спонтанностью будет возвращаться.",
+        # Советы
+        "compat.advice.ei": (
+            "Заранее договоритесь о времени вместе и времени наедине — нормально и то, и другое."
+        ),
+        "compat.advice.sn": ("В важном разговоре сначала общая картина, потом детали — так дойдёт до обоих."),
+        "compat.advice.tf": ("В начале конфликта спросите: сейчас нужно решение или нужно, чтобы выслушали?"),
+        "compat.advice.jp": "Заранее разделите, где нужен план, а где остаётся свобода.",
+        "compat.advice.identical": (
+            "Вы совпадаете по всем шкалам. Сила — лёгкое понимание; риск — слепые зоны тоже общие. "
+            "В важных решениях намеренно спрашивайте взгляд со стороны."
+        ),
         # Страницы ошибок
         "errors.retry": "Попробовать снова",
         "errors.help_404": "Проверьте адрес или начните заново с главной страницы.",

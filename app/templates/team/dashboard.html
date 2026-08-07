@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% set c = composition %}
+
+{% block title %}{{ t('team.dashboard_title', team=team.name) }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex">{% endblock %}
+{% block bootstrap_css %}{% endblock %}
+{% block bootstrap_js %}{% endblock %}
+{% block body_class %}mbti-flow-body{% endblock %}
+
+{% block content %}
+<section class="mbti-flow-card">
+  {% include "personality/partials/brand_logo.html" %}
+
+  <p class="ref-eyebrow">{{ t('team.eyebrow') }}</p>
+  <h1 class="mbti-flow-title">{{ team.name }}</h1>
+
+  <div class="mbti-share-box">
+    <h2 class="mbti-section-title">{{ t('team.invite_title') }}</h2>
+    <p class="mbti-flow-text mbti-flow-text--left">{{ t('team.invite_desc') }}</p>
+    <div class="mbti-payment-field__row">
+      <span class="mbti-payment-field__value mbti-share-url" id="invite-url">{{ invite_url }}</span>
+      <button type="button" class="mbti-copy-btn" data-copy-target="invite-url"
+              data-copy-label="{{ t('payment.copy') }}"
+              data-copied-label="{{ t('payment.copied') }}"
+              data-copy-failed-label="{{ t('payment.copy_failed') }}">{{ t('payment.copy') }}</button>
+    </div>
+    <p class="mbti-share-box__note">{{ t('team.manage_note') }}</p>
+  </div>
+
+  <div class="mbti-team-stats">
+    <div class="mbti-team-stat">
+      <span class="mbti-team-stat__value">{{ c.size }}</span>
+      <span class="mbti-team-stat__label">{{ t('team.stat_members') }}</span>
+    </div>
+    <div class="mbti-team-stat">
+      <span class="mbti-team-stat__value">{{ c.distinct_types }}</span>
+      <span class="mbti-team-stat__label">{{ t('team.stat_types') }}</span>
+    </div>
+  </div>
+
+  {% if not c.size %}
+  <p class="mbti-flow-text mbti-flow-text--left">{{ t('team.empty') }}</p>
+  {% else %}
+
+  <h2 class="mbti-section-title">{{ t('team.balance_title') }}</h2>
+  {% for balance in c.balances %}
+  <div class="mbti-dimension-row">
+    <div class="mbti-dimension-labels">
+      <span>{{ t('dimension.' ~ balance.left_letter|lower) }} {{ balance.left_count }}</span>
+      <span>{{ t('dimension.' ~ balance.right_letter|lower) }} {{ balance.right_count }}</span>
+    </div>
+    <div class="mbti-dimension-track">
+      <div class="mbti-dimension-left" style="width: {{ balance.left_percent }}%"></div>
+      <div class="mbti-dimension-right" style="width: {{ balance.right_percent }}%"></div>
+    </div>
+  </div>
+  {% endfor %}
+
+  {% set skews = c.balances | selectattr('dominant_letter') | list %}
+  {% set gaps = c.balances | selectattr('missing_letter') | list %}
+  {% if skews or gaps %}
+  <h2 class="mbti-section-title">{{ t('team.insight_title') }}</h2>
+  <ul class="mbti-list">
+    {% for balance in skews %}
+    <li>{{ t('team.insight_skew', pole=t('dimension.' ~ balance.dominant_letter|lower)) }}</li>
+    {% endfor %}
+    {% for balance in gaps %}
+    <li>{{ t('team.insight_missing', pole=t('dimension.' ~ balance.missing_letter|lower)) }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <h2 class="mbti-section-title">{{ t('team.types_title') }}</h2>
+  <ul class="mbti-team-types">
+    {% for mbti, count in c.type_counts %}
+    <li class="mbti-team-type">
+      <span class="mbti-team-type__code">{{ mbti }}</span>
+      <span class="mbti-team-type__count">{{ count }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+
+  <h2 class="mbti-section-title">{{ t('team.members_title') }}</h2>
+  <ul class="mbti-team-members">
+    {% for member in c.members %}
+    <li class="mbti-team-member">
+      <span class="mbti-team-member__name">{{ member.display_name }}</span>
+      <span class="mbti-team-member__type">{{ member.result_type }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <p class="mbti-disclaimer">{{ t('team.disclaimer') }}</p>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="{{ asset_url('js/result-payment.js') }}" defer></script>
+{% endblock %}

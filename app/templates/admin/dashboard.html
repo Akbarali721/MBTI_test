@@ -53,6 +53,39 @@
     </div>
   </div>
 </div>
+{% if variants %}
+<h2 class="h5 mt-5">Savol to‘plamlari (A/B)</h2>
+<p class="text-muted small mb-2">
+  Konversiya testni tugatganlarga nisbatan hisoblanadi — to‘plamlarni shu ustun bo‘yicha solishtiring.
+</p>
+<div class="table-responsive">
+  <table class="table table-sm align-middle">
+    <thead>
+      <tr>
+        <th>To‘plam</th>
+        <th class="text-end">Tashrif</th>
+        <th class="text-end">Tugatgan</th>
+        <th class="text-end">Tugatish %</th>
+        <th class="text-end">Premium</th>
+        <th class="text-end">Konversiya %</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in variants %}
+      <tr>
+        <td class="fw-semibold">{{ row.variant }}</td>
+        <td class="text-end">{{ row.visitors }}</td>
+        <td class="text-end">{{ row.completed }}</td>
+        <td class="text-end">{{ row.completion_rate }}%</td>
+        <td class="text-end">{{ row.premium }}</td>
+        <td class="text-end fw-semibold">{{ row.premium_rate }}%</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
 <p class="mt-4 mb-0">
   <a class="btn btn-primary" href="/admin/sessions">Barcha sessiyalar</a>
 </p>

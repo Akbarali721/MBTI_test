@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.models.enums import AppearanceTheme, PersonalitySessionStatus
 from app.models.personality import (
     DEFAULT_CONTENT_LANGUAGE,
+    DEFAULT_VARIANT,
     PersonalityQuestion,
     PersonalityTestSession,
 )
@@ -34,12 +35,13 @@ class PersonalityService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
         return session
 
-    def total_questions(self) -> int:
-        return self.repo.count_active_questions()
+    def total_questions(self, variant: str = DEFAULT_VARIANT) -> int:
+        return self.repo.count_active_questions(variant)
 
     def get_test_view(self, token: str, question_index: int | None = None) -> dict:
         session = self.get_session_or_404(token)
-        questions = self.repo.get_active_questions_ordered()
+        # Savollar sessiya boshlanganda tanlangan to'plamdan olinadi.
+        questions = self.repo.get_active_questions_ordered(session.variant)
         total = len(questions)
         if total == 0:
             return {"redirect": "questions_error", "session": session}
@@ -76,7 +78,7 @@ class PersonalityService:
         if session.status == PersonalitySessionStatus.COMPLETED:
             return {"redirect": "result", "session": session}
 
-        questions = self.repo.get_active_questions_ordered()
+        questions = self.repo.get_active_questions_ordered(session.variant)
         total = len(questions)
         question = self._question_by_id(questions, question_id)
         if not question:

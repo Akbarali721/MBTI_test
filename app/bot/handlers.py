@@ -13,6 +13,7 @@ from aiogram.filters import CommandObject, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import (
+    BufferedInputFile,
     CallbackQuery,
     ErrorEvent,
     InlineKeyboardButton,
@@ -23,7 +24,9 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import SessionLocal
+from app.pdf import pdf_filename
 from app.repositories.payment_repository import PaymentRepository
+from app.repositories.personality_repository import PersonalityRepository
 from app.services.premium_payment_service import (
     PremiumPaymentService,
     format_price_uzs,
@@ -31,6 +34,7 @@ from app.services.premium_payment_service import (
     premium_bot_username,
     signed_result_url_for_token,
 )
+from app.services.result_pdf import build_pdf_bytes
 
 logger = logging.getLogger(__name__)
 
@@ -43,18 +47,18 @@ _CODE_CANDIDATE_RE = re.compile(r"[A-Za-z0-9]{8,64}")
 _MAX_CODE_CANDIDATES = 3
 
 WELCOME_TEXT = (
-    "Assalomu alaykum! Bu — MBTI premium tahlil boti.\n\n"
-    "Qanday ishlaydi:\n"
-    "1. Saytda testni yakunlang va natija sahifasini oching.\n"
-    "2. Ko‘rsatilgan kartaga to‘lovni amalga oshiring.\n"
-    "3. Shu chatga natija sahifasidagi test kodini yuboring.\n"
-    "4. So‘ng chek rasmini yoki faylini yuboring.\n\n"
+    "Assalomu alaykum! Bu — MBTI xarakter testi boti.\n\n"
+    "Testni shu yerda topshirish: /test\n\n"
+    "Agar saytda topshirgan bo‘lsangiz, premium to‘lovni shu chatda rasmiylashtiring:\n"
+    "1. Natija sahifasini oching va ko‘rsatilgan kartaga to‘lov qiling.\n"
+    "2. Shu chatga natija sahifasidagi test kodini yuboring.\n"
+    "3. So‘ng chek rasmini yoki faylini yuboring.\n\n"
     "Admin tekshirgach, premium tahlilingiz ochiladi."
 )
 
 HELP_TEXT = (
-    "Men faqat premium to‘lovni qabul qilaman.\n\n"
-    "Natija sahifasidagi test kodini (kamida 8 belgi) yuboring, "
+    "/test — xarakter testini shu chatda topshirish.\n\n"
+    "Premium to‘lov uchun: natija sahifasidagi test kodini (kamida 8 belgi) yuboring, "
     "so‘ng chek rasmini yoki faylini tashlang."
 )
 
@@ -86,6 +90,36 @@ async def _run_db(fn: Callable[[Session], T]) -> T:
             db.close()
 
     return await asyncio.to_thread(_call)
+
+
+async def _send_premium_pdf(bot: Bot, telegram_user_id: int, token: str | None) -> None:
+    """Tasdiqlangach hisobotni darhol yuboramiz — mijoz brauzerga qaytmasa ham qo'lida qoladi."""
+    if not token:
+        return
+
+    def _work(db: Session) -> tuple[bytes | None, str]:
+        session = PersonalityRepository(db).get_session_by_token(token)
+        result_type = (session.result_type if session else None) or "natija"
+        payload = build_pdf_bytes(db, token, base_url=settings.public_base_url)
+        return payload, result_type
+
+    try:
+        payload, result_type = await _run_db(_work)
+    except Exception:
+        logger.exception("PDF hisobotni tayyorlab bo‘lmadi: token=%s", token)
+        return
+    if payload is None:
+        logger.warning("PDF hisobot yaratilmadi (shrift yoki premium holati): token=%s", token)
+        return
+
+    await _safe_telegram(
+        "send_document",
+        bot.send_document(
+            telegram_user_id,
+            BufferedInputFile(payload, filename=pdf_filename(result_type)),
+            caption="📄 Premium tahlilingiz PDF sifatida.",
+        ),
+    )
 
 
 async def _safe_telegram(action: str, coro: Awaitable[object]) -> bool:
@@ -517,6 +551,7 @@ async def _moderate(query: CallbackQuery, bot: Bot, *, approve: bool) -> None:
                 reply_markup=_premium_result_keyboard(view.session_token),
             ),
         )
+        await _send_premium_pdf(bot, view.telegram_user_id, view.session_token)
         return
 
     await _safe_telegram(
@@ -574,7 +609,12 @@ async def on_unhandled_error(event: ErrorEvent) -> bool:
 
 
 def create_dispatcher() -> Dispatcher:
+    from app.bot import test_flow
+
     dp = Dispatcher()
+    # Test oqimi avval ro'yxatdan o'tadi: uning callback'lari va /test buyrug'i
+    # umumiy matn/fallback handlerlariga tushib ketmasligi kerak.
+    dp.include_router(test_flow.router)
     dp.include_router(router)
     dp.errors.register(on_unhandled_error)
     return dp

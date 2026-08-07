@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t('team.page_title') }}{% endblock %}
+{% block meta_description %}{{ t('team.page_desc') }}{% endblock %}
+{% block bootstrap_css %}{% endblock %}
+{% block bootstrap_js %}{% endblock %}
+{% block body_class %}mbti-flow-body{% endblock %}
+
+{% block content %}
+<section class="mbti-flow-card">
+  {% include "personality/partials/brand_logo.html" %}
+
+  <p class="ref-eyebrow">{{ t('team.eyebrow') }}</p>
+  <h1 class="mbti-flow-title">{{ t('team.title') }}</h1>
+  <p class="mbti-flow-text">{{ t('team.intro') }}</p>
+
+  {% if error %}
+  <p class="mbti-form-error" role="alert">{{ t('team.error_empty_name') }}</p>
+  {% endif %}
+
+  <form action="/team/create" method="post" class="mbti-compat-form">
+    <div class="mbti-compat-form__field">
+      <label for="name">{{ t('team.name_label') }}</label>
+      <input type="text" id="name" name="name" maxlength="80" required
+             placeholder="{{ t('team.name_placeholder') }}">
+    </div>
+    <button type="submit" class="ref-cta ref-cta--primary">{{ t('team.create') }}</button>
+  </form>
+
+  <ol class="mbti-payment-steps">
+    <li>{{ t('team.step_1') }}</li>
+    <li>{{ t('team.step_2') }}</li>
+    <li>{{ t('team.step_3') }}</li>
+  </ol>
+
+  <p class="mbti-share-box__note">{{ t('team.privacy_note') }}</p>
+</section>
+{% endblock %}

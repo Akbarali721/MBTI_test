@@ -24,6 +24,8 @@ if TYPE_CHECKING:
     from app.models.payment_request import PaymentRequest
 
 DEFAULT_CONTENT_LANGUAGE = "uz"
+# A/B test bo'lmasa hamma narsa shu to'plamda ishlaydi.
+DEFAULT_VARIANT = "A"
 
 
 def _enum_values(enum_class: type[enum.Enum]) -> list[str]:
@@ -43,6 +45,10 @@ class PersonalityTestSession(Base):
     payment_code: Mapped[str | None] = mapped_column(String(16), unique=True, index=True, nullable=True)
     # Ommaviy ulashish kodi: tokendan mustaqil, chunki token — natijaga to'liq kirish huquqi.
     share_code: Mapped[str | None] = mapped_column(String(24), unique=True, index=True, nullable=True)
+    # Qaysi savol to'plami ko'rsatilgani — A/B natijalarini ajratish uchun.
+    variant: Mapped[str] = mapped_column(
+        String(8), default=DEFAULT_VARIANT, server_default=DEFAULT_VARIANT, nullable=False, index=True
+    )
     status: Mapped[PersonalitySessionStatus] = mapped_column(
         Enum(
             PersonalitySessionStatus,
@@ -89,6 +95,8 @@ class PersonalityTestSession(Base):
 
 class PersonalityQuestion(Base):
     __tablename__ = "personality_questions"
+    # A/B test uchun bir nechta savol to'plami: tartib raqami to'plam ichida noyob.
+    __table_args__ = (UniqueConstraint("variant", "order_number", name="uq_question_variant_order"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     text: Mapped[str] = mapped_column(Text, nullable=False)
@@ -96,7 +104,10 @@ class PersonalityQuestion(Base):
         Enum(PersonalityDimension, name="personality_dimension", values_callable=_enum_values),
         nullable=False,
     )
-    order_number: Mapped[int] = mapped_column(Integer, nullable=False, unique=True)
+    variant: Mapped[str] = mapped_column(
+        String(8), default=DEFAULT_VARIANT, server_default=DEFAULT_VARIANT, nullable=False, index=True
+    )
+    order_number: Mapped[int] = mapped_column(Integer, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     options: Mapped[list["PersonalityOption"]] = relationship(

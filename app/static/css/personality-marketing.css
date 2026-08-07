@@ -1601,3 +1601,276 @@ body.personality-body.ref-page.theme-male {
 .mbti-dimension-row--compact .mbti-dimension-labels {
   font-size: 12px;
 }
+
+/* ---------- Juftlik mosligi ---------- */
+
+.mbti-compat-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 24px 0 16px;
+  text-align: left;
+}
+
+.mbti-compat-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mbti-compat-form__field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.mbti-compat-form__field select {
+  padding: 12px 14px;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--text-main);
+  background: var(--white);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-button);
+}
+
+.mbti-compat-form__field select:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 2px;
+}
+
+.mbti-compat-hint {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.mbti-form-error {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #8c2f2a;
+  background: #f9e6e4;
+  border-radius: var(--radius-button);
+}
+
+.mbti-compat-pair {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin: 18px 0;
+}
+
+.mbti-compat-pair__side {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  text-align: center;
+}
+
+.mbti-compat-pair__type {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--navy);
+}
+
+.mbti-compat-pair__title {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.mbti-compat-pair__plus {
+  font-size: 20px;
+  color: var(--gold-text);
+}
+
+.mbti-compat-score {
+  margin: 18px 0 10px;
+  padding: 18px;
+  border-radius: var(--radius-button);
+  background: var(--cream);
+  border: 1px solid var(--border-soft);
+}
+
+.mbti-compat-score__value {
+  display: block;
+  font-size: 42px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--navy);
+}
+
+.mbti-compat-score__band {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gold-text);
+}
+
+.mbti-compat-score--growing .mbti-compat-score__band {
+  color: var(--text-muted);
+}
+
+.mbti-compat-dimensions {
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+}
+
+.mbti-compat-dimension {
+  padding: 12px 14px;
+  background: var(--cream);
+  border: 1px solid var(--border-soft);
+  border-left: 3px solid var(--border-soft);
+  border-radius: var(--radius-button);
+}
+
+.mbti-compat-dimension.is-same {
+  border-left-color: var(--gold);
+}
+
+.mbti-compat-dimension__letters {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: 0.06em;
+}
+
+.mbti-compat-dimension__badge {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.mbti-compat-dimension__text {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: var(--text-main);
+}
+
+/* ---------- Jamoa paneli ---------- */
+
+.mbti-compat-form__field input[type="text"] {
+  padding: 12px 14px;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--text-main);
+  background: var(--white);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-button);
+}
+
+.mbti-compat-form__field input[type="text"]:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 2px;
+}
+
+.mbti-team-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 22px 0 6px;
+}
+
+.mbti-team-stat {
+  flex: 1 1 90px;
+  padding: 14px;
+  background: var(--cream);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-button);
+  text-align: center;
+}
+
+.mbti-team-stat__value {
+  display: block;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--navy);
+  font-variant-numeric: tabular-nums;
+}
+
+.mbti-team-stat__label {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.mbti-team-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.mbti-team-type {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--cream);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+}
+
+.mbti-team-type__code {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: 0.05em;
+}
+
+.mbti-team-type__count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gold-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mbti-team-members {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.mbti-team-member {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--cream);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-button);
+}
+
+.mbti-team-member__name {
+  font-size: 15px;
+  color: var(--text-main);
+}
+
+.mbti-team-member__type {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: 0.05em;
+}
