@@ -16,6 +16,7 @@ from app.models.personality import (
     PersonalityTestSession,
 )
 from app.personality.payment_code import generate_payment_code
+from app.personality.share_code import generate_share_code
 from app.services.personality_scoring import calculate_personality_result
 
 SCORE_KEYS = ("e", "i", "s", "n", "t", "f", "j", "p")
@@ -39,6 +40,7 @@ class PersonalityRepository:
         session = PersonalityTestSession(
             token=token,
             payment_code=generate_payment_code(self.db, token),
+            share_code=generate_share_code(self.db),
             user_id=user_id,
             telegram_user_id=telegram_user_id,
             status=status,
@@ -92,6 +94,20 @@ class PersonalityRepository:
 
     def get_session_by_id(self, session_id: int) -> PersonalityTestSession | None:
         return self.db.get(PersonalityTestSession, session_id)
+
+    def get_completed_sessions_by_tokens(self, tokens: list[str]) -> list[PersonalityTestSession]:
+        """Tarix sahifasi uchun: bitta so'rov, eng eskisidan boshlab tartiblangan."""
+        if not tokens:
+            return []
+        stmt = (
+            select(PersonalityTestSession)
+            .where(
+                PersonalityTestSession.token.in_(tokens),
+                PersonalityTestSession.status == PersonalitySessionStatus.COMPLETED,
+            )
+            .order_by(PersonalityTestSession.completed_at.asc(), PersonalityTestSession.id.asc())
+        )
+        return list(self.db.scalars(stmt).all())
 
     def list_sessions(self, limit: int = 200) -> list[PersonalityTestSession]:
         stmt = select(PersonalityTestSession).order_by(PersonalityTestSession.created_at.desc()).limit(limit)

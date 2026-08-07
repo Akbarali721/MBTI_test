@@ -7,10 +7,11 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.dependencies import get_db_session
 from app.i18n import resolve_lang
-from app.models.enums import AppearanceTheme
+from app.models.enums import AppearanceTheme, PersonalitySessionStatus
 from app.personality.payment_code import payment_code_for_session
 from app.personality.session_binding import (
     bind_personality_session,
+    completed_tokens,
     ensure_visitor_session,
     get_bound_session,
     may_access_session,
@@ -18,11 +19,14 @@ from app.personality.session_binding import (
     redirect_for_session_progress,
     start_new_test,
 )
+from app.personality.share_code import share_code_for_session, share_path, telegram_share_url
 from app.personality.themes import (
     SELECTABLE_APPEARANCE_VALUES,
     has_appearance_choice,
     theme_template_context,
 )
+from app.repositories.personality_repository import PersonalityRepository
+from app.services.personality_scoring import calculate_personality_result
 from app.services.personality_service import PersonalityService
 from app.services.premium_payment_service import (
     PremiumPaymentService,
@@ -55,6 +59,43 @@ def _require_session_owner(
     return RedirectResponse(url="/personality", status_code=303)
 
 
+def _history_tokens(request: Request, current_token: str | None = None) -> list[str]:
+    """Shu brauzer egalik qiladigan tugallangan sessiyalar — eng yangisi oxirida."""
+    tokens = [item for item in completed_tokens(request) if item != current_token]
+    if current_token:
+        tokens.append(current_token)
+    return tokens
+
+
+def _result_title(repo: PersonalityRepository, result_type: str | None, lang: str) -> str:
+    if not result_type:
+        return ""
+    content = repo.get_result_content(result_type, lang)
+    return content.title if content else result_type
+
+
+# left_percent har doim shu qutbga tegishli (yorliqlar dominantlikka qarab almashmaydi),
+# shuning uchun urinishlarni to'g'ridan-to'g'ri solishtirish mumkin.
+_DIMENSION_POLES = (("ei", "i", "e"), ("sn", "s", "n"), ("tf", "t", "f"), ("jp", "j", "p"))
+
+
+def _dimension_shifts(entries: list[dict]) -> list[dict]:
+    """Birinchi va oxirgi urinish orasidagi farq — takror topshirishning asosiy qiymati."""
+    if len(entries) < 2:
+        return []
+    first, last = entries[0]["result"], entries[-1]["result"]
+    return [
+        {
+            "left_key": left_key,
+            "right_key": right_key,
+            "before": getattr(first, name).left_percent,
+            "after": getattr(last, name).left_percent,
+            "delta": getattr(last, name).left_percent - getattr(first, name).left_percent,
+        }
+        for name, left_key, right_key in _DIMENSION_POLES
+    ]
+
+
 @router.get("", response_class=HTMLResponse)
 def personality_landing(
     request: Request,
@@ -66,6 +107,46 @@ def personality_landing(
         request,
         "personality/landing.html",
         {"product_name": PRODUCT_NAME},
+    )
+
+
+@router.get("/history", response_class=HTMLResponse, response_model=None)
+def personality_history(
+    request: Request,
+    db: Session = Depends(get_db_session),
+) -> HTMLResponse:
+    """Shu brauzerda tugallangan testlar va o'lchovlarning vaqt bo'yicha o'zgarishi."""
+    bound = get_bound_session(request, db)
+    current_token = bound.token if bound and bound.status == PersonalitySessionStatus.COMPLETED else None
+    tokens = _history_tokens(request, current_token)
+
+    repo = PersonalityRepository(db)
+    sessions = repo.get_completed_sessions_by_tokens(tokens)
+    lang = resolve_lang(request)
+    entries = [
+        {
+            "token": session.token,
+            "result_type": session.result_type,
+            "title": _result_title(repo, session.result_type, lang),
+            "completed_at": session.completed_at,
+            "is_premium": session.is_premium,
+            "result": calculate_personality_result(
+                session.e_score,
+                session.i_score,
+                session.s_score,
+                session.n_score,
+                session.t_score,
+                session.f_score,
+                session.j_score,
+                session.p_score,
+            ),
+        }
+        for session in sessions
+    ]
+    return templates.TemplateResponse(
+        request,
+        "personality/history.html",
+        {"entries": list(reversed(entries)), "shifts": _dimension_shifts(entries)},
     )
 
 
@@ -290,10 +371,14 @@ def personality_result(
     payment_code = payment_code_for_session(db, session)
     support_bot_url = support_bot_public_url()
     deeplink_url = premium_deeplink_url(token)
+    share_url = f"{str(request.base_url).rstrip('/')}{share_path(share_code_for_session(db, session))}"
     ctx = _themed_context(session)
     ctx.update(
         {
             "token": token,
+            "share_url": share_url,
+            "share_telegram_url": telegram_share_url(share_url, content.title),
+            "history_count": len(_history_tokens(request, token)),
             "session": session,
             "content": content,
             "result": result,

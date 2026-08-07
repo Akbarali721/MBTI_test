@@ -41,6 +41,8 @@ class PersonalityTestSession(Base):
     telegram_first_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
     token: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
     payment_code: Mapped[str | None] = mapped_column(String(16), unique=True, index=True, nullable=True)
+    # Ommaviy ulashish kodi: tokendan mustaqil, chunki token — natijaga to'liq kirish huquqi.
+    share_code: Mapped[str | None] = mapped_column(String(24), unique=True, index=True, nullable=True)
     status: Mapped[PersonalitySessionStatus] = mapped_column(
         Enum(
             PersonalitySessionStatus,

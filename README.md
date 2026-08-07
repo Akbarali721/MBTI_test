@@ -21,6 +21,25 @@ Loyiha ikki jarayondan iborat:
   bot chekni qabul qiladi → admin (bot tugmasi yoki admin panel) tasdiqlaydi → sessiya
   `is_premium = true` boʻladi.
 - Admin panel: sessiyalar, analitika, premium soʻrovlar moderatsiyasi.
+- Oʻsish kanallari:
+  - **Ommaviy ulashish sahifasi** `/r/{share_code}` — cookie talab qilmaydi, faqat xarakter
+    tipi va oʻlchovlarni koʻrsatadi (premium tahlil, toʻlov maʼlumotlari va sessiya tokeni
+    unga chiqmaydi). Har tip uchun Open Graph rasmi bilan Telegram/ijtimoiy tarmoqlarda
+    oldindan koʻrinadi.
+  - **Test tarixi** `/personality/history` — shu brauzerda tugallangan testlar va birinchi
+    hamda oxirgi urinish orasidagi oʻlchov siljishi.
+  - **Ikki til** (oʻzbek/rus): interfeys, oʻlchov nomlari va 16 tipning natija kontenti.
+
+### Open Graph rasmlari
+
+`app/static/images/og/{TIP}.png` — 16 ta tayyor rasm repoda saqlanadi, shuning uchun ish
+vaqtida generatsiya ham, shrift fayli ham kerak emas. Dizayn oʻzgarsa qayta yarating:
+
+```bash
+python scripts/generate_og_images.py
+```
+
+Skript Inter shriftini (OFL) `.fontcache/` ga yuklab oladi — u repoga qoʻshilmaydi.
 
 ---
 

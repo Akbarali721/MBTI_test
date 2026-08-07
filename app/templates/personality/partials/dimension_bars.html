@@ -1,0 +1,19 @@
+{# O'lchov chiziqlari. Qutb nomlari i18n'dan olinadi — scoring moduli sof qoladi.
+   Chaqirish: {% with result=result, compact=false %}{% include ... %}{% endwith %} #}
+{% for left_key, right_key, pair in [
+     ('i', 'e', result.ei),
+     ('s', 'n', result.sn),
+     ('t', 'f', result.tf),
+     ('j', 'p', result.jp),
+   ] %}
+<div class="mbti-dimension-row{% if compact %} mbti-dimension-row--compact{% endif %}">
+  <div class="mbti-dimension-labels">
+    <span>{{ t('dimension.' ~ left_key) }} {{ pair.left_percent }}%</span>
+    <span>{{ t('dimension.' ~ right_key) }} {{ pair.right_percent }}%</span>
+  </div>
+  <div class="mbti-dimension-track">
+    <div class="mbti-dimension-left" style="width: {{ pair.left_percent }}%"></div>
+    <div class="mbti-dimension-right" style="width: {{ pair.right_percent }}%"></div>
+  </div>
+</div>
+{% endfor %}

@@ -1475,3 +1475,129 @@ body.personality-body.ref-page.theme-male {
   background: var(--navy);
   border-color: var(--navy);
 }
+
+/* ---------- Natijani ulashish ---------- */
+
+.mbti-share-box {
+  margin: 28px 0 4px;
+  padding: 18px;
+  background: var(--cream);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-button);
+  text-align: left;
+}
+
+.mbti-share-box .mbti-section-title {
+  margin-bottom: 8px;
+}
+
+.mbti-share-url {
+  word-break: break-all;
+  font-size: 13px;
+}
+
+.mbti-share-box__telegram {
+  display: inline-flex;
+  margin-top: 14px;
+}
+
+.mbti-share-box__note {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Ommaviy ulashish sahifasi */
+
+.mbti-share-cta {
+  margin-top: 28px;
+  padding: 20px;
+  background: var(--navy);
+  border-radius: var(--radius-button);
+  color: var(--white);
+  text-align: center;
+}
+
+.mbti-share-cta__title {
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.mbti-share-cta__desc {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: var(--gold-soft);
+}
+
+/* ---------- Test tarixi ---------- */
+
+.mbti-history-list {
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mbti-history-item {
+  padding: 16px;
+  background: var(--cream);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-button);
+  text-align: left;
+}
+
+.mbti-history-item__head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.mbti-history-item__type {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: 0.04em;
+}
+
+.mbti-history-item__badge {
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--gold-text);
+  background: var(--gold-soft);
+  border-radius: 999px;
+}
+
+.mbti-history-item__date {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.mbti-history-item__title {
+  margin: 6px 0 14px;
+  font-size: 15px;
+  color: var(--text-main);
+}
+
+.mbti-history-item__link {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gold-text);
+}
+
+.mbti-dimension-row--compact {
+  margin-bottom: 8px;
+}
+
+.mbti-dimension-row--compact .mbti-dimension-labels {
+  font-size: 12px;
+}

@@ -44,19 +44,7 @@
     <p class="mbti-flow-text mbti-flow-text--left">{{ content.public_view }}</p>
 
     <h2 class="mbti-section-title">{{ t('result.dimensions') }}</h2>
-    {% set pairs = [result.ei, result.sn, result.tf, result.jp] %}
-    {% for pair in pairs %}
-    <div class="mbti-dimension-row">
-      <div class="mbti-dimension-labels">
-        <span>{{ pair.left_label }} {{ pair.left_percent }}%</span>
-        <span>{{ pair.right_label }} {{ pair.right_percent }}%</span>
-      </div>
-      <div class="mbti-dimension-track">
-        <div class="mbti-dimension-left" style="width: {{ pair.left_percent }}%"></div>
-        <div class="mbti-dimension-right" style="width: {{ pair.right_percent }}%"></div>
-      </div>
-    </div>
-    {% endfor %}
+    {% with compact = false %}{% include "personality/partials/dimension_bars.html" %}{% endwith %}
 
     <hr class="mbti-flow-divider">
 
@@ -123,11 +111,29 @@
     </div>
     {% endif %}
 
+    <div class="mbti-share-box">
+      <h2 class="mbti-section-title">{{ t('share.box_title') }}</h2>
+      <p class="mbti-flow-text mbti-flow-text--left">{{ t('share.box_desc') }}</p>
+      <div class="mbti-payment-field__row">
+        <span class="mbti-payment-field__value mbti-share-url" id="share-url">{{ share_url }}</span>
+        <button type="button" class="mbti-copy-btn" data-copy-target="share-url"
+                data-copy-label="{{ t('payment.copy') }}"
+                data-copied-label="{{ t('payment.copied') }}"
+                data-copy-failed-label="{{ t('payment.copy_failed') }}">{{ t('payment.copy') }}</button>
+      </div>
+      <a href="{{ share_telegram_url }}" target="_blank" rel="noopener noreferrer"
+         class="ref-cta ref-cta--secondary mbti-share-box__telegram">{{ t('share.via_telegram') }}</a>
+      <p class="mbti-share-box__note">{{ t('share.box_note') }}</p>
+    </div>
+
     <div class="result-actions">
       {% if can_pay %}
       <button type="button" class="ref-cta ref-cta--primary result-actions__primary" id="open-payment-modal" data-open-payment>
         {{ t('result.open_premium') }}
       </button>
+      {% endif %}
+      {% if history_count > 1 %}
+      <a href="/personality/history" class="ref-cta result-actions__outline">{{ t('history.link', count=history_count) }}</a>
       {% endif %}
       <form action="/personality/restart" method="post" class="result-actions__form">
         <button type="submit" class="ref-cta result-actions__outline">{{ t('result.restart') }}</button>
