@@ -1,14 +1,14 @@
 <div class="personality-brand{% if logo_compact|default(true) %} personality-brand--compact{% endif %}">
-
-  <img
-
-    src="/static/images/personality/personality-logo.png"
-
-    alt="Xarakterni anglash logosi"
-
-    class="personality-logo{% if logo_compact|default(true) %} personality-logo--compact{% endif %}"
-
-  >
-
+  <picture>
+    <source srcset="/static/images/personality/personality-logo.webp" type="image/webp">
+    <img
+      src="/static/images/personality/personality-logo.png"
+      alt="{{ t('common.logo_alt') }}"
+      class="personality-logo{% if logo_compact|default(true) %} personality-logo--compact{% endif %}"
+      width="208"
+      height="139"
+      decoding="async"
+      fetchpriority="high"
+    >
+  </picture>
 </div>
-

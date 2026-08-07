@@ -1,4 +1,5 @@
 {% extends "admin/base_admin.html" %}
+{% import "admin/partials/pagination.html" as pager %}
 {% block title %}Sessiyalar{% endblock %}
 {% set active_nav = 'sessions' %}
 {% block content %}
@@ -75,4 +76,5 @@
     </table>
   </div>
 </div>
+{{ pager.render(pagination, '/admin/sessions', {'filter': current_filter, 'code': search_code}, t) }}
 {% endblock %}

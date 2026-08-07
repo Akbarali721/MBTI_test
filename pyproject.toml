@@ -1,0 +1,41 @@
+# pytest sozlamalari pytest.ini da qoladi — bu yerga ko'chirilmaydi.
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+extend-exclude = ["alembic/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+# RUF001/RUF002/RUF003: o'zbekcha matnlarda ʻ va ʼ "shubhali" belgilar deb belgilanadi.
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI'ning Depends/Form/Query default qiymatlari B008 emas.
+extend-immutable-calls = [
+    "fastapi.Body",
+    "fastapi.Depends",
+    "fastapi.File",
+    "fastapi.Form",
+    "fastapi.Path",
+    "fastapi.Query",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Testlardagi uzun o'zbekcha satrlar; conftest app'ni import qilishdan oldin env o'rnatadi (E402).
+"tests/*" = ["E501", "E402"]
+"app/seed/*" = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+docstring-code-format = true
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+warn_unused_ignores = true
+no_implicit_optional = true
+warn_redundant_casts = true
+exclude = ["alembic/"]

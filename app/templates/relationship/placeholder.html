@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ t('relationship.title') }}{% endblock %}
+{% block meta_description %}{{ t('relationship.text') }}{% endblock %}
+{% block bootstrap_css %}{% endblock %}
+{% block bootstrap_js %}{% endblock %}
+{% block body_class %}ref-page ref-page--flow{% endblock %}
+{% block main_class %}ref-main mbti-flow-main{% endblock %}
+{% block content %}
+<section class="ref-shell ref-shell--flow">
+  <article class="ref-card mbti-flow-card">
+    {% include "personality/partials/brand_logo.html" %}
+    <h1 class="mbti-flow-title">{{ t('relationship.title') }}</h1>
+    <p class="mbti-flow-text">{{ t('relationship.text') }}</p>
+    <a href="/personality" class="ref-cta ref-cta--primary">{{ t('relationship.cta') }}</a>
+  </article>
+</section>
+{% endblock %}

@@ -1,21 +1,55 @@
-import json
+"""Savol va natija kontentini bazaga yuklash.
 
-from sqlalchemy import delete, select
+Kontent joyida (order_number / (type, language) bo'yicha) yangilanadi — savol va variant
+id lari saqlanadi, shuning uchun foydalanuvchi javoblari hech qachon avtomatik o'chmaydi.
+"""
+
+import json
+from collections.abc import Callable
+
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.models.enums import PersonalityDimension
 from app.models.personality import (
+    DEFAULT_CONTENT_LANGUAGE,
     PersonalityAnswer,
     PersonalityOption,
     PersonalityQuestion,
     PersonalityResultContent,
 )
 from app.seed.personality_questions_uz import PERSONALITY_QUESTIONS_UZ
-from app.seed.personality_results_uz import get_result_copy
-from app.models.enums import PersonalityDimension
+from app.seed.personality_results_ru import get_result_copy_ru
+from app.seed.personality_results_uz import ResultCopy, get_result_copy
+
+# Har til uchun matn manbai. Yangi til qo'shish = shu yerga bitta qator.
+RESULT_COPY_PROVIDERS: dict[str, Callable[[str], ResultCopy]] = {
+    DEFAULT_CONTENT_LANGUAGE: get_result_copy,
+    "ru": get_result_copy_ru,
+}
+# "uz" birinchi bo'lishi kerak: qolgan tillar topilmasa unga qaytiladi.
+SEED_LANGUAGES: tuple[str, ...] = (
+    DEFAULT_CONTENT_LANGUAGE,
+    *(code for code in RESULT_COPY_PROVIDERS if code != DEFAULT_CONTENT_LANGUAGE),
+)
 
 ALL_TYPES = [
-    "ISTJ", "ISFJ", "INFJ", "INTJ", "ISTP", "ISFP", "INFP", "INTP",
-    "ESTP", "ESFP", "ENFP", "ENTP", "ESTJ", "ESFJ", "ENFJ", "ENTJ",
+    "ISTJ",
+    "ISFJ",
+    "INFJ",
+    "INTJ",
+    "ISTP",
+    "ISFP",
+    "INFP",
+    "INTP",
+    "ESTP",
+    "ESFP",
+    "ENFP",
+    "ENTP",
+    "ESTJ",
+    "ESFJ",
+    "ENFJ",
+    "ENTJ",
 ]
 
 DIMENSIONS_CYCLE = [
@@ -25,134 +59,148 @@ DIMENSIONS_CYCLE = [
     PersonalityDimension.JP,
 ]
 
+SCORE_KEYS = ("e", "i", "s", "n", "t", "f", "j", "p")
+
+# Har savolning 4 varianti gradient tartibida: dastlabki ikkitasi chap qutb,
+# keyingi ikkitasi o'ng qutb (masalan E, E, I, I).
+DIMENSION_POLES: dict[PersonalityDimension, tuple[str, str]] = {
+    PersonalityDimension.EI: ("e", "i"),
+    PersonalityDimension.SN: ("s", "n"),
+    PersonalityDimension.TF: ("t", "f"),
+    PersonalityDimension.JP: ("j", "p"),
+}
+
+OPTIONS_PER_QUESTION = 4
+
 
 def _option_scores(dimension: PersonalityDimension, option_index: int) -> dict[str, int]:
-    scores = {k: 0 for k in ("e", "i", "s", "n", "t", "f", "j", "p")}
-    mapping = {
-        PersonalityDimension.EI: [("e", "i"), ("i", "e"), ("e", "i"), ("i", "e")],
-        PersonalityDimension.SN: [("s", "n"), ("n", "s"), ("s", "n"), ("n", "s")],
-        PersonalityDimension.TF: [("t", "f"), ("f", "t"), ("t", "f"), ("f", "t")],
-        PersonalityDimension.JP: [("j", "p"), ("p", "j"), ("j", "p"), ("p", "j")],
-    }
-    left, right = mapping[dimension][option_index]
-    scores[left] = 1
+    scores = {key: 0 for key in SCORE_KEYS}
+    left, right = DIMENSION_POLES[dimension]
+    scores[left if option_index < OPTIONS_PER_QUESTION // 2 else right] = 1
     return scores
 
 
-def _is_placeholder_data(db: Session) -> bool:
-    row = db.scalar(
-        select(PersonalityQuestion)
-        .where(PersonalityQuestion.is_active.is_(True))
-        .order_by(PersonalityQuestion.order_number)
-        .limit(1)
+def questions_are_empty(db: Session) -> bool:
+    count = db.scalar(select(func.count()).select_from(PersonalityQuestion))
+    return int(count or 0) == 0
+
+
+def results_are_empty(db: Session, language: str = DEFAULT_CONTENT_LANGUAGE) -> bool:
+    count = db.scalar(
+        select(func.count())
+        .select_from(PersonalityResultContent)
+        .where(PersonalityResultContent.language == language)
     )
-    if not row:
-        return True
-    text = row.text or ""
-    return "[Placeholder]" in text or "placeholder javob" in text.lower()
+    return int(count or 0) == 0
 
 
-def _clear_questions(db: Session) -> None:
-    db.execute(delete(PersonalityAnswer))
-    db.execute(delete(PersonalityOption))
-    db.execute(delete(PersonalityQuestion))
+def _option_is_answered(db: Session, option_id: int) -> bool:
+    stmt = select(func.count()).select_from(PersonalityAnswer).where(PersonalityAnswer.option_id == option_id)
+    return int(db.scalar(stmt) or 0) > 0
+
+
+def _sync_options(db: Session, question: PersonalityQuestion, option_texts: list[str]) -> None:
+    existing = {opt.order_number: opt for opt in question.options}
+    for index, text in enumerate(option_texts):
+        order = index + 1
+        scores = _option_scores(question.dimension, index)
+        option = existing.pop(order, None)
+        if option is None:
+            option = PersonalityOption(question_id=question.id, text=text, order_number=order)
+            db.add(option)
+        else:
+            option.text = text
+        for key in SCORE_KEYS:
+            setattr(option, f"{key}_score", scores[key])
+
+    # Ortiqcha variantlar faqat ularga javob berilmagan bo'lsa o'chiriladi.
+    for option in existing.values():
+        if option.id is not None and _option_is_answered(db, option.id):
+            continue
+        db.delete(option)
+
+
+def _sync_questions(db: Session) -> int:
+    existing = {
+        question.order_number: question for question in db.scalars(select(PersonalityQuestion)).unique().all()
+    }
+    for order, (text, dimension, option_texts) in enumerate(PERSONALITY_QUESTIONS_UZ, start=1):
+        question = existing.pop(order, None)
+        if question is None:
+            question = PersonalityQuestion(text=text, dimension=dimension, order_number=order, is_active=True)
+            db.add(question)
+            db.flush()
+        else:
+            question.text = text
+            question.dimension = dimension
+            question.is_active = True
+        _sync_options(db, question, option_texts)
+
+    # Kontentdan chiqib ketgan savollar o'chirilmaydi, faqat nofaol qilinadi.
+    for question in existing.values():
+        question.is_active = False
+
+    db.flush()
+    return len(PERSONALITY_QUESTIONS_UZ)
+
+
+def seed_personality_questions(db: Session, *, force: bool = False) -> int:
+    """Savollarni yuklaydi. force=False bo'lsa faqat jadval bo'sh bo'lganda ishlaydi."""
+    if not force and not questions_are_empty(db):
+        return 0
+    count = _sync_questions(db)
     db.commit()
+    return count
 
 
-def _insert_uz_questions(db: Session) -> None:
-    for order, (q_text, dimension, options) in enumerate(PERSONALITY_QUESTIONS_UZ, start=1):
-        question = PersonalityQuestion(
-            text=q_text,
-            dimension=dimension,
-            order_number=order,
-            is_active=True,
-        )
-        db.add(question)
-        db.flush()
-        for idx, opt_text in enumerate(options):
-            scores = _option_scores(dimension, idx)
-            db.add(
-                PersonalityOption(
-                    question_id=question.id,
-                    text=opt_text,
-                    order_number=idx + 1,
-                    e_score=scores["e"],
-                    i_score=scores["i"],
-                    s_score=scores["s"],
-                    n_score=scores["n"],
-                    t_score=scores["t"],
-                    f_score=scores["f"],
-                    j_score=scores["j"],
-                    p_score=scores["p"],
-                )
-            )
-    db.commit()
+def _result_rows(db: Session, language: str) -> dict[str, PersonalityResultContent]:
+    stmt = select(PersonalityResultContent).where(PersonalityResultContent.language == language)
+    return {row.personality_type: row for row in db.scalars(stmt).all()}
 
 
-def seed_personality_questions(db: Session) -> None:
-    if _is_placeholder_data(db):
-        _clear_questions(db)
-        _insert_uz_questions(db)
+def result_copy_provider(language: str) -> Callable[[str], ResultCopy]:
+    provider = RESULT_COPY_PROVIDERS.get(language)
+    if provider is None:
+        supported = ", ".join(sorted(RESULT_COPY_PROVIDERS))
+        raise ValueError(f"'{language}' tili uchun natija matnlari yo'q (mavjud: {supported})")
+    return provider
 
 
-def _is_placeholder_result_row(row: PersonalityResultContent | None) -> bool:
-    if not row:
-        return True
-    blob = " ".join(
-        [
-            row.title or "",
-            row.short_description or "",
-            row.free_strengths or "",
-            row.public_view or "",
-        ]
-    ).lower()
-    return "placeholder" in blob
-
-
-def _clear_results(db: Session) -> None:
-    db.execute(delete(PersonalityResultContent))
-    db.commit()
-
-
-def _insert_uz_results(db: Session) -> None:
+def _sync_results(db: Session, language: str) -> int:
+    provider = result_copy_provider(language)
+    existing = _result_rows(db, language)
     for ptype in ALL_TYPES:
-        copy = get_result_copy(ptype)
-        db.add(
-            PersonalityResultContent(
-                personality_type=ptype,
-                title=copy["title"],
-                short_description=copy["short_description"],
-                free_strengths=json.dumps(copy["strengths"], ensure_ascii=False),
-                free_challenges=json.dumps(copy["challenges"], ensure_ascii=False),
-                public_view=copy["public_view"],
-                motivation_analysis=copy["motivation_analysis"],
-                work_style=copy["work_style"],
-                career_environment=copy["career_environment"],
-                friendship_style=copy["friendship_style"],
-                relationship_needs=copy["relationship_needs"],
-                compatible_people=copy["compatible_people"],
-                difficult_communication=copy["difficult_communication"],
-                action_plan=copy["action_plan"],
-                is_active=True,
-            )
-        )
+        copy = provider(ptype)
+        row = existing.get(ptype)
+        if row is None:
+            row = PersonalityResultContent(personality_type=ptype, language=language)
+            db.add(row)
+        row.title = copy["title"]
+        row.short_description = copy["short_description"]
+        row.free_strengths = json.dumps(copy["strengths"], ensure_ascii=False)
+        row.free_challenges = json.dumps(copy["challenges"], ensure_ascii=False)
+        row.public_view = copy["public_view"]
+        row.motivation_analysis = copy["motivation_analysis"]
+        row.work_style = copy["work_style"]
+        row.career_environment = copy["career_environment"]
+        row.friendship_style = copy["friendship_style"]
+        row.relationship_needs = copy["relationship_needs"]
+        row.compatible_people = copy["compatible_people"]
+        row.difficult_communication = copy["difficult_communication"]
+        row.action_plan = copy["action_plan"]
+        row.is_active = True
+    db.flush()
+    return len(ALL_TYPES)
+
+
+def seed_personality_results(
+    db: Session, *, force: bool = False, language: str = DEFAULT_CONTENT_LANGUAGE
+) -> int:
+    """Natija kontentini yuklaydi. force=False bo'lsa faqat kontent yo'q bo'lganda ishlaydi."""
+    # Noto'g'ri til kodi jimgina 0 qaytarmasin, darrov xato bersin.
+    result_copy_provider(language)
+    if not force and not results_are_empty(db, language):
+        return 0
+    count = _sync_results(db, language)
     db.commit()
-
-
-def seed_personality_results(db: Session) -> None:
-    row = db.scalar(
-        select(PersonalityResultContent)
-        .order_by(PersonalityResultContent.personality_type)
-        .limit(1)
-    )
-    if row is None:
-        _insert_uz_results(db)
-        return
-    if _is_placeholder_result_row(row):
-        _clear_results(db)
-        _insert_uz_results(db)
-
-
-def seed_placeholder_results(db: Session) -> None:
-    """Backward-compatible alias."""
-    seed_personality_results(db)
+    return count

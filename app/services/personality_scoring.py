@@ -33,7 +33,9 @@ class PersonalityResult:
     jp: DimensionPairPercent
 
 
-def _pair_percent(left_score: int, right_score: int, left_label: str, right_label: str) -> DimensionPairPercent:
+def _pair_percent(
+    left_score: int, right_score: int, left_label: str, right_label: str
+) -> DimensionPairPercent:
     total = left_score + right_score
     if total == 0:
         return DimensionPairPercent(left_label, 50, right_label, 50)

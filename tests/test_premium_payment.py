@@ -1,47 +1,36 @@
-import re
+"""Premium toʻlov servisi: deep-link, chek, moderatsiya va natija sahifasidagi holat."""
 
 from sqlalchemy import func, select
 
-from app.config import settings
-from app.models.enums import PersonalitySessionStatus
+from app.i18n import t
 from app.models.payment_request import PaymentRequest
-from app.models.personality import PersonalityTestSession
+from app.personality.payment_code import payment_code_for_session
 from app.services.premium_payment_service import PremiumPaymentService, parse_premium_session_token
+from tests.helpers import (
+    admin_login,
+    complete_session,
+    db_session,
+    latest_session,
+    payment_code_for_token,
+    session_by_token,
+)
 
-
-def _complete_session(client, theme: str = "male") -> str:
-    client.get("/personality/instructions")
-    post = client.post("/personality/start", data={"gender": theme}, follow_redirects=False)
-    assert post.status_code == 303
-    token = post.headers["location"].rstrip("/").split("/")[-1]
-    for question_index in range(24):
-        page = client.get(f"/personality/test/{token}?q={question_index}")
-        assert page.status_code == 200
-        qid = int(re.search(r'name="question_id" value="(\d+)"', page.text).group(1))
-        oid = int(re.search(r'name="option_id"\s+value="(\d+)"', page.text).group(1))
-        client.post(
-            f"/personality/test/{token}/answer",
-            data={"question_id": qid, "option_id": oid, "question_index": str(question_index)},
-            follow_redirects=False,
-        )
-    client.get(f"/personality/result/{token}/loading")
-    result = client.get(f"/personality/result/{token}")
-    assert result.status_code == 200
-    return token
+LOCKED_PREMIUM_MARKER = "mbti-premium-locked-note"
 
 
 def test_parse_premium_token():
     assert parse_premium_session_token("premium_abc123") == "abc123"
     assert parse_premium_session_token("invalid") is None
+    assert parse_premium_session_token("") is None
+    assert parse_premium_session_token("premium_") is None
+    assert parse_premium_session_token("premium_" + "a" * 65) is None
+    assert parse_premium_session_token("premium_not-alnum") is None
 
 
 def test_deeplink_binds_telegram_user(client):
-    token = _complete_session(client)
-    factory = client.testing_session_factory  # type: ignore[attr-defined]
-    db = factory()
-    try:
-        service = PremiumPaymentService(db)
-        outcome = service.start_premium_from_deeplink(
+    token = complete_session(client)
+    with db_session(client) as db:
+        outcome = PremiumPaymentService(db).start_premium_from_deeplink(
             session_token=token,
             telegram_user_id=111222333,
             telegram_username="testuser",
@@ -53,14 +42,10 @@ def test_deeplink_binds_telegram_user(client):
         assert outcome.session.premium_requested is True
         assert outcome.payment is not None
         assert outcome.payment.session_id == outcome.session.id
-    finally:
-        db.close()
 
 
 def test_invalid_session_token_rejected(client):
-    factory = client.testing_session_factory  # type: ignore[attr-defined]
-    db = factory()
-    try:
+    with db_session(client) as db:
         outcome = PremiumPaymentService(db).start_premium_from_deeplink(
             session_token="doesnotexist",
             telegram_user_id=1,
@@ -68,33 +53,23 @@ def test_invalid_session_token_rejected(client):
             telegram_first_name=None,
         )
         assert outcome.code == "invalid_token"
-    finally:
-        db.close()
 
 
 def test_incomplete_session_cannot_request_premium(client):
     client.get("/personality/instructions")
-    factory = client.testing_session_factory  # type: ignore[attr-defined]
-    db = factory()
-    try:
-        row = db.scalar(select(PersonalityTestSession).order_by(PersonalityTestSession.id.desc()).limit(1))
-        assert row is not None
+    with db_session(client) as db:
         outcome = PremiumPaymentService(db).start_premium_from_deeplink(
-            session_token=row.token,
+            session_token=latest_session(db).token,
             telegram_user_id=99,
             telegram_username=None,
             telegram_first_name=None,
         )
         assert outcome.code == "incomplete"
-    finally:
-        db.close()
 
 
 def test_duplicate_deeplink_no_duplicate_payment(client):
-    token = _complete_session(client)
-    factory = client.testing_session_factory  # type: ignore[attr-defined]
-    db = factory()
-    try:
+    token = complete_session(client)
+    with db_session(client) as db:
         service = PremiumPaymentService(db)
         first = service.start_premium_from_deeplink(
             session_token=token,
@@ -111,19 +86,15 @@ def test_duplicate_deeplink_no_duplicate_payment(client):
         assert first.payment is not None
         assert second.payment is not None
         assert first.payment.id == second.payment.id
-        count = db.scalar(select(func.count()).select_from(PaymentRequest))
-        assert count == 1
-    finally:
-        db.close()
+        assert db.scalar(select(func.count()).select_from(PaymentRequest)) == 1
 
 
 def test_other_session_not_premium_on_approve(client):
-    token_a = _complete_session(client)
+    token_a = complete_session(client)
     client.post("/personality/restart", follow_redirects=False)
-    token_b = _complete_session(client)
-    factory = client.testing_session_factory  # type: ignore[attr-defined]
-    db = factory()
-    try:
+    token_b = complete_session(client)
+
+    with db_session(client) as db:
         service = PremiumPaymentService(db)
         pay_a = service.start_premium_from_deeplink(
             session_token=token_a,
@@ -139,20 +110,14 @@ def test_other_session_not_premium_on_approve(client):
         )
         assert pay_a is not None
         service.approve_payment(pay_a.id, approved_by="test")
-        sess_a = db.scalar(select(PersonalityTestSession).where(PersonalityTestSession.token == token_a))
-        sess_b = db.scalar(select(PersonalityTestSession).where(PersonalityTestSession.token == token_b))
-        assert sess_a is not None and sess_b is not None
-        assert sess_a.is_premium is True
-        assert sess_b.is_premium is False
-    finally:
-        db.close()
+
+        assert session_by_token(db, token_a).is_premium is True
+        assert session_by_token(db, token_b).is_premium is False
 
 
 def test_receipt_attached_to_correct_request(client):
-    token = _complete_session(client)
-    factory = client.testing_session_factory  # type: ignore[attr-defined]
-    db = factory()
-    try:
+    token = complete_session(client)
+    with db_session(client) as db:
         service = PremiumPaymentService(db)
         payment = service.start_premium_from_deeplink(
             session_token=token,
@@ -171,15 +136,11 @@ def test_receipt_attached_to_correct_request(client):
         assert outcome.payment is not None
         assert outcome.payment.receipt_file_id == "file123"
         assert outcome.payment.status == "receipt_sent"
-    finally:
-        db.close()
 
 
 def test_admin_approve_opens_single_session(client):
-    token = _complete_session(client)
-    factory = client.testing_session_factory  # type: ignore[attr-defined]
-    db = factory()
-    try:
+    token = complete_session(client)
+    with db_session(client) as db:
         service = PremiumPaymentService(db)
         payment = service.start_premium_from_deeplink(
             session_token=token,
@@ -190,19 +151,15 @@ def test_admin_approve_opens_single_session(client):
         assert payment is not None
         mod = service.approve_payment(payment.id, approved_by="admin-test")
         assert mod.code == "approved"
-        sess = db.scalar(select(PersonalityTestSession).where(PersonalityTestSession.token == token))
-        assert sess is not None
-        assert sess.is_premium is True
-        assert sess.premium_approved_at is not None
-    finally:
-        db.close()
+
+        session = session_by_token(db, token)
+        assert session.is_premium is True
+        assert session.premium_approved_at is not None
 
 
 def test_admin_reject_does_not_open_premium(client):
-    token = _complete_session(client)
-    factory = client.testing_session_factory  # type: ignore[attr-defined]
-    db = factory()
-    try:
+    token = complete_session(client)
+    with db_session(client) as db:
         service = PremiumPaymentService(db)
         payment = service.start_premium_from_deeplink(
             session_token=token,
@@ -212,19 +169,15 @@ def test_admin_reject_does_not_open_premium(client):
         ).payment
         assert payment is not None
         service.reject_payment(payment.id, approved_by="admin-test")
-        sess = db.scalar(select(PersonalityTestSession).where(PersonalityTestSession.token == token))
-        assert sess is not None
-        assert sess.is_premium is False
-        assert sess.premium_requested is True
-    finally:
-        db.close()
+
+        session = session_by_token(db, token)
+        assert session.is_premium is False
+        assert session.premium_requested is True
 
 
 def test_duplicate_approve_idempotent(client):
-    token = _complete_session(client)
-    factory = client.testing_session_factory  # type: ignore[attr-defined]
-    db = factory()
-    try:
+    token = complete_session(client)
+    with db_session(client) as db:
         service = PremiumPaymentService(db)
         payment = service.start_premium_from_deeplink(
             session_token=token,
@@ -234,74 +187,111 @@ def test_duplicate_approve_idempotent(client):
         ).payment
         assert payment is not None
         service.approve_payment(payment.id, approved_by="admin")
-        again = service.approve_payment(payment.id, approved_by="admin")
-        assert again.code == "already_approved"
-    finally:
-        db.close()
+        assert service.approve_payment(payment.id, approved_by="admin").code == "already_approved"
+
+
+def test_reject_is_refused_once_the_session_is_premium(client):
+    token = complete_session(client)
+    with db_session(client) as db:
+        service = PremiumPaymentService(db)
+        payment = service.start_premium_from_deeplink(
+            session_token=token,
+            telegram_user_id=1010,
+            telegram_username=None,
+            telegram_first_name=None,
+        ).payment
+        assert payment is not None
+        service.approve_payment(payment.id, approved_by="admin")
+        assert service.reject_payment(payment.id, approved_by="admin").code == "already_approved"
+
+
+def test_payment_status_transitions_shown_on_the_result_page(client):
+    token = complete_session(client)
+    with db_session(client) as db:
+        service = PremiumPaymentService(db)
+        session = session_by_token(db, token)
+        assert service.get_result_payment_status(session) == "unpaid"
+
+    assert client.post(f"/personality/result/{token}/support-bot", follow_redirects=False).status_code == 303
+    awaiting = client.get(f"/personality/result/{token}")
+    assert "mbti-premium-status--pending" in awaiting.text
+    assert t("result.status_awaiting_title", "uz") in awaiting.text
+
+    code = payment_code_for_token(client, token)
+    with db_session(client) as db:
+        service = PremiumPaymentService(db)
+        claimed = service.claim_by_payment_code(
+            payment_code=code,
+            telegram_user_id=2020,
+            telegram_username=None,
+            telegram_first_name=None,
+        )
+        assert claimed.code == "claimed"
+        saved = service.attach_receipt(
+            telegram_user_id=2020,
+            receipt_file_id="file-1",
+            receipt_type="photo",
+        )
+        assert saved.code == "saved"
+        # Vebda egasiz boshlangan qator yangisi bilan almashmaydi.
+        assert db.scalar(select(func.count()).select_from(PaymentRequest)) == 1
+
+    reviewing = client.get(f"/personality/result/{token}")
+    assert t("result.status_pending_title", "uz") in reviewing.text
 
 
 def test_non_premium_session_hides_premium_content(client):
-    token = _complete_session(client)
+    token = complete_session(client)
     page = client.get(f"/personality/result/{token}")
-    assert "Premium tahlil — ochish uchun to‘lov tasdiqlanishi kerak" in page.text
-    assert "maqsad aniq va natija ko‘rinadigan bo‘lganda oshadi" not in page.text
+    assert LOCKED_PREMIUM_MARKER in page.text
+    assert page.text.count("mbti-premium-card is-locked") == 8
+    assert "mbti-premium-success-badge" not in page.text
 
 
 def test_premium_session_shows_premium_content(client):
-    token = _complete_session(client)
-    factory = client.testing_session_factory  # type: ignore[attr-defined]
-    db = factory()
-    try:
-        payment = PremiumPaymentService(db).start_premium_from_deeplink(
+    token = complete_session(client)
+    with db_session(client) as db:
+        service = PremiumPaymentService(db)
+        payment = service.start_premium_from_deeplink(
             session_token=token,
             telegram_user_id=1003,
             telegram_username=None,
             telegram_first_name=None,
         ).payment
         assert payment is not None
-        PremiumPaymentService(db).approve_payment(payment.id, approved_by="test")
-    finally:
-        db.close()
+        service.approve_payment(payment.id, approved_by="test")
+
     page = client.get(f"/personality/result/{token}")
-    assert "Premium tahlil — ochish uchun" not in page.text
-    assert "Motivatsiyangiz" in page.text or "motivatsiyangiz" in page.text.lower()
+    assert LOCKED_PREMIUM_MARKER not in page.text
+    assert "is-locked" not in page.text
+    assert t("result.premium_opened", "uz") in page.text
+    assert t("result.section.motivation", "uz") in page.text
 
 
 def test_cannot_view_other_session_result(client):
-    token_a = _complete_session(client)
+    token_a = complete_session(client)
     client.cookies.clear()
-    token_b = _complete_session(client)
+    token_b = complete_session(client)
     assert token_a != token_b
+
     denied = client.get(f"/personality/result/{token_a}", follow_redirects=False)
     assert denied.status_code == 303
     assert denied.headers["location"] == "/personality"
 
 
-
 def test_admin_search_by_payment_code(client):
-    from app.config import settings
+    token = complete_session(client)
+    code = payment_code_for_token(client, token)
 
-    token = _complete_session(client)
-    from app.personality.payment_code import payment_code_for_session
-
-    factory = client.testing_session_factory  # type: ignore[attr-defined]
-    db = factory()
-    try:
-        from sqlalchemy import select
-
-        from app.models.personality import PersonalityTestSession
-
-        row = db.scalar(select(PersonalityTestSession).where(PersonalityTestSession.token == token))
-        assert row is not None
-        code = payment_code_for_session(db, row)
-    finally:
-        db.close()
-
-    client.post(
-        "/admin/login",
-        data={"username": settings.admin_username, "password": settings.admin_password},
-    )
+    admin_login(client)
     found = client.get(f"/admin/sessions?code={code}")
     assert found.status_code == 200
     assert token[:8] in found.text or code in found.text
 
+
+def test_payment_code_is_stable_across_lookups(client):
+    token = complete_session(client)
+    with db_session(client) as db:
+        session = session_by_token(db, token)
+        assert payment_code_for_session(db, session) == payment_code_for_session(db, session)
+        assert token.startswith(session.payment_code)

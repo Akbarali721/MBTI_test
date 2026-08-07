@@ -1,17 +1,15 @@
 import re
 
 from app.paths import STATIC_DIR
+from tests.helpers import start_session
+
+# Kesh-buster qiymati asset_url() tomonidan fayl mazmunidan hosil qilinadi,
+# shuning uchun testlar aniq versiyaga emas, faqat uning borligiga tayanadi.
+_CACHE_BUSTED = r"\?v=[0-9a-f]+"
 
 
 def _question_html(client, gender: str = "male") -> str:
-    client.get("/personality/instructions")
-    start = client.post(
-        "/personality/start",
-        data={"gender": gender},
-        follow_redirects=False,
-    )
-    assert start.status_code == 303
-    token = start.headers["location"].rstrip("/").split("/")[-1]
+    token = start_session(client, gender)
     page = client.get(f"/personality/test/{token}?q=0")
     assert page.status_code == 200
     return page.text
@@ -19,19 +17,17 @@ def _question_html(client, gender: str = "male") -> str:
 
 def test_question_page_includes_stylesheet_links(client):
     html = _question_html(client)
-    assert "personality.css?v=12" in html
-    assert "personality-marketing.css?v=20" in html
+    assert re.search(r"/static/css/personality\.css" + _CACHE_BUSTED, html)
+    assert re.search(r"/static/css/personality-marketing\.css" + _CACHE_BUSTED, html)
     assert "mbti-option" in html
     assert "next-question-button" in html
-    assert "question-form.js" in html
+    assert "choice-form.js" in html
 
 
 def test_question_page_theme_female_in_html(client):
     html = _question_html(client, gender="female")
-    assert 'class="personality-body ref-page ref-page--flow theme-female"' in html.replace(
-        "  ", " "
-    ) or "theme-female" in html
     assert "ref-page ref-page--flow theme-female" in html
+    assert "theme-male" not in html
 
 
 def test_question_page_theme_male_in_html(client):
@@ -47,7 +43,7 @@ def test_personality_marketing_css_served_with_mbti_option(client):
     assert len(css_hrefs) >= 2
 
     marketing_href = next(h for h in css_hrefs if "personality-marketing.css" in h)
-    assert "?v=20" in marketing_href
+    assert re.search(_CACHE_BUSTED + r"$", marketing_href)
     path = marketing_href.split("?", 1)[0]
     if not path.startswith("/"):
         path = marketing_href.replace("http://testserver", "").split("?", 1)[0]
@@ -55,6 +51,12 @@ def test_personality_marketing_css_served_with_mbti_option(client):
     assert resp.status_code == 200
     assert ".ref-page.theme-female" in resp.text
     assert ".mbti-option" in resp.text
+
+
+def test_marketing_css_loaded_once_per_page(client):
+    """Bir xil CSS ikki marta yuklanmasin (avval result.html uni takrorlagan)."""
+    html = _question_html(client)
+    assert html.count("/static/css/personality-marketing.css") == 1
 
 
 def test_static_dir_points_at_app_static():

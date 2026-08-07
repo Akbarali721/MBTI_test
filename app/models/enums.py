@@ -20,3 +20,14 @@ class AppearanceTheme(str, enum.Enum):
     FEMALE = "female"
     NEUTRAL = "neutral"
 
+
+class PaymentStatus(str, enum.Enum):
+    """To'lov holatlari. Ustun turi String(32) bo'lib qoladi, DB darajasida CHECK cheklovi qo'yiladi."""
+
+    PENDING = "pending"
+    RECEIPT_SENT = "receipt_sent"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
+PAYMENT_STATUS_VALUES: tuple[str, ...] = tuple(member.value for member in PaymentStatus)

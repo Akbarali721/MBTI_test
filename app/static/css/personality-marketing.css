@@ -1,5 +1,5 @@
 /**
- * Marketing pages: /personality, /personality/appearance
+ * Marketing pages: /personality, /personality/instructions
  * Palette and layout aligned to product reference (gold / navy / cream).
  */
 
@@ -9,7 +9,13 @@
   --navy: #0b2348;
   --navy-deep: #071b39;
   --gold: #c98a22;
+  /* Kichik matn uchun quyuqroq oltin: krem fonda 5.3:1 (WCAG AA).
+     Asl --gold katta dekorativ elementlarda qoladi. */
+  --gold-text: #8a5c10;
   --gold-soft: #efd9ac;
+  --rose: #d48498;
+  /* Ayol mavzusidagi kichik matn uchun: #fffafb fonda 5.6:1. */
+  --rose-text: #a8425c;
   --border-soft: #e9dfd0;
   --text-main: #10213c;
   --text-muted: #5f6877;
@@ -301,7 +307,7 @@
   line-height: 1.2;
   letter-spacing: 0.14em;
   font-weight: 700;
-  color: var(--gold);
+  color: var(--gold-text);
   text-transform: uppercase;
 }
 
@@ -316,10 +322,6 @@
   max-width: 650px;
   margin-left: auto;
   margin-right: auto;
-}
-
-.ref-title--sm {
-  font-size: clamp(24px, 5.5vw, 30px);
 }
 
 .ref-lead {
@@ -339,10 +341,6 @@
   font-size: 15px;
   line-height: 1.55;
   color: var(--text-muted);
-}
-
-.ref-copy--center {
-  margin-bottom: 22px;
 }
 
 .ref-meta-grid {
@@ -442,7 +440,7 @@
 }
 
 .ref-note-icon {
-  color: var(--gold);
+  color: var(--gold-text);
   display: inline-flex;
 }
 
@@ -451,7 +449,6 @@
   height: 16px;
 }
 
-/* Appearance selection */
 .ref-alert {
   margin-bottom: 16px;
   padding: 12px 14px;
@@ -460,139 +457,6 @@
   border: 1px solid #f3d0d0;
   color: #9b1c1c;
   font-size: 14px;
-}
-
-.ref-fieldset {
-  border: 0;
-  margin: 0 0 18px;
-  padding: 0;
-}
-
-.ref-choice-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-}
-
-.ref-choice {
-  display: block;
-  cursor: pointer;
-  position: relative;
-}
-
-.ref-choice-input {
-  position: absolute;
-  opacity: 0;
-  width: 1px;
-  height: 1px;
-  margin: 0;
-}
-
-.ref-choice-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  min-height: 196px;
-  padding: 18px 16px 16px;
-  border-radius: 22px;
-  border: 2px solid var(--border-soft);
-  background: var(--white);
-  box-shadow: 0 8px 22px rgba(29, 41, 67, 0.05);
-  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
-}
-
-.ref-choice-card--male {
-  background: linear-gradient(165deg, #ffffff 0%, #f3f8ff 52%, var(--cream) 100%);
-}
-
-.ref-choice-card--female {
-  background: linear-gradient(165deg, #ffffff 0%, #f7f2fc 52%, #fff7f2 100%);
-}
-
-.ref-choice-art-wrap {
-  width: 96px;
-  height: 96px;
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ref-choice-art {
-  width: 88px;
-  height: 88px;
-  object-fit: contain;
-}
-
-.ref-choice-title {
-  font-size: 17px;
-  font-weight: 800;
-  color: var(--navy);
-  line-height: 1.2;
-}
-
-.ref-choice-sub {
-  margin-top: 6px;
-  font-size: 13px;
-  line-height: 1.4;
-  color: var(--text-muted);
-  max-width: 220px;
-}
-
-.ref-choice-check {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 22px;
-  height: 22px;
-  border-radius: 999px;
-  border: 2px solid var(--border-soft);
-  background: var(--white);
-}
-
-.ref-choice-input:checked + .ref-choice-card--male {
-  border-color: #2f5ea8;
-  box-shadow: 0 0 0 3px rgba(47, 94, 168, 0.12), var(--shadow-card);
-}
-
-.ref-choice-input:checked + .ref-choice-card--male .ref-choice-check {
-  border-color: #2f5ea8;
-  background: #2f5ea8;
-  box-shadow: inset 0 0 0 3px var(--white);
-}
-
-.ref-choice-input:checked + .ref-choice-card--female {
-  border-color: #8b6fbf;
-  box-shadow: 0 0 0 3px rgba(139, 111, 191, 0.14), var(--shadow-card);
-}
-
-.ref-choice-input:checked + .ref-choice-card--female .ref-choice-check {
-  border-color: #8b6fbf;
-  background: #8b6fbf;
-  box-shadow: inset 0 0 0 3px var(--white);
-}
-
-.ref-choice-input:focus-visible + .ref-choice-card {
-  outline: 2px solid var(--gold);
-  outline-offset: 3px;
-}
-
-.ref-choice:hover .ref-choice-card {
-  transform: translateY(-2px);
-}
-
-.visually-hidden {
-  position: absolute !important;
-  width: 1px !important;
-  height: 1px !important;
-  padding: 0 !important;
-  margin: -1px !important;
-  overflow: hidden !important;
-  clip: rect(0, 0, 0, 0) !important;
-  white-space: nowrap !important;
-  border: 0 !important;
 }
 
 @media (min-width: 640px) {
@@ -610,18 +474,6 @@
 
   .ref-card {
     padding: 28px 32px 30px;
-  }
-}
-
-@media (min-width: 768px) {
-  .ref-choice-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-  }
-
-  .ref-choice-card {
-    min-height: 220px;
-    padding: 22px 18px 18px;
   }
 }
 
@@ -737,6 +589,18 @@
   transform: scale(1);
 }
 
+/* Radio'lar vizual yashirilgan, shuning uchun fokus halqasi yorliqda ko'rsatiladi. */
+.gender-option:has(.gender-option-input:focus-visible),
+.mbti-option:has(.mbti-option-input:focus-visible) {
+  outline: 3px solid var(--navy);
+  outline-offset: 3px;
+}
+
+.ref-page.theme-female .gender-option:has(.gender-option-input:focus-visible),
+.ref-page.theme-female .mbti-option:has(.mbti-option-input:focus-visible) {
+  outline-color: var(--rose-text);
+}
+
 @media (max-width: 639px) {
   .gender-image {
     width: 76px;
@@ -824,7 +688,7 @@
 .mbti-back-link {
   font-size: 14px;
   font-weight: 600;
-  color: var(--gold);
+  color: var(--gold-text);
   text-decoration: none;
 }
 
@@ -991,7 +855,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--gold);
+  color: var(--gold-text);
 }
 
 .mbti-disclaimer {
@@ -1153,7 +1017,7 @@ body.personality-body.ref-page.theme-male {
 }
 
 .ref-page.theme-female .mbti-back-link {
-  color: #d48498;
+  color: var(--rose-text);
 }
 
 .ref-page.theme-female .mbti-back-link:hover {
@@ -1161,12 +1025,12 @@ body.personality-body.ref-page.theme-male {
 }
 
 .ref-page.theme-male .mbti-back-link {
-  color: var(--gold);
+  color: var(--gold-text);
 }
 
 .ref-page.theme-female .mbti-option.is-selected,
 .ref-page.theme-female .mbti-option:has(.mbti-option-input:checked) {
-  border-color: #d48498;
+  border-color: var(--rose);
   background: #fff0f4;
   box-shadow: 0 0 0 2px rgba(212, 132, 152, 0.15);
 }
@@ -1175,8 +1039,9 @@ body.personality-body.ref-page.theme-male {
 .ref-page.theme-female .mbti-option:has(.mbti-option-input:checked) .mbti-option-check {
   opacity: 1;
   transform: scale(1);
-  background: #d48498;
-  border-color: #d48498;
+  /* Oq ✓ o'qilishi uchun quyuqroq variant (5.8:1). */
+  background: var(--rose-text);
+  border-color: var(--rose-text);
   color: var(--white);
 }
 
@@ -1203,7 +1068,7 @@ body.personality-body.ref-page.theme-male {
 }
 
 .ref-page.theme-female .mbti-spinner {
-  border-top-color: #d48498;
+  border-top-color: var(--rose);
 }
 
 .ref-page.theme-male .mbti-spinner {
@@ -1211,7 +1076,7 @@ body.personality-body.ref-page.theme-male {
 }
 
 .ref-page.theme-female .mbti-dimension-left {
-  background: #d48498;
+  background: var(--rose);
 }
 
 .ref-page.theme-female .mbti-dimension-right {
@@ -1227,11 +1092,11 @@ body.personality-body.ref-page.theme-male {
 }
 
 .ref-page.theme-female .mbti-result-type {
-  color: #d48498;
+  color: var(--rose-text);
 }
 
 .ref-page.theme-male .mbti-result-type {
-  color: var(--gold);
+  color: var(--gold-text);
 }
 
 .result-actions {
@@ -1247,23 +1112,17 @@ body.personality-body.ref-page.theme-male {
   border-radius: 15px;
 }
 
-.result-actions__secondary {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
+.ref-cta--secondary {
   min-height: 52px;
   border-radius: 15px;
   background: var(--cream);
   color: var(--navy);
   border: 2px solid var(--navy);
-  font-size: 16px;
-  font-weight: 700;
-  text-decoration: none;
   box-sizing: border-box;
 }
 
-.result-actions__secondary:hover {
+.ref-cta--secondary:hover,
+.ref-cta--secondary:focus-visible {
   color: var(--navy);
   filter: brightness(0.98);
 }
@@ -1465,19 +1324,6 @@ body.personality-body.ref-page.theme-male {
   white-space: nowrap;
 }
 
-.mbti-payment-dialog__submit {
-  width: 100%;
-  min-height: 52px;
-  margin-top: 8px;
-}
-
-.mbti-payment-dialog__hint {
-  margin: 12px 0 0;
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--text-muted, #4a5568);
-}
-
 .mbti-payment-steps {
   margin: 16px 0 18px;
   padding-left: 1.25rem;
@@ -1550,4 +1396,82 @@ body.personality-body.ref-page.theme-male {
   .mbti-copy-btn {
     width: 100%;
   }
+}
+
+/* Premium teaser: birinchi jumla o'qiladi, davomi xiralashtirilgan taqlid qatori. */
+.mbti-premium-teaser {
+  margin: 0 0 4px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text-main);
+}
+
+.mbti-premium-teaser--blurred {
+  margin-bottom: 10px;
+  filter: blur(4px);
+  opacity: 0.55;
+  user-select: none;
+}
+
+.mbti-premium-locked-note {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* Xato sahifalari */
+.mbti-error-card {
+  text-align: center;
+}
+
+.mbti-error-code {
+  margin: 0 0 6px;
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--gold-text);
+}
+
+.mbti-error-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* Til almashtirgich — sahifa oxirida, bezovta qilmaydigan qatorcha. */
+.lang-switch {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin: 0 auto 20px;
+  padding: 0 16px;
+}
+
+.lang-switch__item {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-soft);
+  background: var(--card-bg);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.lang-switch__item:hover,
+.lang-switch__item:focus-visible {
+  color: var(--navy);
+  border-color: var(--navy);
+}
+
+.lang-switch__item.is-active {
+  color: var(--white);
+  background: var(--navy);
+  border-color: var(--navy);
 }

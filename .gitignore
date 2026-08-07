@@ -1,7 +1,36 @@
+# Virtual muhit va sirlar
 .venv/
 .env
+.env.*
+!.env.example
+
+# Python
 __pycache__/
 *.pyc
+dist/
+build/
+*.egg-info/
+
+# Muharrirlar va IDE
 .idea/
+.vscode/
+
+# Test va tahlil keshlari
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Ma'lumotlar bazasi va loglar
 *.db
+# SQLite WAL rejimida yonma-yon ikkita yordamchi fayl yaratadi
+*.db-shm
+*.db-wal
+*.log
+
+# OS va Office qoldiqlari
+~$*
+Thumbs.db
+.DS_Store
+desktop.ini

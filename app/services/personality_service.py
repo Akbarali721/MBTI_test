@@ -2,7 +2,11 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.models.enums import AppearanceTheme, PersonalitySessionStatus
-from app.models.personality import PersonalityQuestion, PersonalityTestSession
+from app.models.personality import (
+    DEFAULT_CONTENT_LANGUAGE,
+    PersonalityQuestion,
+    PersonalityTestSession,
+)
 from app.repositories.personality_repository import PersonalityRepository
 from app.services.personality_scoring import calculate_personality_result
 
@@ -15,7 +19,7 @@ class PersonalityService:
         self,
         *,
         user_id: int | None = None,
-        telegram_user_id: str | None = None,
+        telegram_user_id: int | None = None,
         source: str | None = None,
     ) -> PersonalityTestSession:
         return self.repo.create_session(
@@ -92,12 +96,13 @@ class PersonalityService:
         self.repo.update_session_progress(session, next_index)
         return {"redirect": "question", "session": session, "next_index": next_index}
 
-    def get_result_view(self, token: str) -> dict:
+    def get_result_view(self, token: str, language: str = DEFAULT_CONTENT_LANGUAGE) -> dict:
         session = self.get_session_or_404(token)
         if session.status != PersonalitySessionStatus.COMPLETED or not session.result_type:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Test not completed yet")
 
-        content = self.repo.get_result_content(session.result_type)
+        # So'ralgan til topilmasa repository "uz" ga qaytadi.
+        content = self.repo.get_result_content(session.result_type, language)
         if not content:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,

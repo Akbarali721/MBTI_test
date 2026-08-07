@@ -1,8 +1,9 @@
+import sqlite3
 from logging.config import fileConfig
 
-from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import engine_from_config, event, pool
 
+from alembic import context
 from app.config import settings
 from app.database import Base
 from app.models import payment_request, personality  # noqa: F401
@@ -36,8 +37,23 @@ def run_migrations_online() -> None:
         poolclass=pool.NullPool,
     )
 
+    @event.listens_for(connectable, "connect")
+    def _disable_sqlite_foreign_keys(dbapi_connection: object, _record: object) -> None:
+        """SQLite jadvalni qayta qurish (batch/recreate) paytida ON DELETE CASCADE ishlamasin."""
+        if not isinstance(dbapi_connection, sqlite3.Connection):
+            return
+        cursor = dbapi_connection.cursor()
+        try:
+            cursor.execute("PRAGMA foreign_keys=OFF")
+        finally:
+            cursor.close()
+
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            render_as_batch=connection.dialect.name == "sqlite",
+        )
 
         with context.begin_transaction():
             context.run_migrations()

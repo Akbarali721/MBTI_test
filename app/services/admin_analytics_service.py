@@ -1,11 +1,90 @@
-from dataclasses import dataclass
-from datetime import datetime, timezone
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
+from typing import Generic, TypeVar
 
-from sqlalchemy import func, select
+from sqlalchemy import ColumnElement, func, select
 from sqlalchemy.orm import Session
 
 from app.models.enums import PersonalitySessionStatus
-from app.models.personality import PersonalityAnswer, PersonalityQuestion, PersonalityTestSession
+from app.models.personality import (
+    PersonalityAnswer,
+    PersonalityOption,
+    PersonalityQuestion,
+    PersonalityTestSession,
+)
+
+T = TypeVar("T")
+
+# O'zbekistonda yozgi vaqt yo'q, shuning uchun qat'iy UTC+5 yetarli va tzdata talab qilmaydi.
+TASHKENT_TZ = timezone(timedelta(hours=5))
+
+DEFAULT_PAGE_SIZE = 50
+MAX_PAGE_SIZE = 500
+
+
+def tashkent_day_start(now: datetime | None = None) -> datetime:
+    """Asia/Tashkent bo'yicha bugungi kun boshini UTC lahzasi sifatida qaytaradi.
+
+    Bazadagi vaqtlar UTC'da saqlanadi, "bugun" esa admin uchun mahalliy kun bo'lishi kerak.
+    """
+    moment = now or datetime.now(timezone.utc)
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=timezone.utc)
+    local_midnight = moment.astimezone(TASHKENT_TZ).replace(hour=0, minute=0, second=0, microsecond=0)
+    return local_midnight.astimezone(timezone.utc)
+
+
+@dataclass(frozen=True)
+class Page(Generic[T]):
+    items: list[T] = field(default_factory=list)
+    total: int = 0
+    page: int = 1
+    page_size: int = DEFAULT_PAGE_SIZE
+
+    @property
+    def pages(self) -> int:
+        if self.page_size <= 0:
+            return 1
+        return max(1, -(-self.total // self.page_size))
+
+    @property
+    def has_prev(self) -> bool:
+        return self.page > 1
+
+    @property
+    def has_next(self) -> bool:
+        return self.page < self.pages
+
+    @property
+    def prev_page(self) -> int:
+        return max(1, self.page - 1)
+
+    @property
+    def next_page(self) -> int:
+        return min(self.pages, self.page + 1)
+
+    @property
+    def first_index(self) -> int:
+        """Joriy sahifadagi birinchi qatorning umumiy ro'yxatdagi tartib raqami (1 dan)."""
+        if not self.items:
+            return 0
+        return (self.page - 1) * self.page_size + 1
+
+    @property
+    def last_index(self) -> int:
+        if not self.items:
+            return 0
+        return self.first_index + len(self.items) - 1
+
+
+def normalize_page(page: int | None) -> int:
+    return max(1, page or 1)
+
+
+def normalize_page_size(page_size: int | None) -> int:
+    if not page_size or page_size < 1:
+        return DEFAULT_PAGE_SIZE
+    return min(page_size, MAX_PAGE_SIZE)
 
 
 @dataclass(frozen=True)
@@ -35,11 +114,8 @@ class AdminAnalyticsService:
             .where(PersonalityTestSession.started_at.is_not(None))
         )
         incomplete = max(0, started - completed)
-        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
         today_visitors = self._scalar_count(
-            select(func.count())
-            .select_from(PersonalityTestSession)
-            .where(PersonalityTestSession.created_at >= today_start)
+            select(func.count()).select_from(PersonalityTestSession).where(self._today_clause())
         )
         rate = (completed / started * 100.0) if started > 0 else 0.0
         return AdminDashboardStats(
@@ -59,29 +135,47 @@ class AdminAnalyticsService:
         payment_code: str | None = None,
         limit: int = 500,
     ) -> list[PersonalityTestSession]:
+        return self.list_sessions_page(
+            status_filter=status_filter,
+            today_only=today_only,
+            payment_code=payment_code,
+            page=1,
+            page_size=limit,
+        ).items
+
+    def list_sessions_page(
+        self,
+        *,
+        status_filter: str | None = None,
+        today_only: bool = False,
+        payment_code: str | None = None,
+        page: int = 1,
+        page_size: int = DEFAULT_PAGE_SIZE,
+    ) -> Page[PersonalityTestSession]:
+        page = normalize_page(page)
+        page_size = normalize_page_size(page_size)
+
         if payment_code and payment_code.strip():
             from app.personality.payment_code import find_sessions_by_payment_code
 
-            return find_sessions_by_payment_code(self.db, payment_code, limit=limit)
+            # Kod bo'yicha qidiruv bir nechta qatordan iborat bo'ladi: sahifalash shart emas.
+            found = find_sessions_by_payment_code(self.db, payment_code, limit=page_size)
+            return Page(items=found, total=len(found), page=1, page_size=page_size)
+
+        clauses = self._filter_clauses(status_filter=status_filter, today_only=today_only)
+        count_stmt = select(func.count()).select_from(PersonalityTestSession)
         stmt = select(PersonalityTestSession).order_by(
             PersonalityTestSession.last_activity_at.desc().nullslast(),
             PersonalityTestSession.created_at.desc(),
         )
-        if status_filter and status_filter != "all":
-            if status_filter == "today":
-                today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-                stmt = stmt.where(PersonalityTestSession.created_at >= today_start)
-            else:
-                try:
-                    status = PersonalitySessionStatus(status_filter)
-                    stmt = stmt.where(PersonalityTestSession.status == status)
-                except ValueError:
-                    pass
-        elif today_only:
-            today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-            stmt = stmt.where(PersonalityTestSession.created_at >= today_start)
-        stmt = stmt.limit(limit)
-        return list(self.db.scalars(stmt).all())
+        for clause in clauses:
+            count_stmt = count_stmt.where(clause)
+            stmt = stmt.where(clause)
+
+        total = self._scalar_count(count_stmt)
+        offset = (page - 1) * page_size
+        items = list(self.db.scalars(stmt.offset(offset).limit(page_size)).all())
+        return Page(items=items, total=total, page=page, page_size=page_size)
 
     def get_session_detail(self, session_id: int) -> dict | None:
         from app.repositories.personality_repository import PersonalityRepository
@@ -90,24 +184,42 @@ class AdminAnalyticsService:
         session = repo.get_session_by_id(session_id)
         if not session:
             return None
+        # Variant matni ham shu so'rovda keladi: har javob uchun alohida SELECT yo'q.
         stmt = (
-            select(PersonalityAnswer, PersonalityQuestion)
+            select(PersonalityQuestion.order_number, PersonalityQuestion.text, PersonalityOption.text)
+            .select_from(PersonalityAnswer)
             .join(PersonalityQuestion, PersonalityAnswer.question_id == PersonalityQuestion.id)
+            .outerjoin(PersonalityOption, PersonalityAnswer.option_id == PersonalityOption.id)
             .where(PersonalityAnswer.session_id == session_id)
             .order_by(PersonalityQuestion.order_number)
         )
-        rows = self.db.execute(stmt).all()
-        answers = []
-        for answer, question in rows:
-            opt = repo.get_option(answer.option_id)
-            answers.append(
-                {
-                    "order": question.order_number,
-                    "question_text": question.text,
-                    "option_text": opt.text if opt else "—",
-                }
-            )
+        answers = [
+            {"order": order, "question_text": question_text, "option_text": option_text or "—"}
+            for order, question_text, option_text in self.db.execute(stmt).all()
+        ]
         return {"session": session, "answers": answers}
+
+    def _filter_clauses(
+        self,
+        *,
+        status_filter: str | None,
+        today_only: bool,
+    ) -> list[ColumnElement[bool]]:
+        if status_filter and status_filter != "all":
+            if status_filter == "today":
+                return [self._today_clause()]
+            try:
+                status = PersonalitySessionStatus(status_filter)
+            except ValueError:
+                return []
+            return [PersonalityTestSession.status == status]
+        if today_only:
+            return [self._today_clause()]
+        return []
+
+    @staticmethod
+    def _today_clause() -> ColumnElement[bool]:
+        return PersonalityTestSession.created_at >= tashkent_day_start()
 
     def _scalar_count(self, stmt) -> int:
         return int(self.db.scalar(stmt) or 0)

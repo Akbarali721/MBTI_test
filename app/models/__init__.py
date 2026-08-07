@@ -8,10 +8,10 @@ from app.models.personality import (
 )
 
 __all__ = [
-    "PersonalityTestSession",
-    "PersonalityQuestion",
-    "PersonalityOption",
-    "PersonalityAnswer",
-    "PersonalityResultContent",
     "PaymentRequest",
+    "PersonalityAnswer",
+    "PersonalityOption",
+    "PersonalityQuestion",
+    "PersonalityResultContent",
+    "PersonalityTestSession",
 ]

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Testdan oldin{% endblock %}
+{% block title %}{{ t('instructions.title') }}{% endblock %}
 {% block bootstrap_css %}{% endblock %}
 {% block bootstrap_js %}{% endblock %}
 {% block body_class %}ref-page ref-page--flow {{ theme_class }}{% endblock %}
@@ -8,29 +8,38 @@
 <section class="ref-shell ref-shell--flow">
   <article class="ref-card mbti-flow-card">
     {% include "personality/partials/brand_logo.html" %}
-    <h1 class="mbti-flow-title">Testdan oldin</h1>
-    <p class="mbti-flow-text">Javoblarni hozir qanday bo‘lishni xohlayotganingizga emas, odatda qanday harakat qilishingizga qarab belgilang.</p>
+    <h1 class="mbti-flow-title">{{ t('instructions.title') }}</h1>
+    <p class="mbti-flow-text">{{ t('instructions.text') }}</p>
 
     {% if gender_error %}
     <div class="ref-alert" role="alert">{{ gender_error }}</div>
     {% endif %}
 
-    <form id="start-form" class="mbti-start-form" action="/personality/start" method="post">
-      <div class="gender-selector" role="radiogroup" aria-label="Jinsni tanlang">
+    <form id="start-form" class="mbti-start-form" action="/personality/start" method="post"
+          data-choice-form data-enables="#start-btn" data-theme-target="body">
+      <div class="gender-selector" role="radiogroup" aria-label="{{ t('instructions.gender_group') }}">
         <label class="gender-option gender-option--female">
           <input
             type="radio"
             name="gender"
             value="female"
             class="gender-option-input"
+            required
+            data-theme-class="theme-female"
             {% if selected_gender == 'female' %}checked{% endif %}
           >
-          <img
-            src="/static/images/personality/gender/female.png"
-            alt="Ayol"
-            class="gender-image"
-          >
-          <span class="gender-title">Ayol</span>
+          <picture>
+            <source srcset="/static/images/personality/gender/female.webp" type="image/webp">
+            <img
+              src="/static/images/personality/gender/female.png"
+              alt="{{ t('instructions.female') }}"
+              class="gender-image"
+              width="384"
+              height="256"
+              decoding="async"
+            >
+          </picture>
+          <span class="gender-title">{{ t('instructions.female') }}</span>
           <span class="gender-check" aria-hidden="true">✓</span>
         </label>
 
@@ -40,30 +49,38 @@
             name="gender"
             value="male"
             class="gender-option-input"
+            required
+            data-theme-class="theme-male"
             {% if selected_gender == 'male' %}checked{% endif %}
           >
-          <img
-            src="/static/images/personality/gender/male.png"
-            alt="Erkak"
-            class="gender-image"
-          >
-          <span class="gender-title">Erkak</span>
+          <picture>
+            <source srcset="/static/images/personality/gender/male.webp" type="image/webp">
+            <img
+              src="/static/images/personality/gender/male.png"
+              alt="{{ t('instructions.male') }}"
+              class="gender-image"
+              width="384"
+              height="256"
+              decoding="async"
+            >
+          </picture>
+          <span class="gender-title">{{ t('instructions.male') }}</span>
           <span class="gender-check" aria-hidden="true">✓</span>
         </label>
       </div>
 
-      <button type="submit" id="start-btn" class="ref-cta ref-cta--primary" disabled>Testni boshlash</button>
+      <button type="submit" id="start-btn" class="ref-cta ref-cta--primary">{{ t('instructions.start') }}</button>
     </form>
 
     <p class="ref-note mbti-flow-note">
       <span class="ref-note-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none"><path d="M12 3.5l6.5 2.8v5.9c0 3.9-2.7 6.8-6.5 7.8-3.8-1-6.5-3.9-6.5-7.8V6.3L12 3.5z" stroke="currentColor" stroke-width="1.5"/><path d="M9.2 12.2l1.8 1.8 3.8-3.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
       </span>
-      To‘g‘ri yoki noto‘g‘ri javob yo‘q.
+      {{ t('common.no_wrong_answer') }}
     </p>
   </article>
 </section>
 {% endblock %}
 {% block scripts %}
-<script src="/static/js/instructions-gender.js?v=1"></script>
+<script src="{{ asset_url('js/choice-form.js') }}" defer></script>
 {% endblock %}
