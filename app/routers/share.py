@@ -5,6 +5,8 @@ faqat xarakter tipi, uning umumiy tavsifi va o'lchov foizlari. Premium bo'limlar
 to'lov ma'lumotlari va Telegram identifikatorlari bu sahifaga umuman chiqmaydi.
 """
 
+from urllib.parse import quote
+
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
@@ -16,6 +18,7 @@ from app.i18n import resolve_lang
 from app.personality.share_code import find_shared_session, og_image_path
 from app.repositories.personality_repository import PersonalityRepository
 from app.services.personality_scoring import calculate_personality_result
+from app.services.referral_service import REFERRAL_QUERY_KEY
 from app.templating import templates
 
 router = APIRouter(prefix="/r", tags=["share"])
@@ -57,5 +60,14 @@ def shared_result(
             "result": result,
             "strengths": repo.parse_json_list(content.free_strengths),
             "og_image_url": f"{str(request.base_url).rstrip('/')}{og_image_path(session.result_type)}",
+            # Ulashish havolasining O'ZI referal havolasi: allaqachon tarqatilgan
+            # havolalar ham egasiga mukofot keltira boshlaydi.
+            "start_url": _start_url(session.share_code),
         },
     )
+
+
+def _start_url(share_code: str | None) -> str:
+    if not share_code:
+        return "/personality"
+    return f"/personality?{REFERRAL_QUERY_KEY}={quote(share_code, safe='')}"

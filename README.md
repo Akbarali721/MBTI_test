@@ -41,6 +41,17 @@ Loyiha ikki jarayondan iborat:
     `QUESTION_VARIANTS` bilan boshqariladi, natijalar admin panelida solishtiriladi.
   - **Botda toʻliq test** — `/test` buyrugʻi bilan testni Telegram ichida topshirish
     (veb bilan bir xil savollar va bir xil ball hisoblash).
+  - **Referal: doʻst taklif qilib bepul premium** — natija sahifasidagi havola
+    (`/personality?ref=<ulashish-kodi>`) orqali `REFERRAL_REQUIRED_COMPLETIONS` ta odam
+    testni tugatsa, taklif qilgan odamga premium `REFERRAL_REWARD_DAYS` kunga ochiladi.
+    Alohida kod qoʻshilmadi: mavjud ulashish kodining OʻZI referal havolasi, ya'ni
+    allaqachon tarqatilgan havolalar ham ishlaydi. Mukofot `is_premium` ga tegmaydi —
+    u faqat `premium_until` ni suradi, shuning uchun bepul muddat hisobotlarda sotuv
+    boʻlib koʻrinmaydi. PDF ataylab faqat toʻlangan premiumda qoladi.
+  - **AI maslahatlar** — premium boʻlimida xarakter tipi asosida `AI_ADVICE_COUNT` ta
+    amaliy maslahat. Alohida POST bilan soʻraladi va natija bazaga yoziladi: sahifa
+    render qilinishi tashqi xizmatga bogʻliq emas. Soʻrovda shaxsiy maʼlumot yoʻq —
+    faqat MBTI tipi va oʻlchov foizlari. `AI_API_KEY` boʻsh boʻlsa funksiya oʻchiq.
 - Operatsion imkoniyatlar:
   - **Chek rasmi admin panelida** — Telegram `getFile` ni proxy qiluvchi autentifikatsiyalangan
     endpoint; bot tokeni brauzerga chiqmaydi.
@@ -60,6 +71,9 @@ Loyiha ikki jarayondan iborat:
     tranzaksiyada navbatga yoziladi, bot jarayonidagi ishchi uni yetkazadi va qayta urinadi.
   - **Maʼlumotlarni saqlash siyosati** `/admin/retention` — eskirgan sessiyalarni tozalash;
     buzgʻunchi amallar faqat CLI da.
+  - **Referal va AI koʻrsatkichlari** `/admin` — havola orqali kelganlar, tugatganlar,
+    berilgan mukofotlar, ochiq bepul muddatlar; AI boʻyicha tayyor/xato, bugungi hisob va
+    sarflangan tokenlar. Tugatish foizi haddan tashqari yuqori boʻlsa panel ogohlantiradi.
 
 ### Operatsion buyruqlar
 
@@ -298,6 +312,32 @@ Toʻlov qatori, jamoa aʼzosi yoki premiumga tegishli sessiya **hech bir qoida b
 oʻchirilmaydi: shart soʻrovning oʻzida (`NOT EXISTS`) va oʻchirishdan oldin yana bir marta
 tekshiriladi. Oʻchiriladigan sessiyalar avval kunlik agregatga yigʻiladi, shuning uchun
 voronka va A/B sonlari tozalashdan keyin ham oʻzgarmaydi.
+
+### Referal va AI maslahatlar
+
+| Kalit | Nima qiladi | Eslatma |
+| --- | --- | --- |
+| `REFERRAL_ENABLED` | Referal blokini va mukofotni yoqadi | Standart `true`; `false` boʻlsa havola koʻrsatilmaydi va mukofot berilmaydi |
+| `REFERRAL_REQUIRED_COMPLETIONS` | Bitta mukofot uchun kerakli **tugatilgan** testlar soni | Standart `3`. Nol qabul qilinmaydi |
+| `REFERRAL_REWARD_DAYS` | Har mukofot beradigan kun | Standart `3`. Muddat **uzayadi**, boshidan boshlanmaydi |
+| `REFERRAL_MAX_REWARD_DAYS` | Yigʻilgan bepul muddat chegarasi | Standart `30`. Bitta mukofot muddatidan kichik boʻlishi mumkin emas |
+| `AI_API_KEY` | Anthropic kaliti | **Boʻsh boʻlsa funksiya butunlay oʻchiq** va tugma koʻrinmaydi |
+| `AI_BASE_URL` | API manzili | Standart `https://api.anthropic.com` |
+| `AI_MODEL` | Model nomi | Standart `claude-sonnet-5` |
+| `AI_ADVICE_COUNT` | Nechta maslahat | Standart `5`. Kam kelsa javob rad etiladi — yarim natija koʻrsatilmaydi |
+| `AI_TIMEOUT_SECONDS` | Bitta chaqiruv chegarasi | Standart `30` |
+| `AI_MAX_OUTPUT_TOKENS` | Javob uzunligi chegarasi | Standart `1500` |
+| `AI_DAILY_LIMIT` | Kuniga nechta **sessiyaga** javob yaratiladi (Toshkent kuni) | Standart `200`. Eng yomon holatda chaqiruvlar `AI_DAILY_LIMIT * AI_MAX_ATTEMPTS` |
+| `AI_MAX_ATTEMPTS` | Bitta sessiya uchun urinishlar | Standart `3`. Kalit notoʻgʻri boʻlsa urinishlar **darhol** tugatiladi |
+| `RATE_LIMIT_AI_ADVICE` | IP boʻyicha chegara | Standart `10/hour` |
+
+Suiisteʼmolga qarshi qoidalar: havola faqat **boshlanmagan** sessiyaga biriktiriladi
+(tugatilgan testni keyin kimningdir hisobiga oʻtkazib boʻlmaydi) va brauzerda allaqachon
+tugatilgan test boʻlsa biriktirilmaydi (oʻz havolangni oʻzing bosish yoki bitta brauzerda
+qayta-qayta topshirish). Yopilmagan yoʻl — har safar toza brauzer profilida 24 ta savolga
+javob berish; buni toʻsish uchun IP yoki qurilma izi kerak boʻlardi, loyiha esa ularni
+ataylab yigʻmaydi. Shuning uchun mukofot yuqoridan cheklangan va admin panelida referal
+koʻrsatkichlari koʻrinib turadi.
 
 ### Xavfsizlik va sessiya
 

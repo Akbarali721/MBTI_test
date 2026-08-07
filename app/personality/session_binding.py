@@ -11,6 +11,7 @@ from app.models.enums import PersonalitySessionStatus
 from app.models.personality import PersonalityTestSession
 from app.personality.themes import PERSONALITY_SESSION_COOKIE_KEY, has_appearance_choice
 from app.repositories.personality_repository import PersonalityRepository
+from app.services import referral_service
 from app.services.personality_service import PersonalityService
 
 COMPLETED_TOKENS_KEY = "personality_completed_tokens"
@@ -119,6 +120,7 @@ def ensure_visitor_session(
     db: Session,
     *,
     source: str | None = None,
+    ref: str | None = None,
 ) -> PersonalityTestSession | None:
     if is_non_human_request(request):
         return None
@@ -129,10 +131,33 @@ def ensure_visitor_session(
         # Tugallangan sessiya cookie'si bu yerda almashtirilmaydi: aks holda premium natija yo'qoladi.
         if normalized_source and not existing.source:
             repo.set_source_if_empty(existing, normalized_source)
+        _attribute_referral(request, db, existing, ref)
         return existing
     session = repo.create_session(source=normalized_source, status=PersonalitySessionStatus.VISITED)
     assign_session_cookie(request, session)
+    _attribute_referral(request, db, session, ref)
     return session
+
+
+def _attribute_referral(
+    request: Request,
+    db: Session,
+    session: PersonalityTestSession,
+    ref: str | None,
+) -> None:
+    """Taklif havolasini sessiyaga biriktiradi (shartlar `referral_service` da).
+
+    Brauzerda tugatilgan test bo'lsa biriktirilmaydi — bu "o'z havolangni o'zing
+    bosish" va "bitta brauzerda qayta-qayta topshirish" yo'llarini yopadi.
+    """
+    if not ref:
+        return
+    referral_service.attribute_session(
+        db,
+        session=session,
+        code=ref,
+        browser_has_completed_test=bool(completed_tokens(request)),
+    )
 
 
 def create_fresh_session(

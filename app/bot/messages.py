@@ -24,6 +24,7 @@ from app.models.payment_request import (
 )
 from app.models.personality import PersonalityTestSession
 from app.pdf import pdf_filename
+from app.services.premium_access import has_trial_premium, trial_days_left
 from app.services.premium_payment_service import format_price_uzs
 from app.services.result_pdf import PdfFontsUnavailable, PdfNotPremium, build_pdf_bytes
 
@@ -34,6 +35,10 @@ REJECTED_TEXT = (
     "❌ To‘lovni tasdiqlab bo‘lmadi.\n\nIltimos, to‘g‘ri chekni qayta yuboring yoki admin bilan bog‘laning."
 )
 PDF_CAPTION = "📄 Premium tahlilingiz PDF sifatida."
+REFERRAL_REWARD_TEXT = (
+    "🎁 Do‘stlaringiz testni tugatdi — premium tahlil {days} kunga ochildi!\n\n"
+    "Muddati: yana {left} kun. Yana do‘st taklif qilsangiz muddat uzayadi."
+)
 
 
 @dataclass(frozen=True)
@@ -108,6 +113,24 @@ def user_rejected_message(db: Session, payment_id: int) -> Message | Outcome:
         # Rad etilgandan keyin tasdiqlangan bo'lsa, bu xabar endi yolg'on.
         return _cancelled("to‘lov endi rad etilgan holatda emas")
     return Message(text=REJECTED_TEXT)
+
+
+def referral_reward_message(db: Session, session_id: int, days: int) -> Message | Outcome:
+    """Referal mukofoti ochilgani haqida xabar.
+
+    Yuborishdan oldin muddat qayta tekshiriladi: navbat kechiksa (masalan bot bir
+    kun o'chib qolsa) allaqachon tugagan sinov haqida xabar berish yolg'on bo'lardi.
+    """
+    session = db.get(PersonalityTestSession, session_id)
+    if session is None:
+        return _cancelled("sessiya topilmadi")
+    if not has_trial_premium(session):
+        return _cancelled("mukofot muddati tugagan")
+    left = trial_days_left(session)
+    return Message(
+        text=REFERRAL_REWARD_TEXT.format(days=days, left=left),
+        keyboard=premium_result_keyboard(session.token),
+    )
 
 
 def premium_pdf_message(db: Session, session_id: int) -> Message | Outcome:

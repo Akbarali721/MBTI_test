@@ -48,6 +48,7 @@ from app.services.notification_outbox import (
     ADMIN_RECEIPT,
     KNOWN_KINDS,
     PREMIUM_PDF,
+    REFERRAL_REWARD,
     SCHEMA_VERSION,
     USER_APPROVED,
     USER_REJECTED,
@@ -95,6 +96,8 @@ def build_message(db: Session, row: NotificationOutbox) -> Message | Outcome:
             return messages.user_rejected_message(db, int(params["payment_id"]))
         if row.kind == PREMIUM_PDF:
             return messages.premium_pdf_message(db, int(params["session_id"]))
+        if row.kind == REFERRAL_REWARD:
+            return messages.referral_reward_message(db, int(params["session_id"]), int(params["days"]))
     except (KeyError, TypeError, ValueError) as exc:
         return Outcome(status=NotificationStatus.INVALID.value, error=f"params nuqsoni: {exc}")
     return Outcome(status=NotificationStatus.INVALID.value, error="noma'lum tur")

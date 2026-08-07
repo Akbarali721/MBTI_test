@@ -28,9 +28,12 @@ from app.personality.themes import (
     has_appearance_choice,
     theme_template_context,
 )
+from app.ratelimit import limiter as advice_limiter
 from app.repositories.personality_repository import PersonalityRepository
+from app.services import ai_advice_service, referral_service
 from app.services.personality_scoring import calculate_personality_result
 from app.services.personality_service import PersonalityService
+from app.services.premium_access import has_premium_access, trial_days_left
 from app.services.premium_payment_service import (
     PremiumPaymentService,
     format_price_uzs,
@@ -105,8 +108,11 @@ def personality_landing(
     request: Request,
     db: Session = Depends(get_db_session),
     source: str | None = Query(default=None),
+    # `max_length` ATAYLAB yo'q: buzilgan yoki kesilgan havola 422 xato sahifasini
+    # emas, oddiy landingni ko'rsatishi kerak. Kod `normalize_code` da tekshiriladi.
+    ref: str | None = Query(default=None),
 ) -> HTMLResponse:
-    ensure_visitor_session(request, db, source=source)
+    ensure_visitor_session(request, db, source=source, ref=ref)
     return templates.TemplateResponse(
         request,
         "personality/landing.html",
@@ -133,7 +139,7 @@ def personality_history(
             "result_type": session.result_type,
             "title": _result_title(repo, session.result_type, lang),
             "completed_at": session.completed_at,
-            "is_premium": session.is_premium,
+            "is_premium": has_premium_access(session),
             "result": calculate_personality_result(
                 session.e_score,
                 session.i_score,
@@ -347,12 +353,48 @@ def personality_loading(
     return templates.TemplateResponse(request, "personality/loading.html", ctx)
 
 
+def _referral_context(db: Session, session, share_code: str, base_url: str) -> dict | None:
+    """Natija sahifasidagi "do'st taklif qiling" bloki.
+
+    Havola shu sahifaning O'ZIDAGI base_url dan quriladi (PUBLIC_BASE_URL dan emas):
+    aks holda lokal yoki eski domenda ochilgan sahifa ishlamaydigan havola berardi.
+    """
+    if not settings.referral_enabled:
+        return None
+    progress = referral_service.progress(db, session, code=share_code)
+    return {
+        "url": f"{base_url}/personality?{referral_service.REFERRAL_QUERY_KEY}={share_code}",
+        "progress": progress,
+        "reward_days": settings.referral_reward_days,
+    }
+
+
+# Foydalanuvchiga ko'rsatiladigan xabar kaliti. Xizmat kodini to'g'ridan-to'g'ri
+# chiqarmaymiz: shablon faqat shu ro'yxatdagi kalitlarni biladi.
+_ADVICE_NOTICES = {
+    ai_advice_service.READY: "ai.notice_ready",
+    ai_advice_service.ALREADY: "ai.notice_ready",
+    ai_advice_service.DAILY_LIMIT: "ai.notice_busy",
+    ai_advice_service.TEMPORARY_ERROR: "ai.notice_retry",
+    ai_advice_service.INVALID_RESPONSE: "ai.notice_retry",
+    ai_advice_service.PERMANENT_ERROR: "ai.notice_unavailable",
+    ai_advice_service.ATTEMPTS_EXHAUSTED: "ai.notice_unavailable",
+}
+
+
+def _advice_notice(code: str | None) -> str | None:
+    return _ADVICE_NOTICES.get(code or "")
+
+
 @router.get("/result/{token}", response_class=HTMLResponse, response_model=None)
 def personality_result(
     request: Request,
     token: str,
     db: Session = Depends(get_db_session),
     access: str | None = Query(default=None),
+    # Bu yerda ham `max_length` yo'q: noma'lum qiymat `_advice_notice` da None
+    # bo'ladi, 422 esa premium natijani butunlay yopib qo'yardi.
+    notice: str | None = Query(default=None),
 ) -> HTMLResponse | RedirectResponse:
     denied = _require_session_owner(request, token, db, access=access)
     if denied:
@@ -364,7 +406,8 @@ def personality_result(
         return incomplete
 
     # Kontent tili interfeys tili bilan bir xil bo'lishi kerak; yozuv topilmasa repozitoriy "uz" ga qaytadi.
-    view = service.get_result_view(token, language=resolve_lang(request))
+    lang = resolve_lang(request)
+    view = service.get_result_view(token, language=lang)
     session = view["session"]
     appearance_redirect = _require_appearance_or_redirect(session)
     if appearance_redirect:
@@ -375,7 +418,9 @@ def personality_result(
     payment_code = payment_code_for_session(db, session)
     support_bot_url = support_bot_public_url()
     deeplink_url = premium_deeplink_url(token)
-    share_url = f"{str(request.base_url).rstrip('/')}{share_path(share_code_for_session(db, session))}"
+    share_code = share_code_for_session(db, session)
+    base_url = str(request.base_url).rstrip("/")
+    share_url = f"{base_url}{share_path(share_code)}"
     ctx = _themed_context(session)
     ctx.update(
         {
@@ -388,7 +433,16 @@ def personality_result(
             "result": result,
             "strengths": view["strengths"],
             "challenges": view["challenges"],
-            "is_premium": session.is_premium,
+            # Premium bo'limlar TO'LOV yoki MUKOFOT bilan ochiladi; PDF esa faqat
+            # to'lov bilan — yuklab olingan fayl sinov muddatidan keyin ham qoladi.
+            "is_premium": has_premium_access(session),
+            "is_paid_premium": session.is_premium,
+            "trial_days_left": trial_days_left(session),
+            "referral": _referral_context(db, session, share_code, base_url),
+            "advice": ai_advice_service.advice_state(db, session, lang),
+            "advice_notice": _advice_notice(notice),
+            "ai_advice_count": settings.ai_advice_count,
+            "advice_action_url": f"/personality/result/{token}/ai-advice",
             "payment_status": payment_status,
             "premium_price": settings.premium_price,
             "premium_price_display": format_price_uzs(settings.premium_price),
@@ -436,6 +490,30 @@ def personality_result_pdf(
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@router.post("/result/{token}/ai-advice", response_model=None)
+@advice_limiter.limit(settings.rate_limit_ai_advice)
+def personality_ai_advice(
+    request: Request,
+    token: str,
+    db: Session = Depends(get_db_session),
+) -> RedirectResponse:
+    """5 ta AI maslahatni yaratadi.
+
+    Alohida POST, sahifa render qilishning ichida emas: tashqi chaqiruv soniyalab
+    davom etadi va natija sahifasi undan mustaqil ochilishi kerak. Javob kodi
+    manzilga qo'yiladi, ya'ni sahifani yangilash qayta so'rov yubormaydi.
+    """
+    denied = _require_session_owner(request, token, db)
+    if denied:
+        return denied
+    session = PersonalityService(db).get_session_or_404(token)
+    code = ai_advice_service.generate(db, session, language=resolve_lang(request))
+    if code in (ai_advice_service.DISABLED, ai_advice_service.NOT_PREMIUM):
+        # Funksiya o'chiq yoki premium yo'q: sahifa buni o'zi ko'rsatadi.
+        return RedirectResponse(url=f"/personality/result/{token}", status_code=303)
+    return RedirectResponse(url=f"/personality/result/{token}?notice={code}#ai-advice", status_code=303)
 
 
 def _support_bot_redirect_url(token: str) -> str:

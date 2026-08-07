@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
@@ -11,8 +12,12 @@ from app.models.personality import (
     PersonalityTestSession,
 )
 from app.repositories.personality_repository import PersonalityRepository
+from app.services import referral_service
+from app.services.notification_outbox import REFERRAL_REWARD, dedup_key, enqueue
 from app.services.personality_scoring import calculate_personality_result
 from app.services.premium_payment_service import enqueue_premium_granted
+
+logger = logging.getLogger(__name__)
 
 
 class PersonalityService:
@@ -96,10 +101,39 @@ class PersonalityService:
         next_index = question_index + 1
         if next_index >= total:
             self.repo.recalculate_and_complete_session(session)
+            # Referal mukofoti AYNAN shu yerda: `submit_answer` — veb va bot uchun
+            # yagona tugatish nuqtasi, ya'ni mukofot ikkala kanalda ham bir xil
+            # va tugatish bilan BIR tranzaksiyada beriladi.
+            self._reward_referrer(session)
             return {"redirect": "loading", "session": session}
 
         self.repo.update_session_progress(session, next_index)
         return {"redirect": "question", "session": session, "next_index": next_index}
+
+    def _reward_referrer(self, session: PersonalityTestSession) -> None:
+        """Taklif qilgan odamga mukofot yetgan bo'lsa, uni beradi va xabar qo'yadi.
+
+        Referal — qo'shimcha imkoniyat, testning o'zi emas: hisoblashdagi kod
+        xatosi tugatilgan testni yo'q qilmasligi kerak, shuning uchun istisno
+        yutiladi. Bu FAQAT tiklanadigan xatolarga yordam beradi — baza uzilgan
+        bo'lsa tashqi tranzaksiya baribir yiqiladi, va bu to'g'ri: mukofot
+        tugatish bilan bitta tranzaksiyada bo'lishi kerak.
+        """
+        try:
+            reward = referral_service.reward_referrer_if_earned(self.repo.db, session)
+        except Exception:
+            logger.exception("Referal mukofotini hisoblab bo‘lmadi: sessiya #%s", session.id)
+            return
+        if reward is None or not reward.chat_id:
+            return
+        enqueue(
+            self.repo.db,
+            kind=REFERRAL_REWARD,
+            chat_id=reward.chat_id,
+            params={"session_id": reward.referrer_id, "days": reward.days},
+            # Kalitda bosqich raqami: keyingi mukofot alohida xabar bo'lishi kerak.
+            key=dedup_key(REFERRAL_REWARD, reward.chat_id, reward.referrer_id, str(reward.milestones)),
+        )
 
     def get_result_view(self, token: str, language: str = DEFAULT_CONTENT_LANGUAGE) -> dict:
         session = self.get_session_or_404(token)

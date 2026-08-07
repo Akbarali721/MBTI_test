@@ -1874,3 +1874,60 @@ body.personality-body.ref-page.theme-male {
   color: var(--navy);
   letter-spacing: 0.05em;
 }
+
+/* ---------- Referal: do'st taklif qilish ---------- */
+
+.mbti-referral-box {
+  border-color: var(--navy);
+}
+
+.mbti-referral-progress {
+  margin: 14px 0 6px;
+  font-size: 15px;
+  color: var(--text-main);
+}
+
+.mbti-referral-bar {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--border-soft);
+  overflow: hidden;
+}
+
+.mbti-referral-bar__fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--navy);
+  transition: width 240ms ease;
+}
+
+.mbti-premium-success-badge--trial {
+  background: #fff4e5;
+  color: #8a4b00;
+}
+
+/* ---------- AI maslahatlar ---------- */
+
+.mbti-ai-advice {
+  margin-top: 28px;
+  scroll-margin-top: 24px;
+}
+
+.mbti-ai-advice__list {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: advice;
+}
+
+.mbti-ai-advice__item {
+  counter-increment: advice;
+  position: relative;
+}
+
+.mbti-ai-advice__item h3::before {
+  content: counter(advice) ". ";
+  color: var(--navy);
+  font-weight: 700;
+}

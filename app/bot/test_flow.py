@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from app.models.enums import AppearanceTheme
 from app.personality.share_code import share_code_for_session, share_path
+from app.services import referral_service
 from app.services.personality_service import PersonalityService
 from app.services.premium_payment_service import signed_result_url_for_token
 
@@ -62,6 +63,10 @@ class _FinishedView:
     short_description: str
     result_url: str
     share_url: str
+    # Referal o'chirilgan bo'lsa None — tugma ham, matn ham ko'rsatilmaydi.
+    referral_url: str | None = None
+    referral_required: int = 0
+    referral_days: int = 0
 
 
 def gender_keyboard() -> InlineKeyboardMarkup:
@@ -95,21 +100,33 @@ def format_question(view: _QuestionView) -> str:
 
 
 def format_result(view: _FinishedView) -> str:
-    return (
-        f"✅ Test yakunlandi!\n\n"
-        f"Sizning tipingiz: {view.result_type} — {view.title}\n\n"
-        f"{view.short_description}\n\n"
-        f"To‘liq natija va premium tahlil: {view.result_url}"
-    )
+    lines = [
+        "✅ Test yakunlandi!",
+        "",
+        f"Sizning tipingiz: {view.result_type} — {view.title}",
+        "",
+        view.short_description,
+        "",
+        f"To‘liq natija va premium tahlil: {view.result_url}",
+    ]
+    if view.referral_url:
+        lines += [
+            "",
+            f"🎁 Havolangiz orqali {view.referral_required} ta do‘stingiz testni tugatsa, "
+            f"premium {view.referral_days} kunga bepul ochiladi:",
+            view.referral_url,
+        ]
+    return "\n".join(lines)
 
 
 def result_keyboard(view: _FinishedView) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="📊 To‘liq natijani ochish", url=view.result_url)],
-            [InlineKeyboardButton(text="🔗 Ulashish", url=view.share_url)],
-        ]
-    )
+    rows = [
+        [InlineKeyboardButton(text="📊 To‘liq natijani ochish", url=view.result_url)],
+        [InlineKeyboardButton(text="🔗 Ulashish", url=view.share_url)],
+    ]
+    if view.referral_url:
+        rows.append([InlineKeyboardButton(text="🎁 Do‘st taklif qilish", url=view.referral_url)])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 # --------------------------- DB ishi (sinxron) ---------------------------
@@ -170,6 +187,7 @@ def _finished_view(db: Session, service: PersonalityService, token: str) -> _Fin
     from app.config import settings
 
     base = settings.public_base_url.rstrip("/")
+    enabled = settings.referral_enabled
     return _FinishedView(
         token=token,
         result_type=session.result_type or "",
@@ -177,6 +195,9 @@ def _finished_view(db: Session, service: PersonalityService, token: str) -> _Fin
         short_description=content.short_description,
         result_url=signed_result_url_for_token(token),
         share_url=f"{base}{share_path(share_code)}",
+        referral_url=referral_service.referral_url(share_code) if enabled else None,
+        referral_required=settings.referral_required_completions,
+        referral_days=settings.referral_reward_days,
     )
 
 
@@ -210,7 +231,11 @@ async def cmd_test(message: Message, state: FSMContext) -> None:
 
 @router.callback_query(F.data.startswith(GENDER_PREFIX))
 async def cb_gender(query: CallbackQuery, state: FSMContext, bot: Bot) -> None:
-    from app.bot.handlers import _run_db, _safe_telegram
+    # `_run_db_commit`: `PersonalityService` o'zi commit qilmaydi (veb tomonda buni
+    # so'rov oxiridagi unit-of-work bajaradi). `_run_db` esa sessiyani commitsiz
+    # yopardi, ya'ni botda yaratilgan sessiya ham, javoblar ham SAQLANMASDAN
+    # yo'qolardi va keyingi bosishda "test topilmadi" chiqardi.
+    from app.bot.handlers import _run_db_commit, _safe_telegram
 
     await _safe_telegram("callback_answer", query.answer())
     user = query.from_user
@@ -218,7 +243,7 @@ async def cb_gender(query: CallbackQuery, state: FSMContext, bot: Bot) -> None:
     if gender not in ("male", "female") or not isinstance(query.message, Message):
         return
 
-    view = await _run_db(lambda db: start_test(db, user.id, gender))
+    view = await _run_db_commit(lambda db: start_test(db, user.id, gender))
     await state.set_state(TestStates.running)
     await state.update_data(token=view.token)
     await _edit_or_send(query.message, format_question(view), question_keyboard(view))
@@ -226,7 +251,7 @@ async def cb_gender(query: CallbackQuery, state: FSMContext, bot: Bot) -> None:
 
 @router.callback_query(F.data.startswith(OPTION_PREFIX))
 async def cb_option(query: CallbackQuery, state: FSMContext, bot: Bot) -> None:
-    from app.bot.handlers import _run_db, _safe_telegram
+    from app.bot.handlers import _run_db_commit, _safe_telegram
 
     await _safe_telegram("callback_answer", query.answer())
     if not isinstance(query.message, Message):
@@ -244,7 +269,7 @@ async def cb_option(query: CallbackQuery, state: FSMContext, bot: Bot) -> None:
         logger.warning("Noto‘g‘ri javob callback: %r", query.data)
         return
 
-    question, finished = await _run_db(lambda db: answer_question(db, token, option_id))
+    question, finished = await _run_db_commit(lambda db: answer_question(db, token, option_id))
 
     if finished is not None:
         await state.clear()

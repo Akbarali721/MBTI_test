@@ -256,3 +256,60 @@ def _quiet_telegram(monkeypatch):
         return True
 
     monkeypatch.setattr("app.bot.handlers._safe_telegram", _passthrough)
+
+
+# --------------------------- saqlanish (commit) ---------------------------
+
+
+def test_the_gender_callback_persists_the_session_beyond_its_own_transaction(client, monkeypatch):
+    """Handler o'z sessiyasini COMMIT qilishi kerak.
+
+    Avval `_run_db` ishlatilardi va u sessiyani commitsiz yopardi: botda yaratilgan
+    test qatori ham, javoblar ham yo'qolib, keyingi bosishda "test topilmadi" chiqardi.
+    Boshqa DB ulanishidan o'qish shu nuqsonni ochadi.
+    """
+    monkeypatch.setattr("app.bot.handlers.SessionLocal", client.testing_session_factory)
+
+    query = AsyncMock()
+    query.data = f"{test_flow.GENDER_PREFIX}male"
+    query.from_user.id = TELEGRAM_USER_ID
+    query.message = _fake_message()
+    state = AsyncMock()
+
+    asyncio.run(test_flow.cb_gender(query, state, AsyncMock()))
+
+    token = state.update_data.await_args.kwargs["token"]
+    with db_session(client) as db:
+        saved = db.scalar(select(PersonalityTestSession).where(PersonalityTestSession.token == token))
+        assert saved is not None, "sessiya saqlanmagan"
+
+
+def test_the_option_callback_persists_the_answer(client, monkeypatch):
+    monkeypatch.setattr("app.bot.handlers.SessionLocal", client.testing_session_factory)
+
+    with db_session(client) as db:
+        view = test_flow.start_test(db, TELEGRAM_USER_ID, "male")
+        db.commit()
+
+    query = AsyncMock()
+    query.data = f"{test_flow.OPTION_PREFIX}{view.option_ids[0]}"
+    query.message = _fake_message()
+    state = AsyncMock()
+    state.get_data.return_value = {"token": view.token}
+
+    asyncio.run(test_flow.cb_option(query, state, AsyncMock()))
+
+    with db_session(client) as db:
+        saved = db.scalar(select(PersonalityTestSession).where(PersonalityTestSession.token == view.token))
+        assert saved.answered_questions == 1
+        assert saved.status != PersonalitySessionStatus.VISITED
+
+
+def test_the_finished_view_offers_a_referral_link(client):
+    with db_session(client) as db:
+        finished = _run_full_test(db)
+
+    assert finished.referral_url and "ref=" in finished.referral_url
+    assert finished.referral_url in test_flow.format_result(finished)
+    urls = [button.url for row in test_flow.result_keyboard(finished).inline_keyboard for button in row]
+    assert finished.referral_url in urls

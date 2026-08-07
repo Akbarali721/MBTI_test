@@ -8,6 +8,7 @@ almashtirilgan. Bot obyekti — `AsyncMock`. FSM haqiqiy `MemoryStorage` ustida 
 from __future__ import annotations
 
 import asyncio
+import time
 from datetime import datetime, timezone
 from types import SimpleNamespace
 from typing import Any
@@ -400,7 +401,13 @@ def test_a_corrected_receipt_is_not_deduplicated_away(bot_db, client, admin_id):
     payment_id = open_payment(client, token, 1010)
     state = make_state(1010)
 
-    for _ in range(2):
+    for attempt in range(2):
+        if attempt:
+            # dedup_key aniqligi — MILLISEKUND. Ikkita chek ayni bir millisekundda
+            # kelsa ular bitta hodisa deb qaraladi (bu to'g'ri: qo'sh bosish shunday
+            # ko'rinadi). Test esa aynan IKKI HODISAni tekshiradi, shuning uchun
+            # ular boshqa-boshqa millisekundga tushishi kafolatlanadi.
+            time.sleep(0.002)
         run(state.update_data(payment_id=payment_id))
         log = CallLog()
         run(handlers.on_receipt_photo(make_message(log, user_id=1010, photo=True), state, make_bot(log)))

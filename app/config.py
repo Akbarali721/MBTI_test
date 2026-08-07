@@ -4,7 +4,7 @@ import logging
 import secrets
 
 from passlib.context import CryptContext
-from pydantic import field_validator, model_validator
+from pydantic import ValidationInfo, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
@@ -54,6 +54,18 @@ RETENTION_FIELDS = (
     "retention_incomplete_days",
     "retention_outbox_days",
     "retention_audit_days",
+)
+
+# Nol yoki manfiy qiymat mantiqni buzadigan sozlamalar (bo'luvchi yoki chegara).
+POSITIVE_FIELDS = (
+    "referral_required_completions",
+    "referral_reward_days",
+    "referral_max_reward_days",
+    "ai_advice_count",
+    "ai_timeout_seconds",
+    "ai_max_output_tokens",
+    "ai_daily_limit",
+    "ai_max_attempts",
 )
 
 
@@ -137,6 +149,30 @@ class Settings(BaseSettings):
     # --- Eksport ---
     export_max_rows: int = 50_000
 
+    # --- Referal (do'st taklif qilish) ---
+    referral_enabled: bool = True
+    # Shuncha taklif qilingan odam testni TUGATSA bir mukofot beriladi.
+    referral_required_completions: int = 3
+    referral_reward_days: int = 3
+    # Yig'ilgan bepul premiumning yuqori chegarasi: mukofot takrorlanadigan bo'lgani
+    # uchun cheklovsiz qoldirilsa, pullik mahsulot o'z-o'zini yeb qo'yardi.
+    referral_max_reward_days: int = 30
+
+    # --- AI maslahatlar (premium bo'limi) ---
+    # Kalit bo'lmasa funksiya butunlay o'chadi va tugma ko'rinmaydi.
+    ai_api_key: str = ""
+    ai_base_url: str = "https://api.anthropic.com"
+    ai_model: str = "claude-sonnet-5"
+    ai_advice_count: int = 5
+    ai_timeout_seconds: int = 30
+    ai_max_output_tokens: int = 1500
+    # Kunlik chegara (Toshkent kuni bo'yicha): tashqi API pullik va uni chegarasiz
+    # qoldirish hisobni bir kechada bo'shatishi mumkin.
+    ai_daily_limit: int = 200
+    # Bitta sessiya uchun urinishlar soni: xato bo'lsa foydalanuvchi qayta bosadi,
+    # lekin cheksiz emas.
+    ai_max_attempts: int = 3
+
     # --- Ma'lumotlarni saqlash muddati (kun; 0 = qoida o'chirilgan) ---
     retention_visited_days: int = 30
     retention_incomplete_days: int = 90
@@ -151,6 +187,8 @@ class Settings(BaseSettings):
 
     rate_limit_enabled: bool = True
     rate_limit_login: str = "5/minute"
+    # AI so'rovi pullik: IP bo'yicha chegara kunlik umumiy chegaradan oldin ishlaydi.
+    rate_limit_ai_advice: str = "10/hour"
     rate_limit_storage_uri: str = "memory://"
 
     # None bo'lsa DEBUG bo'yicha aniqlanadi: productionʼda yoqiq, lokalda o'chiq.
@@ -197,6 +235,31 @@ class Settings(BaseSettings):
         if value < 0:
             raise ValueError("saqlash muddati manfiy bo'lishi mumkin emas (0 = o'chirilgan)")
         return value
+
+    @field_validator(*POSITIVE_FIELDS, mode="after")
+    @classmethod
+    def _must_be_positive(cls, value: int, info: ValidationInfo) -> int:
+        # Bu qiymatlar bo'luvchi yoki chegara sifatida ishlatiladi. 0 ni "o'chirilgan"
+        # deb tushunish mumkin emas: referral_required_completions=0 bo'lsa har
+        # tashrif darhol mukofotga aylanardi. Funksiyani o'chirish uchun
+        # REFERRAL_ENABLED=false va bo'sh AI_API_KEY bor.
+        if value < 1:
+            raise ValueError(f"{info.field_name} kamida 1 bo'lishi kerak")
+        return value
+
+    @model_validator(mode="after")
+    def _reward_cap_is_reachable(self) -> Settings:
+        if self.referral_max_reward_days < self.referral_reward_days:
+            raise ValueError(
+                "REFERRAL_MAX_REWARD_DAYS bitta mukofot muddatidan kichik bo'lishi mumkin emas — "
+                "aks holda mukofot hech qachon berilmagandek ko'rinardi"
+            )
+        return self
+
+    @property
+    def ai_advice_configured(self) -> bool:
+        """Kalit yo'q bo'lsa funksiya yo'q: tugma ham ko'rsatilmaydi."""
+        return bool(self.ai_api_key.strip())
 
     @property
     def trusted_proxy_hosts(self) -> list[str]:

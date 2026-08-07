@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 from sqlalchemy import create_engine, inspect
+from sqlalchemy.exc import IntegrityError
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -261,3 +262,54 @@ def test_started_at_is_backfilled_for_legacy_rows(tmp_path):
     finally:
         engine.dispose()
     assert started_at is not None
+
+
+@pytest.mark.slow
+def test_migrated_schema_has_the_referral_and_advice_objects(tmp_path):
+    from sqlalchemy import text
+
+    database_url = f"sqlite:///{(tmp_path / 'referral.db').as_posix()}"
+    result = _run_alembic(["upgrade", "head"], database_url)
+    assert result.returncode == 0, result.stderr or result.stdout
+
+    assert "ai_advice_reports" in _table_names(database_url)
+    assert {
+        "premium_until",
+        "referred_by_session_id",
+        "referral_milestones_granted",
+    } <= _column_names(database_url, "personality_test_sessions")
+
+    engine = create_engine(database_url)
+    try:
+        with engine.begin() as conn:
+            # Eski qatorlarda hisoblagich NULL emas, 0 bo'lishi kerak: mukofot mantiqi
+            # uni sonday o'qiydi va NULL bilan taqqoslash hech qachon rost bo'lmasdi.
+            conn.execute(
+                text(
+                    "INSERT INTO personality_test_sessions (token, status, current_question_index, "
+                    "e_score, i_score, s_score, n_score, t_score, f_score, j_score, p_score, "
+                    "is_premium, premium_requested, total_questions, answered_questions, variant) "
+                    "VALUES ('t-referal', 'completed', 0, 0,0,0,0,0,0,0,0, 0, 0, 24, 24, 'A')"
+                )
+            )
+            granted = conn.execute(
+                text(
+                    "SELECT referral_milestones_granted FROM personality_test_sessions "
+                    "WHERE token = 't-referal'"
+                )
+            ).scalar()
+            assert granted == 0
+
+            # CHECK cheklovi `create_all` bilan qurilgan test bazasida ham bor, lekin
+            # migratsiya yo'lida ham borligini alohida tekshiramiz.
+            with pytest.raises(IntegrityError):
+                conn.execute(
+                    text(
+                        "INSERT INTO ai_advice_reports (session_id, language, status, model, "
+                        "prompt_version, items, attempts, created_at, updated_at) "
+                        "SELECT id, 'uz', 'nomalum', 'm', 1, '[]', 0, '2026-01-01', '2026-01-01' "
+                        "FROM personality_test_sessions WHERE token = 't-referal'"
+                    )
+                )
+    finally:
+        engine.dispose()

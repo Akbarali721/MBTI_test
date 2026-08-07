@@ -179,6 +179,55 @@
 </div>
 {% endif %}
 
+<h2 class="h5 mt-5">Referal va AI</h2>
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <h3 class="h6">Referal</h3>
+        <dl class="row mb-0 small">
+          <dt class="col-8">Havola orqali kelgan sessiyalar</dt>
+          <dd class="col-4 text-end">{{ growth.referred_sessions }}</dd>
+          <dt class="col-8">Ulardan testni tugatgan</dt>
+          <dd class="col-4 text-end">{{ growth.referred_completed }} ({{ growth.referral_completion_rate }}%)</dd>
+          <dt class="col-8">Berilgan mukofotlar</dt>
+          <dd class="col-4 text-end">{{ growth.rewards_granted }}</dd>
+          <dt class="col-8">Hozir ochiq bepul premium</dt>
+          <dd class="col-4 text-end">{{ growth.active_trials }}</dd>
+        </dl>
+        {# Tugatish foizi haddan tashqari yuqori bo'lsa, bu odam emas. #}
+        {% if growth.referred_sessions >= 10 and growth.referral_completion_rate >= 90 %}
+        <p class="text-warning small mb-0 mt-2">
+          Havola orqali kelganlarning deyarli hammasi testni tugatgan — bu odatiy emas,
+          referal havolasi suiiste’mol qilinayotgan bo‘lishi mumkin.
+        </p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <h3 class="h6">AI maslahatlar</h3>
+        {% if growth.advice_enabled %}
+        <dl class="row mb-0 small">
+          <dt class="col-8">Tayyor</dt>
+          <dd class="col-4 text-end">{{ growth.advice_ready }}</dd>
+          <dt class="col-8">Xato bilan tugagan</dt>
+          <dd class="col-4 text-end">{{ growth.advice_failed }}</dd>
+          <dt class="col-8">Bugun</dt>
+          <dd class="col-4 text-end">{{ growth.advice_today }} / {{ growth.advice_daily_limit }}</dd>
+          <dt class="col-8">Jami chiqish tokenlari</dt>
+          <dd class="col-4 text-end">{{ growth.advice_output_tokens }}</dd>
+        </dl>
+        {% else %}
+        <p class="text-muted small mb-0">AI_API_KEY sozlanmagan — funksiya o‘chiq.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
 <p class="mt-4 mb-0">
   <a class="btn btn-primary" href="/admin/sessions">Barcha sessiyalar</a>
 </p>

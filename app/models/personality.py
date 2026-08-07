@@ -68,7 +68,30 @@ class PersonalityTestSession(Base):
     f_score: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     j_score: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     p_score: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # DIQQAT: `is_premium` — PUL TO'LANGAN, muddatsiz premium. Referal mukofoti uni
+    # o'zgartirmaydi va faqat `premium_until` ni suradi. Ikkisi ataylab ajratilgan:
+    #  * voronka va A/B konversiyasi faqat to'langanini sanashi kerak, aks holda
+    #    bepul mukofot "to'lov" bo'lib ko'rinib qarorni buzardi;
+    #  * sinov muddati ochiq odam PULLIK premiumni sotib olishi mumkin bo'lishi kerak,
+    #    ya'ni "allaqachon premium" tekshiruvlari `is_premium` da qolishi shart.
+    # Kirish huquqi HAR IKKISIDAN olinadi — `app/services/premium_access.py`.
     is_premium: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Referal mukofoti bergan vaqtli premium tugash lahzasi (UTC).
+    premium_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Bu sessiya kimning havolasi orqali kelgan. Faqat qator YARATILGANDA yoziladi:
+    # keyin o'zgartirilsa, begona odam tugallangan testni o'z hisobiga o'tkazib olardi.
+    referred_by_session_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("personality_test_sessions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    # Necha marta mukofot BERILGAN (taklif soni emas). Mukofot berish shu ustun
+    # bo'yicha compare-and-swap qilinadi, ya'ni ikki do'st bir lahzada tugatsa ham
+    # mukofot ikki marta berilmaydi.
+    referral_milestones_granted: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
     premium_requested: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     premium_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     premium_approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

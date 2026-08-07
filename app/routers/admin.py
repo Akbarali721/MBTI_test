@@ -9,8 +9,6 @@ from urllib.request import urlopen
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 from sqlalchemy.orm import Session
 from starlette.responses import Response
 
@@ -37,6 +35,7 @@ from app.dependencies import (
 from app.models.enums import AdminRole
 from app.models.notification import OUTBOX_WORKER_HEARTBEAT, RETENTION_HEARTBEAT
 from app.personality.payment_code import payment_code_for_session
+from app.ratelimit import limiter
 from app.repositories.admin_repository import AdminRepository
 from app.repositories.payment_repository import PaymentRepository
 from app.services import admin_service, audit_service, csv_export, notification_outbox, retention_service
@@ -59,11 +58,9 @@ public_router = APIRouter(prefix="/admin", tags=["admin"])
 # qo'shilganda uni himoyalashni unutib bo'lmaydi.
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
-login_limiter = Limiter(
-    key_func=get_remote_address,
-    enabled=settings.rate_limit_enabled,
-    storage_uri=settings.rate_limit_storage_uri,
-)
+# Chegaralagich butun ilova uchun bitta (app/ratelimit.py). Bu yerdagi nom eski
+# import yo'llari uchun saqlanadi.
+login_limiter = limiter
 
 STATUS_BADGE = {
     "visited": "secondary",
@@ -139,6 +136,7 @@ def admin_dashboard(
         "admin/dashboard.html",
         {
             "stats": service.dashboard_stats(),
+            "growth": service.growth_stats(),
             # Bitta to'plam bo'lsa taqqoslashning ma'nosi yo'q.
             "variants": variants if len(variants) > 1 else [],
             "funnel": service.funnel(days=range or None, variant=chosen),

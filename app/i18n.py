@@ -118,6 +118,36 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "share.cta_title": "O‘zingiznikini bilib oling",
         "share.cta_desc": "24 ta savol, taxminan 4 daqiqa. Ro‘yxatdan o‘tish shart emas.",
         "share.cta_button": "Testni boshlash",
+        # Referal
+        "referral.title": "Do‘st taklif qiling — premium bepul",
+        "referral.desc": (
+            "Quyidagi havola orqali {required} ta do‘stingiz testni oxirigacha topshirsa, "
+            "premium tahlil sizga {days} kunga bepul ochiladi."
+        ),
+        "referral.progress": "{completed} / {required} do‘stingiz testni tugatdi",
+        "referral.remaining": "Yana {count} kishi qoldi",
+        "referral.invited": "Havola orqali kelganlar: {count}",
+        "referral.copy_hint": "Havolani nusxalab, do‘stlaringizga yuboring.",
+        "referral.rewarded": "Mukofot olingan: {count} marta",
+        "referral.trial_active": "Bepul premium yana {days} kun ochiq.",
+        "referral.trial_note": (
+            "Muddat tugagach premium bo‘limlar yopiladi. To‘lov qilsangiz ular muddatsiz qoladi."
+        ),
+        "referral.trial_badge": "Bepul premium: {days} kun",
+        # AI maslahatlar
+        "ai.title": "Sizga mos {count} ta maslahat",
+        "ai.desc": (
+            "Xarakter tipingiz asosida tayyorlanadi. So‘rovda ism, telefon yoki "
+            "javoblaringiz yuborilmaydi — faqat tipingiz va o‘lchov foizlari."
+        ),
+        "ai.generate": "Maslahatlarni tayyorlash",
+        "ai.retry": "Qayta urinish",
+        "ai.pending_note": "Tayyorlash 10-30 soniya olishi mumkin.",
+        "ai.notice_ready": "Maslahatlaringiz tayyor.",
+        "ai.notice_retry": "Hozir tayyorlab bo‘lmadi. Biroz kutib, qayta urinib ko‘ring.",
+        "ai.notice_busy": "Bugungi limit tugadi. Ertaga qayta urinib ko‘ring.",
+        "ai.notice_unavailable": "Bu xizmat vaqtincha ishlamayapti. Admin bilan bog‘laning.",
+        "ai.disclaimer": "Maslahatlar avtomatik tayyorlanadi va tibbiy tavsiya emas.",
         # Tarix
         "history.link": "Oldingi natijalar ({count})",
         "history.page_title": "Test tarixi",
@@ -463,6 +493,36 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "share.cta_title": "Узнайте свой",
         "share.cta_desc": "24 вопроса, около 4 минут. Регистрация не нужна.",
         "share.cta_button": "Начать тест",
+        # Реферальная программа
+        "referral.title": "Пригласите друзей — премиум бесплатно",
+        "referral.desc": (
+            "Если {required} ваших друзей пройдут тест до конца по ссылке ниже, "
+            "премиум-разбор откроется вам бесплатно на {days} дня."
+        ),
+        "referral.progress": "{completed} из {required} друзей прошли тест",
+        "referral.remaining": "Осталось ещё {count}",
+        "referral.invited": "Перешли по ссылке: {count}",
+        "referral.copy_hint": "Скопируйте ссылку и отправьте друзьям.",
+        "referral.rewarded": "Награда получена: {count} раз",
+        "referral.trial_active": "Бесплатный премиум открыт ещё {days} дн.",
+        "referral.trial_note": (
+            "После окончания срока премиум-разделы закроются. Оплата оставляет их навсегда."
+        ),
+        "referral.trial_badge": "Бесплатный премиум: {days} дн.",
+        # AI-советы
+        "ai.title": "{count} совета лично для вас",
+        "ai.desc": (
+            "Готовятся на основе вашего типа. В запрос не уходят имя, телефон "
+            "или ваши ответы — только тип и проценты по шкалам."
+        ),
+        "ai.generate": "Подготовить советы",
+        "ai.retry": "Попробовать снова",
+        "ai.pending_note": "Подготовка занимает 10-30 секунд.",
+        "ai.notice_ready": "Ваши советы готовы.",
+        "ai.notice_retry": "Сейчас не получилось. Подождите немного и попробуйте снова.",
+        "ai.notice_busy": "Дневной лимит исчерпан. Попробуйте завтра.",
+        "ai.notice_unavailable": "Сервис временно недоступен. Свяжитесь с администратором.",
+        "ai.disclaimer": "Советы формируются автоматически и не являются медицинской рекомендацией.",
         # История
         "history.link": "Прошлые результаты ({count})",
         "history.page_title": "История тестов",

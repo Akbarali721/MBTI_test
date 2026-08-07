@@ -27,8 +27,11 @@ ADMIN_RECEIPT = "admin_receipt"
 USER_APPROVED = "user_approved"
 USER_REJECTED = "user_rejected"
 PREMIUM_PDF = "premium_pdf"
+REFERRAL_REWARD = "referral_reward"
 
-KNOWN_KINDS: frozenset[str] = frozenset({ADMIN_RECEIPT, USER_APPROVED, USER_REJECTED, PREMIUM_PDF})
+KNOWN_KINDS: frozenset[str] = frozenset(
+    {ADMIN_RECEIPT, USER_APPROVED, USER_REJECTED, PREMIUM_PDF, REFERRAL_REWARD}
+)
 
 # `params` shakli o'zgarsa oshiriladi. Eski ishchi kattaroq versiyani ko'rsa qatorni
 # terminal qilmaydi — deploy'ni orqaga qaytarish navbatni yo'q qilmasligi kerak.

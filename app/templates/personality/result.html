@@ -52,6 +52,13 @@
 
     {% if payment_status == 'approved' %}
     <p class="mbti-premium-success-badge" role="status">{{ t('result.premium_opened') }}</p>
+    {% elif is_premium and trial_days_left %}
+    {# Mukofot bilan ochilgan premium: muddat aniq ko'rinishi kerak, aks holda u
+       tugaganda foydalanuvchi buzilgan deb o'ylardi. #}
+    <p class="mbti-premium-success-badge mbti-premium-success-badge--trial" role="status">
+      {{ t('referral.trial_active', days=trial_days_left) }}
+    </p>
+    <p class="mbti-premium-locked-note">{{ t('referral.trial_note') }}</p>
     {% endif %}
 
     {% set premium_sections = [
@@ -84,6 +91,8 @@
       {% endif %}
     </div>
     {% endfor %}
+
+    {% include "personality/partials/ai_advice.html" %}
 
     {% if is_reviewing or is_awaiting_receipt %}
     <div class="mbti-premium-status mbti-premium-status--pending">
@@ -126,13 +135,17 @@
       <p class="mbti-share-box__note">{{ t('share.box_note') }}</p>
     </div>
 
+    {% include "personality/partials/referral_box.html" %}
+
     <div class="result-actions">
       {% if can_pay %}
       <button type="button" class="ref-cta ref-cta--primary result-actions__primary" id="open-payment-modal" data-open-payment>
         {{ t('result.open_premium') }}
       </button>
       {% endif %}
-      {% if is_premium %}
+      {# PDF faqat TO'LANGAN premiumda: yuklab olingan fayl sinov muddatidan keyin
+         ham qo'lda qolardi, ya'ni mukofot amalda muddatsiz bo'lib ketardi. #}
+      {% if is_paid_premium %}
       <a href="/personality/result/{{ token }}/pdf" class="ref-cta result-actions__outline">{{ t('pdf.download') }}</a>
       {% endif %}
       <a href="/relationship" class="ref-cta result-actions__outline">{{ t('compat.result_cta') }}</a>

@@ -2,8 +2,7 @@
 
 pytest==9.0.3
 pytest-cov==7.1.0
-# TestClient httpx transportidan foydalanadi
-httpx==0.28.1
+# httpx endi ishlash vaqti bogʻliqligi (requirements.txt) — TestClient ham shundan foydalanadi
 ruff==0.15.16
 mypy==2.3.0
 # scripts/fetch_pdf_fonts.py shriftni subset qiladi; testlar glif qamrovini tekshiradi

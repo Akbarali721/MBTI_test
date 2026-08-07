@@ -5,6 +5,8 @@ from typing import Generic, TypeVar
 from sqlalchemy import ColumnElement, Subquery, case, func, or_, select
 from sqlalchemy.orm import Session
 
+from app.config import settings
+from app.models.ai_advice import AI_ADVICE_STATUS_READY, AiAdviceReport
 from app.models.analytics import SessionDailyStats
 from app.models.enums import PersonalitySessionStatus
 from app.models.payment_request import PAYMENT_STATUS_APPROVED, PaymentRequest
@@ -14,7 +16,7 @@ from app.models.personality import (
     PersonalityQuestion,
     PersonalityTestSession,
 )
-from app.timeutils import TASHKENT_TZ, as_utc, tashkent_day_start
+from app.timeutils import TASHKENT_TZ, as_utc, tashkent_day_start, utcnow
 
 __all__ = [
     "DEFAULT_PAGE_SIZE",
@@ -26,6 +28,7 @@ __all__ = [
     "FunnelDay",
     "FunnelReport",
     "FunnelStage",
+    "GrowthStats",
     "Page",
     "VariantStats",
     "normalize_page",
@@ -115,6 +118,28 @@ class AdminDashboardStats:
     incomplete_tests: int
     today_visitors: int
     completion_rate: float
+
+
+@dataclass(frozen=True)
+class GrowthStats:
+    """Referal va AI maslahatlar bo'yicha ko'rsatkichlar."""
+
+    referred_sessions: int
+    referred_completed: int
+    rewards_granted: int
+    active_trials: int
+    advice_ready: int
+    advice_failed: int
+    advice_today: int
+    advice_daily_limit: int
+    advice_output_tokens: int
+    advice_enabled: bool
+
+    @property
+    def referral_completion_rate(self) -> float:
+        if not self.referred_sessions:
+            return 0.0
+        return round(self.referred_completed / self.referred_sessions * 100, 1)
 
 
 @dataclass(frozen=True)
@@ -483,6 +508,64 @@ class AdminAnalyticsService:
             incomplete_tests=incomplete,
             today_visitors=today_visitors,
             completion_rate=round(rate, 1),
+        )
+
+    def growth_stats(self) -> GrowthStats:
+        """Referal va AI ko'rsatkichlari.
+
+        Bu raqamlar admin uchun SUIISTE'MOL DETEKTORI ham: "kelgan" va "tugatgan"
+        soni bir-biriga juda yaqin bo'lsa (ya'ni havolani bosgan deyarli hamma
+        24 ta savolni oxirigacha bosib chiqqan bo'lsa), bu tirik odam emas.
+        """
+        sessions = PersonalityTestSession
+        referred = self._scalar_count(
+            select(func.count()).select_from(sessions).where(sessions.referred_by_session_id.is_not(None))
+        )
+        referred_completed = self._scalar_count(
+            select(func.count())
+            .select_from(sessions)
+            .where(
+                sessions.referred_by_session_id.is_not(None),
+                sessions.status == PersonalitySessionStatus.COMPLETED,
+            )
+        )
+        rewards = int(
+            self.db.scalar(select(func.coalesce(func.sum(sessions.referral_milestones_granted), 0))) or 0
+        )
+        active_trials = self._scalar_count(
+            select(func.count())
+            .select_from(sessions)
+            .where(sessions.is_premium.is_(False), sessions.premium_until > utcnow())
+        )
+        advice_ready = self._scalar_count(
+            select(func.count())
+            .select_from(AiAdviceReport)
+            .where(AiAdviceReport.status == AI_ADVICE_STATUS_READY)
+        )
+        advice_failed = self._scalar_count(
+            select(func.count())
+            .select_from(AiAdviceReport)
+            .where(AiAdviceReport.status != AI_ADVICE_STATUS_READY)
+        )
+        advice_today = self._scalar_count(
+            select(func.count())
+            .select_from(AiAdviceReport)
+            .where(AiAdviceReport.updated_at >= tashkent_day_start())
+        )
+        output_tokens = int(
+            self.db.scalar(select(func.coalesce(func.sum(AiAdviceReport.output_tokens), 0))) or 0
+        )
+        return GrowthStats(
+            referred_sessions=referred,
+            referred_completed=referred_completed,
+            rewards_granted=rewards,
+            active_trials=active_trials,
+            advice_ready=advice_ready,
+            advice_failed=advice_failed,
+            advice_today=advice_today,
+            advice_daily_limit=settings.ai_daily_limit,
+            advice_output_tokens=output_tokens,
+            advice_enabled=settings.ai_advice_configured,
         )
 
     def _archived_totals(self) -> tuple[int, ...]:

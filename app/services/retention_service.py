@@ -110,6 +110,13 @@ def _session_safety_clauses() -> list:
         ~has_payment,
         ~in_team,
         model.is_premium.is_(False),
+        # Referal mukofoti bergan vaqtli premium ham "tegib bo'lmaydi" belgisi.
+        # Amalda mukofot faqat TUGATILGAN sessiyaga tushadi va qoidalar unga
+        # baribir tegmasdi, lekin bu ro'yxat mudofaaning oxirgi qatori.
+        # `referred_by_session_id` ataylab YO'Q: havolani bosib kirgan-u testni
+        # boshlamagan sessiya oddiy tashrif bilan bir xil tozalanadi, aks holda
+        # jadval tashlab ketilgan referal tashriflari bilan cheksiz o'sardi.
+        model.premium_until.is_(None),
         model.premium_requested.is_(False),
         model.premium_requested_at.is_(None),
         model.premium_approved_at.is_(None),

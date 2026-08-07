@@ -1,0 +1,35 @@
+{# Do'st taklif qilib bepul premium olish. `referral` konteksti routerdan keladi. #}
+{% if referral %}
+{% set progress = referral.progress %}
+<div class="mbti-share-box mbti-referral-box">
+  <h2 class="mbti-section-title">{{ t('referral.title') }}</h2>
+  <p class="mbti-flow-text mbti-flow-text--left">
+    {{ t('referral.desc', required=progress.required, days=referral.reward_days) }}
+  </p>
+
+  <div class="mbti-payment-field__row">
+    <span class="mbti-payment-field__value mbti-share-url" id="referral-url">{{ referral.url }}</span>
+    <button type="button" class="mbti-copy-btn" data-copy-target="referral-url"
+            data-copy-label="{{ t('payment.copy') }}"
+            data-copied-label="{{ t('payment.copied') }}"
+            data-copy-failed-label="{{ t('payment.copy_failed') }}">{{ t('payment.copy') }}</button>
+  </div>
+  <p class="mbti-share-box__note">{{ t('referral.copy_hint') }}</p>
+
+  <p class="mbti-referral-progress">
+    <strong>{{ t('referral.progress', completed=progress.toward_next, required=progress.required) }}</strong>
+  </p>
+  {# Progress chizig'i inline style bilan chiziladi (CSP style-src 'unsafe-inline' shuning uchun). #}
+  <div class="mbti-referral-bar" role="progressbar"
+       aria-valuenow="{{ progress.toward_next }}" aria-valuemin="0" aria-valuemax="{{ progress.required }}">
+    <span class="mbti-referral-bar__fill" style="width: {{ progress.percent }}%"></span>
+  </div>
+  <p class="mbti-share-box__note">
+    {{ t('referral.remaining', count=progress.remaining) }} ·
+    {{ t('referral.invited', count=progress.invited) }}
+    {% if progress.milestones_granted %}
+    · {{ t('referral.rewarded', count=progress.milestones_granted) }}
+    {% endif %}
+  </p>
+</div>
+{% endif %}

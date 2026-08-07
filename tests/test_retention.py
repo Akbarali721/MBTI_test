@@ -448,3 +448,21 @@ def test_the_dry_run_counts_without_materialising_ids(client, monkeypatch):
 
     assert report.rules[0].candidates == 1
     assert called == [], "quruq hisobot ID ro'yxatini so'ramasligi kerak"
+
+
+def test_a_session_with_a_free_trial_is_never_touched(client):
+    """Referal mukofoti bergan vaqtli premium ham himoya belgisi."""
+    from datetime import datetime, timedelta, timezone
+
+    from app.services import retention_service
+
+    with db_session(client) as db:
+        session = PersonalityRepository(db).create_session()
+        session.last_activity_at = datetime.now(timezone.utc) - timedelta(days=400)
+        session.premium_until = datetime.now(timezone.utc) + timedelta(days=3)
+        db.commit()
+        session_id = session.id
+
+        report = retention_service.run(db, dry_run=False, rules=[retention_service.RULE_VISITED])
+        assert report.total_affected == 0
+        assert db.get(PersonalityTestSession, session_id) is not None

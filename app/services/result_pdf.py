@@ -4,14 +4,16 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
+from xml.sax.saxutils import escape
 
 from sqlalchemy.orm import Session
 
 from app.i18n import DEFAULT as DEFAULT_LANG
 from app.i18n import t
-from app.models.personality import DEFAULT_CONTENT_LANGUAGE
+from app.models.personality import DEFAULT_CONTENT_LANGUAGE, PersonalityTestSession
 from app.pdf.result_report import PdfDimension, PdfReport, PdfSection, build_result_pdf
 from app.personality.share_code import share_code_for_session, share_path
+from app.services import ai_advice_service
 from app.services.personality_service import PersonalityService
 
 logger = logging.getLogger(__name__)
@@ -50,6 +52,10 @@ def build_report(db: Session, token: str, *, lang: str, base_url: str) -> PdfRep
         for key, field in PREMIUM_SECTIONS
         if getattr(content, field, None)
     ]
+    # AI maslahatlar hisobotga faqat ALLAQACHON yaratilgan bo'lsa qo'shiladi.
+    # PDF yig'ish tashqi xizmatga bog'lanib qolmasligi kerak: aks holda AI ishlamay
+    # qolganda navbatdagi hisobotlar ham yetkazilmasdi.
+    sections.extend(_advice_sections(db, session, lang))
     return PdfReport(
         brand=t("site.name", lang),
         result_type=session.result_type or "",
@@ -67,6 +73,24 @@ def build_report(db: Session, token: str, *, lang: str, base_url: str) -> PdfRep
         generated_at=datetime.now(timezone.utc),
         share_url=share_url,
     )
+
+
+def _advice_sections(db: Session, session: PersonalityTestSession, lang: str) -> list[PdfSection]:
+    """AI maslahatlarini bitta bo'limga yig'adi.
+
+    Matn ESCAPE qilinadi: reportlab `Paragraph` mini-XML o'qiydi va model javobidagi
+    oddiy "&" yoki "<" belgisi butun hisobotni yiqitardi. Bazadagi kontent bizniki,
+    bu matn esa tashqaridan keladi.
+    """
+    report = ai_advice_service.get_report(db, session.id, lang)
+    items = ai_advice_service.items_from_report(report)
+    if not items:
+        return []
+    lines = [
+        f"<b>{number}. {escape(item.title)}</b><br/>{escape(item.body)}"
+        for number, item in enumerate(items, start=1)
+    ]
+    return [PdfSection(title=t("ai.title", lang, count=len(items)), body="<br/><br/>".join(lines))]
 
 
 class PdfNotPremium(Exception):
