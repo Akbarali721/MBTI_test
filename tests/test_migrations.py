@@ -193,6 +193,47 @@ def test_009_deduplicates_active_payments_and_idempotent_index(tmp_path):
 
 
 @pytest.mark.slow
+def test_012_variant_unique_idempotent_on_sqlite(tmp_path):
+    """012 removes UNIQUE(order_number) and adds UNIQUE(variant, order_number); re-run is safe."""
+    import importlib.util
+    from pathlib import Path
+
+    from sqlalchemy import create_engine, inspect
+
+    _revision_path = Path(__file__).resolve().parents[1] / "alembic" / "versions" / "012_question_variants.py"
+    _spec = importlib.util.spec_from_file_location("migration_012", _revision_path)
+    assert _spec and _spec.loader
+    m012 = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(m012)
+
+    database_url = f"sqlite:///{(tmp_path / '012_variants.db').as_posix()}"
+    base = _run_alembic(["upgrade", "011_teams"], database_url)
+    assert base.returncode == 0, base.stderr or base.stdout
+
+    first = _run_alembic(["upgrade", "012_variants"], database_url)
+    assert first.returncode == 0, first.stderr or first.stdout
+    repeat = _run_alembic(["upgrade", "012_variants"], database_url)
+    assert repeat.returncode == 0, repeat.stderr or repeat.stdout
+
+    engine = create_engine(database_url)
+    try:
+        insp = inspect(engine)
+        variant_order = m012.find_unique_names_for_columns(
+            insp.get_unique_constraints("personality_questions"),
+            insp.get_indexes("personality_questions"),
+            ("variant", "order_number"),
+        )
+        assert variant_order
+        assert m012.find_unique_names_for_columns(
+            insp.get_unique_constraints("personality_questions"),
+            insp.get_indexes("personality_questions"),
+            ("order_number",),
+        ) == []
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.slow
 def test_migrated_schema_allows_two_question_variants(tmp_path):
     """001 migratsiyasi order_number'ni NOMSIZ unique qilgan edi.
 
