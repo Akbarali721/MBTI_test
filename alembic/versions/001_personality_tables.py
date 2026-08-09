@@ -10,6 +10,7 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import inspect
+from sqlalchemy.dialects import postgresql
 
 revision: str = "001_personality"
 down_revision: Union[str, None] = None
@@ -32,17 +33,31 @@ def _create_index(index_name: str, table_name: str, columns: list[str]) -> None:
         op.create_index(index_name, table_name, columns)
 
 
+def _session_status_enum(*, create_type: bool):
+    values = ("visited", "started", "in_progress", "completed")
+    name = "personality_session_status"
+    if op.get_bind().dialect.name == "postgresql":
+        return postgresql.ENUM(*values, name=name, create_type=create_type)
+    return sa.Enum(*values, name=name)
+
+
+def _personality_dimension_enum(*, create_type: bool):
+    values = ("EI", "SN", "TF", "JP")
+    name = "personality_dimension"
+    if op.get_bind().dialect.name == "postgresql":
+        return postgresql.ENUM(*values, name=name, create_type=create_type)
+    return sa.Enum(*values, name=name)
+
+
 def upgrade() -> None:
-    personality_session_status = sa.Enum(
-        "visited",
-        "started",
-        "in_progress",
-        "completed",
-        name="personality_session_status",
-    )
-    personality_dimension = sa.Enum("EI", "SN", "TF", "JP", name="personality_dimension")
-    personality_session_status.create(op.get_bind(), checkfirst=True)
-    personality_dimension.create(op.get_bind(), checkfirst=True)
+    bind = op.get_bind()
+    # PostgreSQL: create types once explicitly; columns use create_type=False so
+    # create_table/add_column does not emit a second CREATE TYPE (DuplicateObject).
+    personality_session_status = _session_status_enum(create_type=False)
+    personality_dimension = _personality_dimension_enum(create_type=False)
+    if bind.dialect.name == "postgresql":
+        personality_session_status.create(bind, checkfirst=True)
+        personality_dimension.create(bind, checkfirst=True)
 
     if not _has_table("personality_test_sessions"):
         op.create_table(

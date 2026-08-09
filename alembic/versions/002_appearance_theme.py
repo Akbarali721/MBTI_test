@@ -9,6 +9,7 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import inspect
+from sqlalchemy.dialects import postgresql
 
 revision: str = "002_appearance_theme"
 down_revision: Union[str, None] = "001_personality"
@@ -34,7 +35,13 @@ def upgrade() -> None:
         )
         return
 
-    appearance_theme = sa.Enum("male", "female", "neutral", name="appearance_theme")
+    appearance_theme = postgresql.ENUM(
+        "male",
+        "female",
+        "neutral",
+        name="appearance_theme",
+        create_type=False,
+    )
     appearance_theme.create(bind, checkfirst=True)
     op.add_column(
         "personality_test_sessions",

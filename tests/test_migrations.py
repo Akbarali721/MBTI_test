@@ -100,6 +100,26 @@ def test_upgrade_is_idempotent_when_run_twice(tmp_path):
 
 
 @pytest.mark.slow
+def test_upgrade_head_on_postgresql_when_configured():
+    """Guards PostgreSQL CREATE TYPE duplication (001/002 enum migrations)."""
+    database_url = os.environ.get("TEST_POSTGRES_URL")
+    if not database_url:
+        pytest.skip("Set TEST_POSTGRES_URL to run PostgreSQL migration smoke test")
+    try:
+        import psycopg2  # noqa: F401
+    except ImportError:
+        pytest.skip("psycopg2 not installed")
+
+    first = _run_alembic(["upgrade", "head"], database_url)
+    assert first.returncode == 0, first.stderr or first.stdout
+    second = _run_alembic(["upgrade", "head"], database_url)
+    assert second.returncode == 0, second.stderr or second.stdout
+
+    tables = _table_names(database_url)
+    assert tables >= EXPECTED_TABLES, sorted(tables)
+
+
+@pytest.mark.slow
 def test_migrated_schema_allows_two_question_variants(tmp_path):
     """001 migratsiyasi order_number'ni NOMSIZ unique qilgan edi.
 
