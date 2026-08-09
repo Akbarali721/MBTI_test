@@ -120,6 +120,79 @@ def test_upgrade_head_on_postgresql_when_configured():
 
 
 @pytest.mark.slow
+def test_009_deduplicates_active_payments_and_idempotent_index(tmp_path):
+    """009 must dedupe active rows before partial unique index; re-run must be safe."""
+    from sqlalchemy import create_engine, inspect, text
+
+    database_url = f"sqlite:///{(tmp_path / '009_active.db').as_posix()}"
+    base = _run_alembic(["upgrade", "008_enum_repair"], database_url)
+    assert base.returncode == 0, base.stderr or base.stdout
+
+    engine = create_engine(database_url)
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                """
+                INSERT INTO personality_test_sessions (
+                    token, status, current_question_index,
+                    e_score, i_score, s_score, n_score, t_score, f_score, j_score, p_score,
+                    is_premium, premium_requested, total_questions, answered_questions
+                ) VALUES (
+                    'pay-dup', 'visited', 0,
+                    0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 24, 0
+                )
+                """
+            )
+        )
+        session_id = conn.execute(text("SELECT id FROM personality_test_sessions")).scalar_one()
+        for status in ("pending", "receipt_sent", "pending"):
+            conn.execute(
+                text(
+                    """
+                    INSERT INTO payment_requests (session_id, amount, status, created_at)
+                    VALUES (:sid, 100, :status, '2026-01-01 00:00:00')
+                    """
+                ),
+                {"sid": session_id, "status": status},
+            )
+    engine.dispose()
+
+    first = _run_alembic(["upgrade", "009_active_payment"], database_url)
+    assert first.returncode == 0, first.stderr or first.stdout
+    repeat = _run_alembic(["upgrade", "009_active_payment"], database_url)
+    assert repeat.returncode == 0, repeat.stderr or repeat.stdout
+
+    engine = create_engine(database_url)
+    try:
+        indexes = {ix["name"] for ix in inspect(engine).get_indexes("payment_requests")}
+        assert "uq_payment_requests_active_session" in indexes
+        with engine.connect() as conn:
+            active = conn.execute(
+                text(
+                    """
+                    SELECT COUNT(*) FROM payment_requests
+                     WHERE session_id = :sid AND status IN ('pending', 'receipt_sent')
+                    """
+                ),
+                {"sid": session_id},
+            ).scalar_one()
+            rejected = conn.execute(
+                text(
+                    """
+                    SELECT COUNT(*) FROM payment_requests
+                     WHERE session_id = :sid AND status = 'rejected'
+                    """
+                ),
+                {"sid": session_id},
+            ).scalar_one()
+        assert active == 1
+        assert rejected == 2
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.slow
 def test_migrated_schema_allows_two_question_variants(tmp_path):
     """001 migratsiyasi order_number'ni NOMSIZ unique qilgan edi.
 
