@@ -234,6 +234,32 @@ def test_012_variant_unique_idempotent_on_sqlite(tmp_path):
 
 
 @pytest.mark.slow
+def test_017_boolean_low_confidence_columns_idempotent(tmp_path):
+    """017 must use cross-dialect Boolean defaults; re-run after partial deploy is safe."""
+    from sqlalchemy import create_engine, inspect
+
+    database_url = f"sqlite:///{(tmp_path / '017_sessions.db').as_posix()}"
+    base = _run_alembic(["upgrade", "016_referral_ai"], database_url)
+    assert base.returncode == 0, base.stderr or base.stdout
+
+    first = _run_alembic(["upgrade", "017_session_questions"], database_url)
+    assert first.returncode == 0, first.stderr or first.stdout
+    repeat = _run_alembic(["upgrade", "017_session_questions"], database_url)
+    assert repeat.returncode == 0, repeat.stderr or repeat.stdout
+
+    engine = create_engine(database_url)
+    try:
+        cols = {c["name"]: c for c in inspect(engine).get_columns("personality_test_sessions")}
+        for name in ("ei_low_confidence", "sn_low_confidence", "tf_low_confidence", "jp_low_confidence"):
+            assert name in cols
+            assert cols[name]["nullable"] is False
+        assert "personality_session_questions" in inspect(engine).get_table_names()
+        assert _run_alembic(["upgrade", "head"], database_url).returncode == 0
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.slow
 def test_migrated_schema_allows_two_question_variants(tmp_path):
     """001 migratsiyasi order_number'ni NOMSIZ unique qilgan edi.
 

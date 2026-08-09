@@ -73,7 +73,7 @@ def upgrade() -> None:
         if not _has_column(SESSIONS, col):
             op.add_column(
                 SESSIONS,
-                sa.Column(col, sa.Boolean(), server_default=sa.text("0"), nullable=False),
+                sa.Column(col, sa.Boolean(), server_default=sa.false(), nullable=False),
             )
 
 
