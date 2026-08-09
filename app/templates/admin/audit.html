@@ -1,0 +1,56 @@
+{% extends "admin/base_admin.html" %}
+{% import "admin/partials/pagination.html" as pager %}
+{% block title %}Audit{% endblock %}
+{% set active_nav = 'audit' %}
+{% block content %}
+<h1 class="h4 mb-3">Audit jurnali</h1>
+<p class="text-muted small">
+  Jurnal faqat to‘ldiriladi. Pul, rol va eksportga tegishli yozuvlar saqlash siyosati bilan
+  hech qachon o‘chirilmaydi. Yozuvda token, to‘lov kodi va chek identifikatori saqlanmaydi —
+  ular o‘zi kirish huquqi bo‘lgani uchun.
+</p>
+
+<div class="btn-group flex-wrap mb-3" role="group">
+  <a href="/admin/audit" class="btn btn-sm {% if current_action == 'all' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+    Hammasi
+  </a>
+  {% for action in actions %}
+  <a href="/admin/audit?action={{ action }}"
+     class="btn btn-sm {% if current_action == action %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+    {{ action }}
+  </a>
+  {% endfor %}
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 small">
+      <thead class="table-light">
+        <tr>
+          <th>Vaqt</th>
+          <th>Kim</th>
+          <th>Harakat</th>
+          <th>Nishon</th>
+          <th>Izoh</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in entries %}
+        <tr>
+          <td class="text-nowrap">{{ entry.created_at }}</td>
+          <td class="text-nowrap">{{ entry.actor_type }}:{{ entry.actor_label }}</td>
+          <td><code>{{ entry.action }}</code></td>
+          <td class="text-nowrap">
+            {% if entry.target_type %}{{ entry.target_type }} #{{ entry.target_id }}{% else %}—{% endif %}
+          </td>
+          <td>{{ entry.detail or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-center text-muted py-4">Yozuvlar yo‘q</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{{ pager.render(pagination, '/admin/audit', {'action': current_action}, t) }}
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends "admin/base_admin.html" %}
+{% import "admin/partials/pagination.html" as pager %}
+{% block title %}Premium so‘rovlar{% endblock %}
+{% set active_nav = 'premium' %}
+{% block content %}
+<h1 class="h4 mb-4">Premium so‘rovlar</h1>
+<div class="btn-group flex-wrap mb-3" role="group">
+  {% for key, label in [
+    ('all', t('admin.status.all')),
+    ('pending', t('admin.status.pending')),
+    ('receipt_sent', t('admin.status.receipt_sent')),
+    ('approved', t('admin.status.approved')),
+    ('rejected', t('admin.status.rejected')),
+  ] %}
+  <a href="/admin/premium-requests?filter={{ key }}"
+     class="btn btn-sm {% if current_filter == key %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+    {{ label }}
+  </a>
+  {% endfor %}
+  {% if request.state.admin and request.state.admin.can('export_data') %}
+  <a class="btn btn-sm btn-outline-success ms-2" href="/admin/export/payments.csv?filter={{ current_filter }}">
+    CSV yuklab olish
+  </a>
+  {% endif %}
+</div>
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 small">
+      <thead class="table-light">
+        <tr>
+          <th>ID</th>
+          <th>Ism</th>
+          <th>Username</th>
+          <th>Telegram ID</th>
+          <th>Session</th>
+          <th>Token</th>
+          <th>MBTI</th>
+          <th>Summa</th>
+          <th>Holat</th>
+          <th>Kim hal qildi</th>
+          <th>So‘rov vaqti</th>
+          <th>Chek</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in payments %}
+        <tr>
+          <td>#{{ p.id }}</td>
+          <td>{{ p.telegram_first_name or '—' }}</td>
+          <td>{% if p.telegram_username %}@{{ p.telegram_username }}{% else %}—{% endif %}</td>
+          <td>{{ p.telegram_user_id }}</td>
+          <td><a href="/admin/sessions/{{ p.session_id }}">#{{ p.session_id }}</a></td>
+          <td><code>{{ p.session.token[:8] }}…</code></td>
+          <td>{{ p.session.result_type or '—' }}</td>
+          <td class="text-nowrap">{{ format_price(p.amount or 0) }} {{ t('result.currency') }}</td>
+          <td><span class="badge text-bg-secondary">{{ t('admin.status.' ~ p.status) }}</span></td>
+          {# Eski qatorlarda "web-admin" yoki "telegram:<id>" bo'lishi mumkin. #}
+          <td class="text-nowrap">{{ p.approved_by or '—' }}</td>
+          <td class="text-nowrap">{{ p.created_at }}</td>
+          <td>
+            {% if p.receipt_file_id %}
+            {% set receipt_url = '/admin/premium-requests/' ~ p.id ~ '/receipt' %}
+            <a href="{{ receipt_url }}" target="_blank" rel="noopener" title="{{ t('admin.receipt.view') }}">
+              <img src="{{ receipt_url }}" alt="{{ t('admin.receipt.alt') }}" loading="lazy"
+                   class="rounded border" style="max-height: 56px; max-width: 84px; object-fit: cover;">
+            </a>
+            {% else %}<span class="text-muted">{{ t('admin.receipt.none') }}</span>{% endif %}
+          </td>
+          <td class="text-nowrap">
+            {% if p.status == 'receipt_sent' or p.status == 'pending' %}
+            <form class="d-inline" method="post" action="/admin/premium-requests/{{ p.id }}/approve">
+              <button class="btn btn-sm btn-success" type="submit">Tasdiqlash</button>
+            </form>
+            <form class="d-inline" method="post" action="/admin/premium-requests/{{ p.id }}/reject"
+                  data-confirm="{{ t('admin.reject_confirm') }}">
+              <button class="btn btn-sm btn-outline-danger" type="submit">Rad</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="13" class="text-center text-muted py-4">So‘rovlar yo‘q</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{{ pager.render(pagination, '/admin/premium-requests', {'filter': current_filter}, t) }}
+<p class="text-muted small mt-3">Chek rasmi Telegram’dan server orqali olinadi — bot tokeni brauzerga chiqmaydi. Rasm ko‘rinmasa <code>BOT_TOKEN</code> sozlanganini tekshiring.</p>
+{% endblock %}

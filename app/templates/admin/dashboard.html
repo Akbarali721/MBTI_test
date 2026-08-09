@@ -1,0 +1,234 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Analitika{% endblock %}
+{% set active_nav = 'dashboard' %}
+{% block content %}
+<h1 class="h4 mb-4">Analitika</h1>
+<div class="row g-3">
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="text-muted small">Tashriflar</div>
+        <div class="fs-4 fw-semibold">{{ stats.total_visitors }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="text-muted small">Boshlangan testlar</div>
+        <div class="fs-4 fw-semibold">{{ stats.started_tests }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="text-muted small">Tugallangan</div>
+        <div class="fs-4 fw-semibold">{{ stats.completed_tests }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="text-muted small">Tugallanmagan</div>
+        <div class="fs-4 fw-semibold">{{ stats.incomplete_tests }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="text-muted small">Bugun tashrif</div>
+        <div class="fs-4 fw-semibold">{{ stats.today_visitors }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="text-muted small">Tugatish foizi</div>
+        <div class="fs-4 fw-semibold">{{ stats.completion_rate }}%</div>
+      </div>
+    </div>
+  </div>
+</div>
+<h2 class="h5 mt-5">Voronka</h2>
+<p class="text-muted small mb-2">
+  Sessiyalar BIRINCHI tashrif kuni bo‘yicha guruhlangan. Ya’ni kecha tasdiqlangan
+  eski to‘lov o‘z kogortasida qoladi va bosqichlar hech qachon bir-biridan oshib ketmaydi.
+</p>
+<form class="d-flex flex-wrap gap-2 align-items-center mb-3" method="get" action="/admin">
+  <div class="btn-group btn-group-sm" role="group">
+    {% for option in range_options %}
+    <a href="/admin?range={{ option }}{% if current_variant %}&variant={{ current_variant }}{% endif %}"
+       class="btn {% if current_range == option %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+      {% if option %}{{ option }} kun{% else %}Butun davr{% endif %}
+    </a>
+    {% endfor %}
+  </div>
+  {% if variant_options|length > 1 %}
+  <div class="btn-group btn-group-sm" role="group">
+    <a href="/admin?range={{ current_range }}"
+       class="btn {% if not current_variant %}btn-primary{% else %}btn-outline-secondary{% endif %}">Hammasi</a>
+    {% for name in variant_options %}
+    <a href="/admin?range={{ current_range }}&variant={{ name }}"
+       class="btn {% if current_variant == name %}btn-primary{% else %}btn-outline-secondary{% endif %}">{{ name }}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</form>
+<div class="card border-0 shadow-sm mb-3">
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Bosqich</th>
+          <th class="text-end">Soni</th>
+          <th class="text-end">Birinchidan %</th>
+          <th class="text-end">Oldingisidan %</th>
+          <th style="min-width: 140px;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for stage in funnel.stages %}
+        <tr>
+          <td>{{ t('admin.funnel.' ~ stage.key) }}</td>
+          <td class="text-end fw-semibold">{{ stage.count }}</td>
+          <td class="text-end">{{ stage.of_first }}%</td>
+          <td class="text-end {% if not loop.first and stage.of_previous < 50 %}text-danger{% endif %}">
+            {{ stage.of_previous }}%
+          </td>
+          <td>
+            <div class="progress" style="height: 8px;" role="img"
+                 aria-label="{{ t('admin.funnel.' ~ stage.key) }}: {{ stage.of_first }}%">
+              <div class="progress-bar" style="width: {{ stage.of_first }}%;"></div>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% if funnel.premium_without_payment or funnel.requested_without_payment %}
+<div class="alert alert-warning small">
+  {% if funnel.premium_without_payment %}
+  <div>{{ funnel.premium_without_payment }} ta sessiyada premium to‘lov qatorisiz ochilgan (admin qo‘lda bergan).</div>
+  {% endif %}
+  {% if funnel.requested_without_payment %}
+  <div>{{ funnel.requested_without_payment }} ta sessiyada premium so‘ralgan, lekin to‘lov qatori yo‘q.</div>
+  {% endif %}
+</div>
+{% endif %}
+
+<h2 class="h6 mt-4">Oxirgi 14 kun</h2>
+<div class="table-responsive">
+  <table class="table table-sm align-middle">
+    <thead>
+      <tr>
+        <th>Kun</th>
+        <th class="text-end">Tashrif</th>
+        <th class="text-end">Tugatgan</th>
+        <th class="text-end">Tasdiqlangan</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for day in funnel.days %}
+      <tr>
+        <td class="text-nowrap">{{ day.label }}</td>
+        <td class="text-end">{{ day.visited }}</td>
+        <td class="text-end">{{ day.completed }}</td>
+        <td class="text-end">{{ day.approved }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if variants %}
+<h2 class="h5 mt-5">Savol to‘plamlari (A/B)</h2>
+<p class="text-muted small mb-2">
+  Konversiya testni tugatganlarga nisbatan hisoblanadi — to‘plamlarni shu ustun bo‘yicha solishtiring.
+</p>
+<div class="table-responsive">
+  <table class="table table-sm align-middle">
+    <thead>
+      <tr>
+        <th>To‘plam</th>
+        <th class="text-end">Tashrif</th>
+        <th class="text-end">Tugatgan</th>
+        <th class="text-end">Tugatish %</th>
+        <th class="text-end">Premium</th>
+        <th class="text-end">Konversiya %</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in variants %}
+      <tr>
+        <td class="fw-semibold">{{ row.variant }}</td>
+        <td class="text-end">{{ row.visitors }}</td>
+        <td class="text-end">{{ row.completed }}</td>
+        <td class="text-end">{{ row.completion_rate }}%</td>
+        <td class="text-end">{{ row.premium }}</td>
+        <td class="text-end fw-semibold">{{ row.premium_rate }}%</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<h2 class="h5 mt-5">Referal va AI</h2>
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <h3 class="h6">Referal</h3>
+        <dl class="row mb-0 small">
+          <dt class="col-8">Havola orqali kelgan sessiyalar</dt>
+          <dd class="col-4 text-end">{{ growth.referred_sessions }}</dd>
+          <dt class="col-8">Ulardan testni tugatgan</dt>
+          <dd class="col-4 text-end">{{ growth.referred_completed }} ({{ growth.referral_completion_rate }}%)</dd>
+          <dt class="col-8">Berilgan mukofotlar</dt>
+          <dd class="col-4 text-end">{{ growth.rewards_granted }}</dd>
+          <dt class="col-8">Hozir ochiq bepul premium</dt>
+          <dd class="col-4 text-end">{{ growth.active_trials }}</dd>
+        </dl>
+        {# Tugatish foizi haddan tashqari yuqori bo'lsa, bu odam emas. #}
+        {% if growth.referred_sessions >= 10 and growth.referral_completion_rate >= 90 %}
+        <p class="text-warning small mb-0 mt-2">
+          Havola orqali kelganlarning deyarli hammasi testni tugatgan — bu odatiy emas,
+          referal havolasi suiiste’mol qilinayotgan bo‘lishi mumkin.
+        </p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <h3 class="h6">AI maslahatlar</h3>
+        {% if growth.advice_enabled %}
+        <dl class="row mb-0 small">
+          <dt class="col-8">Tayyor</dt>
+          <dd class="col-4 text-end">{{ growth.advice_ready }}</dd>
+          <dt class="col-8">Xato bilan tugagan</dt>
+          <dd class="col-4 text-end">{{ growth.advice_failed }}</dd>
+          <dt class="col-8">Bugun</dt>
+          <dd class="col-4 text-end">{{ growth.advice_today }} / {{ growth.advice_daily_limit }}</dd>
+          <dt class="col-8">Jami chiqish tokenlari</dt>
+          <dd class="col-4 text-end">{{ growth.advice_output_tokens }}</dd>
+        </dl>
+        {% else %}
+        <p class="text-muted small mb-0">AI_API_KEY sozlanmagan — funksiya o‘chiq.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="mt-4 mb-0">
+  <a class="btn btn-primary" href="/admin/sessions">Barcha sessiyalar</a>
+</p>
+{% endblock %}

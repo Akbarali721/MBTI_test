@@ -1,0 +1,34 @@
+{# AI maslahatlar. Blok faqat premium ochiq VA kalit sozlangan bo'lsa ko'rinadi:
+   `advice.enabled` ikkalasini ham tekshiradi (app/services/ai_advice_service.py).
+   Model matni Jinja avtoescape orqali chiqadi, ya'ni HTML sifatida bajarilmaydi. #}
+{% if advice.enabled %}
+<div class="mbti-ai-advice" id="ai-advice">
+  <h2 class="mbti-section-title">{{ t('ai.title', count=advice.items|length or ai_advice_count) }}</h2>
+
+  {% if advice_notice %}
+  <p class="mbti-premium-status__text" role="status">{{ t(advice_notice) }}</p>
+  {% endif %}
+
+  {% if advice.has_items %}
+  <ol class="mbti-ai-advice__list">
+    {% for item in advice.items %}
+    <li class="mbti-premium-card mbti-ai-advice__item">
+      <h3>{{ item.title }}</h3>
+      <p>{{ item.body }}</p>
+    </li>
+    {% endfor %}
+  </ol>
+  <p class="mbti-share-box__note">{{ t('ai.disclaimer') }}</p>
+  {% else %}
+  <p class="mbti-flow-text mbti-flow-text--left">{{ t('ai.desc') }}</p>
+  {% if advice.can_generate %}
+  <form action="{{ advice_action_url }}" method="post" class="result-actions__form">
+    <button type="submit" class="ref-cta ref-cta--primary">{{ t('ai.generate' if not advice.failed else 'ai.retry') }}</button>
+  </form>
+  <p class="mbti-share-box__note">{{ t('ai.pending_note') }}</p>
+  {% else %}
+  <p class="mbti-share-box__note">{{ t('ai.notice_unavailable') }}</p>
+  {% endif %}
+  {% endif %}
+</div>
+{% endif %}

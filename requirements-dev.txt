@@ -1,0 +1,11 @@
+-r requirements.txt
+
+pytest==9.0.3
+pytest-cov==7.1.0
+# httpx endi ishlash vaqti bogʻliqligi (requirements.txt) — TestClient ham shundan foydalanadi
+ruff==0.15.16
+mypy==2.3.0
+# scripts/fetch_pdf_fonts.py shriftni subset qiladi; testlar glif qamrovini tekshiradi
+fonttools==4.61.0
+# PDF hisobot testlari matnni qayta o'qiydi
+pypdf==6.4.0

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Admin{% endblock %} — MBTI</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="/static/images/personality/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ asset_url('vendor/fonts.css') }}">
+  <link rel="stylesheet" href="{{ asset_url('vendor/bootstrap.min.css') }}">
+  <style>
+    body { background: #f4f6f9; min-height: 100vh; }
+    .admin-nav { background: #1a2744; }
+    .admin-nav .navbar-brand, .admin-nav .nav-link { color: rgba(255,255,255,.9) !important; }
+    .admin-nav .nav-link.active { font-weight: 600; color: #fff !important; }
+    .stat-card { border: none; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark admin-nav mb-4">
+    <div class="container-fluid px-3 px-lg-4">
+      <a class="navbar-brand" href="/admin">MBTI Admin</a>
+      <button class="navbar-toggler border-light" type="button" data-bs-toggle="collapse" data-bs-target="#adminNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="adminNav">
+        {# Havolalar rol bo'yicha ko'rsatiladi. Bu qulaylik uchun — haqiqiy tekshiruv
+           har doim serverda, require_admin ichida bajariladi. #}
+        {% set admin = request.state.admin %}
+        <ul class="navbar-nav me-auto">
+          {% for key, href, label, permission in [
+            ('dashboard', '/admin', 'Bosh sahifa', 'view_aggregate'),
+            ('sessions', '/admin/sessions', 'Sessiyalar', 'view_pii'),
+            ('premium', '/admin/premium-requests', 'Premium so‘rovlar', 'view_pii'),
+            ('notifications', '/admin/notifications', 'Bildirishnomalar', 'view_ops'),
+            ('retention', '/admin/retention', 'Saqlash siyosati', 'view_ops'),
+            ('users', '/admin/users', 'Adminlar', 'manage_users'),
+            ('audit', '/admin/audit', 'Audit', 'view_audit'),
+          ] %}
+          {% if admin and admin.can(permission) %}
+          <li class="nav-item">
+            <a class="nav-link {% if active_nav == key %}active{% endif %}" href="{{ href }}">{{ label }}</a>
+          </li>
+          {% endif %}
+          {% endfor %}
+        </ul>
+        {% if admin %}
+        <span class="navbar-text me-3 small text-white-50">{{ admin.username }}</span>
+        {% endif %}
+        <a class="nav-link" href="/admin/logout">Chiqish</a>
+      </div>
+    </div>
+  </nav>
+  <main class="container-fluid px-3 px-lg-4 pb-5">
+    {% block content %}{% endblock %}
+  </main>
+  <script src="{{ asset_url('vendor/bootstrap.bundle.min.js') }}" defer></script>
+  <script src="{{ asset_url('js/admin-confirm.js') }}" defer></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

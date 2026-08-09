@@ -1,0 +1,32 @@
+/**
+ * Baza qatlami: sahifa foni, umumiy konteyner va shrift.
+ * Komponentlar personality-marketing.css da (u shu fayldan keyin yuklanadi).
+ */
+
+:root {
+  --page-bg: #faf6f0;
+  --page-bg-accent: #fff8f2;
+  --card-bg: #fffdf9;
+  --text-primary: #1e293b;
+}
+
+body.personality-body {
+  font-family: "Manrope", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: radial-gradient(120% 80% at 50% 0%, var(--page-bg-accent) 0%, var(--page-bg) 55%, #f3ebe3 100%);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
+.personality-container {
+  max-width: 900px;
+  position: relative;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+@media (min-width: 768px) {
+  .personality-container {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+}

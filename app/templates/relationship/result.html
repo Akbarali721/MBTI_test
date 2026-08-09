@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% set c = compatibility %}
+
+{% block title %}{{ t('compat.result_title', left=c.left_type, right=c.right_type) }}{% endblock %}
+{% block meta_description %}{{ t('compat.band_' ~ c.band ~ '_short', score=c.score) }}{% endblock %}
+{% block og_title %}{{ t('compat.og_title', left=c.left_type, right=c.right_type, score=c.score) }}{% endblock %}
+{% block twitter_card %}summary{% endblock %}
+
+{% block bootstrap_css %}{% endblock %}
+{% block bootstrap_js %}{% endblock %}
+{% block body_class %}mbti-flow-body{% endblock %}
+
+{% block content %}
+<section class="mbti-flow-card">
+  {% include "personality/partials/brand_logo.html" %}
+
+  <p class="ref-eyebrow">{{ t('compat.eyebrow') }}</p>
+
+  <div class="mbti-compat-pair">
+    <div class="mbti-compat-pair__side">
+      <span class="mbti-compat-pair__type">{{ c.left_type }}</span>
+      <span class="mbti-compat-pair__title">{{ left_title }}</span>
+    </div>
+    <span class="mbti-compat-pair__plus" aria-hidden="true">+</span>
+    <div class="mbti-compat-pair__side">
+      <span class="mbti-compat-pair__type">{{ c.right_type }}</span>
+      <span class="mbti-compat-pair__title">{{ right_title }}</span>
+    </div>
+  </div>
+
+  <div class="mbti-compat-score mbti-compat-score--{{ c.band }}">
+    <span class="mbti-compat-score__value">{{ c.score }}%</span>
+    <span class="mbti-compat-score__band">{{ t('compat.band_' ~ c.band) }}</span>
+  </div>
+  <p class="mbti-flow-text mbti-flow-text--left">{{ t('compat.band_' ~ c.band ~ '_desc') }}</p>
+
+  <h2 class="mbti-section-title">{{ t('compat.by_dimension') }}</h2>
+  <ul class="mbti-compat-dimensions">
+    {% for dim in c.dimensions %}
+    <li class="mbti-compat-dimension {% if dim.same %}is-same{% else %}is-diff{% endif %}">
+      <span class="mbti-compat-dimension__letters">{{ dim.left_letter }} / {{ dim.right_letter }}</span>
+      <span class="mbti-compat-dimension__badge">
+        {{ t('compat.same') if dim.same else t('compat.different') }}
+      </span>
+      <p class="mbti-compat-dimension__text">{{ t(dim.text_key) }}</p>
+    </li>
+    {% endfor %}
+  </ul>
+
+  <h2 class="mbti-section-title">{{ t('compat.strengths') }}</h2>
+  <ul class="mbti-list">
+    {% for key in c.strength_keys %}<li>{{ t(key) }}</li>{% endfor %}
+  </ul>
+
+  {% if c.friction_keys %}
+  <h2 class="mbti-section-title">{{ t('compat.frictions') }}</h2>
+  <ul class="mbti-list">
+    {% for key in c.friction_keys %}<li>{{ t(key) }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+
+  <h2 class="mbti-section-title">{{ t('compat.advice') }}</h2>
+  <ul class="mbti-list">
+    {% for key in c.advice_keys %}<li>{{ t(key) }}</li>{% endfor %}
+  </ul>
+
+  <div class="result-actions">
+    <a href="/relationship" class="ref-cta ref-cta--primary">{{ t('compat.compare_another') }}</a>
+    {% if not own_type %}
+    <a href="/personality" class="ref-cta result-actions__outline">{{ t('compat.take_test') }}</a>
+    {% endif %}
+    <a href="/personality" class="result-actions__link">{{ t('common.back_home') }}</a>
+  </div>
+
+  <p class="mbti-disclaimer">{{ t('compat.disclaimer') }}</p>
+</section>
+{% endblock %}

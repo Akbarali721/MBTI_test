@@ -1,0 +1,60 @@
+x-app: &app
+  image: akbar-mbti:latest
+  build:
+    context: .
+    dockerfile: Dockerfile
+  env_file:
+    - .env
+  environment:
+    # .env dagi DATABASE_URL localhost ga ishora qiladi; konteyner ichida "db" xosti kerak.
+    DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-mbti}:${POSTGRES_PASSWORD:-mbti}@db:5432/${POSTGRES_DB:-mbti}
+  restart: unless-stopped
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mbti}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mbti}
+      POSTGRES_DB: ${POSTGRES_DB:-mbti}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mbti} -d ${POSTGRES_DB:-mbti}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    # Bazani xostdan ko'rish kerak bo'lsa oching (productionda yopiq qoldiring):
+    # ports:
+    #   - "5432:5432"
+
+  web:
+    <<: *app
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "alembic upgrade head &&
+      exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers"
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+
+  bot:
+    <<: *app
+    # Migratsiyalarni faqat web bajaradi; bot web sog'lom bo'lgach ishga tushadi.
+    depends_on:
+      db:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    command: ["python", "-m", "app.bot"]
+    # Image darajasidagi HEALTHCHECK /health ni curl qiladi, bot esa HTTP xizmat
+    # ko'rsatmaydi — shu sababli u DOIM "unhealthy" deb ko'rinardi. Bot holatini
+    # /admin/notifications sahifasidagi ishchi belgisi (heartbeat) ko'rsatadi.
+    healthcheck:
+      disable: true
+
+volumes:
+  pgdata:

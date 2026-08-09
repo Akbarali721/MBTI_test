@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t('history.page_title') }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex">{% endblock %}
+
+{% block bootstrap_css %}{% endblock %}
+{% block bootstrap_js %}{% endblock %}
+{% block body_class %}mbti-flow-body{% endblock %}
+
+{% block content %}
+<section class="mbti-flow-card">
+  {% include "personality/partials/brand_logo.html" %}
+
+  <h1 class="mbti-flow-title">{{ t('history.title') }}</h1>
+
+  {% if not entries %}
+  <p class="mbti-flow-text mbti-flow-text--left">{{ t('history.empty') }}</p>
+  <a href="/personality" class="ref-cta ref-cta--primary">{{ t('history.empty_cta') }}</a>
+  {% else %}
+  <p class="mbti-flow-text mbti-flow-text--left">{{ t('history.intro', count=entries|length) }}</p>
+
+  <ol class="mbti-history-list">
+    {% for entry in entries %}
+    <li class="mbti-history-item">
+      <div class="mbti-history-item__head">
+        <span class="mbti-history-item__type">{{ entry.result_type }}</span>
+        {% if entry.is_premium %}
+        <span class="mbti-history-item__badge">{{ t('history.premium_badge') }}</span>
+        {% endif %}
+        {% if entry.completed_at %}
+        <time class="mbti-history-item__date" datetime="{{ entry.completed_at.isoformat() }}">
+          {{ entry.completed_at.strftime('%d.%m.%Y') }}
+        </time>
+        {% endif %}
+      </div>
+      <p class="mbti-history-item__title">{{ entry.title }}</p>
+      <div class="mbti-history-item__bars">
+        {% with result = entry.result, compact = true %}
+          {% include "personality/partials/dimension_bars.html" %}
+        {% endwith %}
+      </div>
+      <a href="/personality/result/{{ entry.token }}" class="mbti-history-item__link">{{ t('history.open_result') }}</a>
+    </li>
+    {% endfor %}
+  </ol>
+
+  {% if shifts %}
+  <h2 class="mbti-section-title">{{ t('history.shift_title') }}</h2>
+  <p class="mbti-flow-text mbti-flow-text--left">{{ t('history.shift_desc') }}</p>
+  <ul class="mbti-list">
+    {% for shift in shifts %}
+    <li>
+      {{ t('dimension.' ~ shift.left_key) }}/{{ t('dimension.' ~ shift.right_key) }}:
+      {{ shift.before }}% &rarr; {{ shift.after }}%
+      {% if shift.delta > 0 %}<strong>(+{{ shift.delta }})</strong>
+      {% elif shift.delta < 0 %}<strong>({{ shift.delta }})</strong>
+      {% else %}({{ t('history.shift_stable') }}){% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <div class="result-actions">
+    <form action="/personality/restart" method="post" class="result-actions__form">
+      <button type="submit" class="ref-cta ref-cta--primary">{{ t('history.retake') }}</button>
+    </form>
+    <a href="/personality" class="result-actions__link">{{ t('common.back_home') }}</a>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

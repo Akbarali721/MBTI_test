@@ -1,0 +1,31 @@
+# O'rnatish: pip install pre-commit && pre-commit install
+# Versiyalar requirements-dev.txt bilan bir xil — lokalda va CI da bir xil natija.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.16
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      # Rasm va shrift fayllari bundan mustasno; qolgani uchun 512 KB chegara —
+      # .doc/.pdf kabi begona hujjatlar yana repoga tushib qolmasligi uchun.
+      - id: check-added-large-files
+        args: [--maxkb=512]
+
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy app
+        entry: mypy
+        language: system
+        pass_filenames: false
+        args: [app]

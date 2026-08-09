@@ -1,0 +1,38 @@
+{# Sahifalash tugmalari. Chaqiruv:
+   {% import "admin/partials/pagination.html" as pager %}
+   {{ pager.render(pagination, '/admin/sessions', {'filter': current_filter}, t) }}
+   `params` joriy filtrlarni saqlaydi, `page` esa har havolada almashtiriladi. #}
+{% macro render(page, base_path, params, t) %}
+{% if page and page.total %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
+  <span class="text-muted small">
+    {{ t('admin.pagination.summary', first=page.first_index, last=page.last_index, total=page.total) }}
+  </span>
+  {% if page.pages > 1 %}
+  <nav aria-label="{{ t('admin.pagination.aria') }}">
+    <ul class="pagination pagination-sm mb-0">
+      <li class="page-item {% if not page.has_prev %}disabled{% endif %}">
+        <a class="page-link" href="{{ base_path }}?{{ dict(params, page=page.prev_page)|urlencode }}"
+           {% if not page.has_prev %}tabindex="-1" aria-disabled="true"{% endif %}>
+          {{ t('admin.pagination.prev') }}
+        </a>
+      </li>
+      {% set window_start = [1, page.page - 2]|max %}
+      {% set window_end = [page.pages, window_start + 4]|min %}
+      {% for number in range([1, window_end - 4]|max, window_end + 1) %}
+      <li class="page-item {% if number == page.page %}active{% endif %}">
+        <a class="page-link" href="{{ base_path }}?{{ dict(params, page=number)|urlencode }}">{{ number }}</a>
+      </li>
+      {% endfor %}
+      <li class="page-item {% if not page.has_next %}disabled{% endif %}">
+        <a class="page-link" href="{{ base_path }}?{{ dict(params, page=page.next_page)|urlencode }}"
+           {% if not page.has_next %}tabindex="-1" aria-disabled="true"{% endif %}>
+          {{ t('admin.pagination.next') }}
+        </a>
+      </li>
+    </ul>
+  </nav>
+  {% endif %}
+</div>
+{% endif %}
+{% endmacro %}

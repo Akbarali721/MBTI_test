@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}{{ t('question.title', current=progress_display, total=total) }}{% endblock %}
+{% block bootstrap_css %}{% endblock %}
+{% block bootstrap_js %}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block canonical %}{% endblock %}
+{% block body_class %}ref-page ref-page--flow {{ theme_class }}{% endblock %}
+{% block main_class %}ref-main mbti-flow-main{% endblock %}
+{% block content %}
+<section class="ref-shell ref-shell--flow">
+  <article class="ref-card mbti-flow-card">
+    {% include "personality/partials/brand_logo.html" %}
+
+    <div class="mbti-progress-head">
+      <span class="mbti-progress-label">{{ progress_display }} / {{ total }}</span>
+      {% if question_index > 0 %}
+      <a href="/personality/test/{{ token }}?q={{ question_index - 1 }}" class="mbti-back-link">{{ t('question.back') }}</a>
+      {% endif %}
+    </div>
+
+    <div class="mbti-progress-track" role="progressbar" aria-label="{{ t('question.progress_aria') }}" aria-valuenow="{{ progress_display }}" aria-valuemin="0" aria-valuemax="{{ total }}">
+      <div class="mbti-progress-fill" style="width: {{ (progress_display / total * 100)|round }}%"></div>
+    </div>
+
+    <h1 class="mbti-question-text">{{ question.text }}</h1>
+
+    <form id="answer-form" class="mbti-options-form" action="/personality/test/{{ token }}/answer" method="post"
+          data-choice-form data-enables="#next-question-button" data-selected-class="is-selected">
+      <input type="hidden" name="question_id" value="{{ question.id }}">
+      <input type="hidden" name="question_index" value="{{ question_index }}">
+      {% set option_letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' %}
+      {% for option in question.options %}
+      <label class="mbti-option{% if selected_option_id == option.id %} is-selected{% endif %}">
+        <input
+          type="radio"
+          name="option_id"
+          value="{{ option.id }}"
+          class="mbti-option-input"
+          required
+          {% if selected_option_id == option.id %}checked{% endif %}
+        >
+        <span class="mbti-option-index" aria-hidden="true">{{ option_letters[loop.index0] if loop.index0 < option_letters|length else loop.index }}</span>
+        <span class="mbti-option-text">{{ option.text }}</span>
+        <span class="mbti-option-check" aria-hidden="true">✓</span>
+      </label>
+      {% endfor %}
+
+      <button
+        type="submit"
+        id="next-question-button"
+        class="mbti-next-button ref-cta ref-cta--primary"
+      >
+        {% if progress_display == total %}{{ t('question.see_result') }}{% else %}{{ t('question.next') }}{% endif %}
+      </button>
+    </form>
+  </article>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="{{ asset_url('js/choice-form.js') }}" defer></script>
+{% endblock %}

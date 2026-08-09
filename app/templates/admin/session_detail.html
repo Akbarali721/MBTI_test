@@ -1,0 +1,103 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Sessiya #{{ session.id }}{% endblock %}
+{% set active_nav = 'sessions' %}
+{% block content %}
+<p class="mb-3"><a href="/admin/sessions">&larr; Sessiyalar ro‘yxati</a></p>
+<h1 class="h4 mb-3">Sessiya #{{ session.id }}</h1>
+<div class="row g-3 mb-4">
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold">Ma’lumotlar</div>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Token</span>
+          <code class="small">{{ session.token }}</code>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Holat</span>
+          <span class="badge text-bg-{{ status_badge.get(session.status.value, 'secondary') }}">
+            {{ session.status.value }}
+          </span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Foydalanuvchi</span>
+          <span>
+            {% if session.user_id %}User #{{ session.user_id }}
+            {% elif session.telegram_user_id %}TG {{ session.telegram_user_id }}
+            {% else %}—{% endif %}
+          </span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Manba</span>
+          <span>{{ session.source or '—' }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Javoblar</span>
+          <span>{{ session.answered_questions }} / {{ session.total_questions }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Natija</span>
+          <span>{{ session.result_type or '—' }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Premium</span>
+          <span>{% if session.is_premium %}Ha{% else %}Yo‘q{% endif %}</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold">Vaqt</div>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Yaratilgan</span>
+          <span class="small">{{ session.created_at }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Test boshlangan</span>
+          <span class="small">{{ session.started_at or '—' }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Tugallangan</span>
+          <span class="small">{{ session.completed_at or '—' }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Oxirgi faollik</span>
+          <span class="small">{{ session.last_activity_at or '—' }}</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% if not session.is_premium and session.status.value == 'completed' %}
+<form method="post" action="/admin/personality/{{ session.id }}/grant-premium" class="mb-4">
+  <button class="btn btn-success" type="submit">Premium berish</button>
+</form>
+{% endif %}
+{% if answers %}
+<h2 class="h5 mb-3">Berilgan javoblar</h2>
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>#</th>
+          <th>Savol</th>
+          <th>Javob</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in answers %}
+        <tr>
+          <td>{{ a.order }}</td>
+          <td>{{ a.question_text }}</td>
+          <td>{{ a.option_text }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

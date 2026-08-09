@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t('compat.page_title') }}{% endblock %}
+{% block meta_description %}{{ t('compat.page_desc') }}{% endblock %}
+
+{% block bootstrap_css %}{% endblock %}
+{% block bootstrap_js %}{% endblock %}
+{% block body_class %}mbti-flow-body{% endblock %}
+
+{% block content %}
+<section class="mbti-flow-card">
+  {% include "personality/partials/brand_logo.html" %}
+
+  <p class="ref-eyebrow">{{ t('compat.eyebrow') }}</p>
+  <h1 class="mbti-flow-title">{{ t('compat.title') }}</h1>
+  <p class="mbti-flow-text">{{ t('compat.intro') }}</p>
+
+  {% if error %}
+  <p class="mbti-form-error" role="alert">{{ t('compat.error_invalid') }}</p>
+  {% endif %}
+
+  <form action="/relationship/compare" method="post" class="mbti-compat-form">
+    <div class="mbti-compat-form__field">
+      <label for="left_type">{{ t('compat.your_type') }}</label>
+      <select id="left_type" name="left_type" required>
+        <option value="">{{ t('compat.choose') }}</option>
+        {% for mbti in all_types %}
+        <option value="{{ mbti }}" {% if own_type == mbti %}selected{% endif %}>{{ mbti }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="mbti-compat-form__field">
+      <label for="right_type">{{ t('compat.partner_type') }}</label>
+      <select id="right_type" name="right_type" required>
+        <option value="">{{ t('compat.choose') }}</option>
+        {% for mbti in all_types %}
+        <option value="{{ mbti }}">{{ mbti }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <button type="submit" class="ref-cta ref-cta--primary">{{ t('compat.submit') }}</button>
+  </form>
+
+  {% if not own_type %}
+  <p class="mbti-compat-hint">
+    {{ t('compat.unknown_type') }}
+    <a href="/personality">{{ t('compat.take_test') }}</a>
+  </p>
+  {% endif %}
+
+  <p class="mbti-disclaimer">{{ t('compat.disclaimer') }}</p>
+</section>
+{% endblock %}

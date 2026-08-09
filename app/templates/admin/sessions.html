@@ -1,0 +1,87 @@
+{% extends "admin/base_admin.html" %}
+{% import "admin/partials/pagination.html" as pager %}
+{% block title %}Sessiyalar{% endblock %}
+{% set active_nav = 'sessions' %}
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+  <h1 class="h4 mb-0">Sessiyalar</h1>
+  <div class="d-flex gap-2 flex-wrap align-items-center">
+    <form class="d-flex gap-2 flex-wrap" method="get" action="/admin/sessions">
+      <input type="hidden" name="filter" value="{{ current_filter }}">
+      <input class="form-control form-control-sm" name="code" value="{{ search_code }}" placeholder="Test kodi (masalan 0155ac4f)" style="min-width: 200px;">
+      <button class="btn btn-sm btn-outline-primary" type="submit">Qidirish</button>
+      {% if search_code %}
+      <a class="btn btn-sm btn-link" href="/admin/sessions?filter={{ current_filter }}">Tozalash</a>
+      {% endif %}
+    </form>
+    {% if request.state.admin and request.state.admin.can('export_data') %}
+    <a class="btn btn-sm btn-outline-success" href="/admin/export/sessions.csv?filter={{ current_filter }}">
+      CSV yuklab olish
+    </a>
+    {% endif %}
+  </div>
+</div>
+<div class="btn-group flex-wrap mb-3" role="group">
+  {% for key, label in [
+    ('all', 'Hammasi'),
+    ('visited', 'Tashrif'),
+    ('started', 'Boshlangan'),
+    ('in_progress', 'Jarayonda'),
+    ('completed', 'Tugallangan'),
+    ('today', 'Bugun'),
+  ] %}
+  <a href="/admin/sessions?filter={{ key }}"
+     class="btn btn-sm {% if current_filter == key %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+    {{ label }}
+  </a>
+  {% endfor %}
+</div>
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Session ID</th>
+          <th>Test kodi</th>
+          <th>Foydalanuvchi</th>
+          <th>Holat</th>
+          <th>Progress</th>
+          <th>Natija</th>
+          <th>Manba</th>
+          <th>Yaratilgan</th>
+          <th>Oxirgi faollik</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in sessions %}
+        <tr>
+          <td><a href="/admin/sessions/{{ s.id }}">#{{ s.id }}</a></td>
+          <td><code>{{ session_codes.get(s.id, s.token[:8]) }}</code></td>
+          <td>
+            {% if s.user_id %}User #{{ s.user_id }}
+            {% elif s.telegram_user_id %}TG {{ s.telegram_user_id }}
+            {% else %}—{% endif %}
+            {% if s.premium_requested and not s.is_premium %}
+            <span class="badge text-bg-warning ms-1">Premium so‘rov</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge text-bg-{{ status_badge.get(s.status.value, 'secondary') }}">
+              {{ s.status.value }}
+            </span>
+          </td>
+          <td>{{ s.answered_questions }}/{{ s.total_questions or '—' }}</td>
+          <td>{{ s.result_type or '—' }}</td>
+          <td>{{ s.source or '—' }}</td>
+          <td class="small text-nowrap">{{ s.created_at }}</td>
+          <td class="small text-nowrap">{{ s.last_activity_at or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" class="text-center text-muted py-4">Sessiyalar topilmadi</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{{ pager.render(pagination, '/admin/sessions', {'filter': current_filter, 'code': search_code}, t) }}
+{% endblock %}

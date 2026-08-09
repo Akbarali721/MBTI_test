@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t('share.page_title', type=result_type, title=content.title) }}{% endblock %}
+{% block meta_description %}{{ content.short_description }}{% endblock %}
+
+{% block og_title %}{{ t('share.og_title', type=result_type, title=content.title) }}{% endblock %}
+{% block og_description %}{{ content.short_description }}{% endblock %}
+{% block og_image %}{{ og_image_url }}{% endblock %}
+{% block og_image_size %}
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+{% endblock %}
+{% block twitter_card %}summary_large_image{% endblock %}
+
+{% block bootstrap_css %}{% endblock %}
+{% block bootstrap_js %}{% endblock %}
+{% block body_class %}mbti-flow-body{% endblock %}
+
+{% block content %}
+<section class="mbti-flow-card mbti-share-card">
+  {% include "personality/partials/brand_logo.html" %}
+
+  <p class="ref-eyebrow">{{ t('share.eyebrow') }}</p>
+  <h1 class="mbti-flow-title">{{ content.title }}</h1>
+  <p class="mbti-result-type">{{ t('result.type_label') }} {{ result_type }}</p>
+
+  <p class="mbti-flow-text mbti-flow-text--left">{{ content.short_description }}</p>
+
+  {% if strengths %}
+  <h2 class="mbti-section-title">{{ t('result.strengths') }}</h2>
+  <ul class="mbti-list">
+    {% for item in strengths %}
+    <li>{{ item }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <h2 class="mbti-section-title">{{ t('result.dimensions') }}</h2>
+  {% with compact = false %}{% include "personality/partials/dimension_bars.html" %}{% endwith %}
+
+  <div class="mbti-share-cta">
+    <h2 class="mbti-share-cta__title">{{ t('share.cta_title') }}</h2>
+    <p class="mbti-share-cta__desc">{{ t('share.cta_desc') }}</p>
+    <a href="{{ start_url }}" class="ref-cta ref-cta--primary">{{ t('share.cta_button') }}</a>
+  </div>
+
+  <p class="mbti-disclaimer">{{ t('result.disclaimer') }}</p>
+</section>
+{% endblock %}

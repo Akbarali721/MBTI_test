@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{{ t('landing.title') }}{% endblock %}
+{% block bootstrap_css %}{% endblock %}
+{% block bootstrap_js %}{% endblock %}
+{% block body_class %}ref-page ref-page--landing{% endblock %}
+{% block main_class %}ref-main{% endblock %}
+{% block og_image %}{{ request.base_url }}static/images/personality/personality-hero.png{% endblock %}
+{% block og_image_size %}
+<meta property="og:image:width" content="600">
+<meta property="og:image:height" content="400">
+{% endblock %}
+{% block twitter_card %}summary_large_image{% endblock %}
+{% block content %}
+<section class="ref-shell" aria-labelledby="landing-title">
+  <article class="ref-card ref-card--landing">
+    <div class="personality-hero-visual">
+      <picture>
+        <source srcset="/static/images/personality/personality-hero.webp" type="image/webp">
+        <img
+          src="/static/images/personality/personality-hero.png"
+          alt="{{ t('landing.hero_alt') }}"
+          class="personality-hero-image"
+          width="600"
+          height="400"
+          loading="eager"
+          decoding="async"
+          fetchpriority="high"
+        >
+      </picture>
+    </div>
+
+    <p class="ref-eyebrow">{{ t('landing.eyebrow') }}</p>
+    <h1 class="ref-title" id="landing-title">{{ t('landing.headline') }}</h1>
+    <p class="ref-lead">{{ t('landing.lead') }}</p>
+    <p class="ref-copy">{{ t('landing.copy') }}</p>
+
+    <div class="ref-meta-grid" aria-label="{{ t('landing.meta_aria') }}">
+      <div class="ref-meta-item">
+        <span class="ref-meta-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M7 5h10v14H7z" stroke="currentColor" stroke-width="1.6"/><path d="M9 8h6M9 11h6M9 14h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </span>
+        <span class="ref-meta-label">{{ t('landing.meta_questions') }}</span>
+      </div>
+      <div class="ref-meta-item">
+        <span class="ref-meta-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="7.5" stroke="currentColor" stroke-width="1.6"/><path d="M12 9v3.5l2 1.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </span>
+        <span class="ref-meta-label">{{ t('landing.meta_minutes') }}</span>
+      </div>
+      <div class="ref-meta-item">
+        <span class="ref-meta-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 4.5l2.2 4.4 4.9.7-3.5 3.4.8 4.9L12 15.8l-4.4 2.3.8-4.9-3.5-3.4 4.9-.7L12 4.5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="ref-meta-label">{{ t('landing.meta_personal') }}</span>
+      </div>
+    </div>
+
+    <form action="/personality/begin" method="post" class="ref-landing-start-form">
+      <button type="submit" class="ref-cta ref-cta--primary">{{ t('landing.cta') }}</button>
+    </form>
+
+    <p class="ref-note">
+      <span class="ref-note-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 3.5l6.5 2.8v5.9c0 3.9-2.7 6.8-6.5 7.8-3.8-1-6.5-3.9-6.5-7.8V6.3L12 3.5z" stroke="currentColor" stroke-width="1.5"/><path d="M9.2 12.2l1.8 1.8 3.8-3.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </span>
+      {{ t('common.no_wrong_answer') }}
+    </p>
+  </article>
+</section>
+{% endblock %}
