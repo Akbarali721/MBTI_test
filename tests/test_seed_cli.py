@@ -41,7 +41,37 @@ def test_seed_is_idempotent_on_an_already_seeded_database(seed_db, client, capsy
     assert seed_cli.main([]) == 0
     output = capsys.readouterr().out
     assert "allaqachon mavjud" in output
+    assert "Variant 'A' active questions: total=48" in output
     assert _content_count(client, "uz") == 16
+
+
+def test_verify_prints_counts_and_succeeds_when_bank_is_valid(seed_db, capsys):
+    assert seed_cli.main(["--verify"]) == 0
+    output = capsys.readouterr().out
+    assert "EI: 12" in output
+    assert "total=48" in output
+
+
+def test_seed_fails_when_question_bank_still_invalid(seed_db, client, monkeypatch):
+    from app.models.personality import PersonalityQuestion
+
+    with db_session(client) as db:
+        for row in db.scalars(select(PersonalityQuestion)).all():
+            row.is_active = False
+        db.commit()
+
+    monkeypatch.setattr(seed_cli, "seed_personality_questions", lambda db, **kw: 0)
+
+    with pytest.raises(RuntimeError, match="Question bank not ready"):
+        seed_cli.main([])
+
+
+def test_refuses_default_sqlite_when_debug_is_false(seed_db, monkeypatch, capsys):
+    monkeypatch.setattr(seed_cli.settings, "debug", False)
+    monkeypatch.setattr(seed_cli.settings, "database_url", seed_cli._DEFAULT_SQLITE_URL)
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    assert seed_cli.main([]) == 1
+    assert "Refusing to seed default SQLite" in capsys.readouterr().err
 
 
 def test_seed_loads_the_russian_catalog(seed_db, client, capsys):

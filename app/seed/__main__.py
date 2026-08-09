@@ -1,6 +1,7 @@
 """Kontent va ma'lumot xizmat buyruqlari.
 
 python -m app.seed                          savol va natija kontentini (uz + ru) yuklaydi
+python -m app.seed --verify                 faqat Variant A bank hisobini tekshiradi
 python -m app.seed --language ru            faqat bitta til kontentini yuklaydi
 python -m app.seed --variant B              savollarni B to'plamiga yuklaydi (A/B test)
 python -m app.seed --force --yes            mavjud kontentni joyida almashtiradi
@@ -8,26 +9,33 @@ python -m app.seed --recompute              mavjud sessiya ballarini qayta hisob
 python -m app.seed --purge-visited --days 30  eskirgan VISITED sessiyalarni o'chiradi
 """
 
+from __future__ import annotations
+
 import argparse
+import os
 import sys
 
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.database import SessionLocal
 from app.models.personality import DEFAULT_VARIANT
 from app.personality.variants import normalize_variant
 from app.repositories.personality_repository import PersonalityRepository
 from app.seed.personality_placeholders import (
     SEED_LANGUAGES,
+    assert_question_bank_ready,
+    format_question_bank_report,
     question_bank_is_valid,
     question_bank_stats,
-    questions_are_empty,
     results_are_empty,
     seed_personality_questions,
     seed_personality_results,
 )
 
 DEFAULT_PURGE_DAYS = 30
+_DEFAULT_SQLITE_URL = "sqlite:///./mbti_dev.db"
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -38,6 +46,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Mavjud kontentni joyida almashtiradi (javoblar saqlanadi)",
     )
     parser.add_argument("--yes", action="store_true", help="Tasdiq so'ramaydi")
+    parser.add_argument(
+        "--verify",
+        action="store_true",
+        help="Savol banki hisobini chiqaradi; to'liq bo'lmasa 0 dan boshqa kod bilan chiqadi",
+    )
     parser.add_argument(
         "--recompute",
         action="store_true",
@@ -75,6 +88,49 @@ def _confirm(prompt: str) -> bool:
     return answer in ("y", "yes", "ha")
 
 
+def database_target_label() -> str:
+    """Same URL as the running app (`settings.database_url`), without credentials."""
+    url = settings.database_url
+    if url.startswith("sqlite"):
+        return url
+    try:
+        parsed = make_url(url)
+    except Exception:
+        return "postgresql (url parse failed; check DATABASE_URL)"
+    host = parsed.host or "?"
+    port = f":{parsed.port}" if parsed.port else ""
+    database = parsed.database or "?"
+    user = parsed.username or "?"
+    return f"{parsed.drivername}://{user}@{host}{port}/{database}"
+
+
+def _guard_production_database_url() -> int | None:
+    """Refuse default SQLite when production expects DATABASE_URL (e.g. Railway)."""
+    if settings.database_url != _DEFAULT_SQLITE_URL:
+        return None
+    if os.environ.get("DATABASE_URL"):
+        print(
+            "DATABASE_URL is set but settings still use default SQLite; "
+            "check env naming and restart.",
+            file=sys.stderr,
+        )
+        return 1
+    if not settings.debug:
+        print(
+            "Refusing to seed default SQLite with DEBUG=false. Set DATABASE_URL to PostgreSQL.",
+            file=sys.stderr,
+        )
+        return 1
+    return None
+
+
+def _run_verify(db: Session, variant: str) -> int:
+    chosen = normalize_variant(variant)
+    stats = question_bank_stats(db, chosen)
+    print(format_question_bank_report(stats))
+    return 0 if question_bank_is_valid(db, chosen) else 1
+
+
 def _run_seed(db: Session, *, force: bool, language: str | None, variant: str = DEFAULT_VARIANT) -> int:
     chosen = normalize_variant(variant)
     questions = seed_personality_questions(db, force=force, variant=chosen)
@@ -83,11 +139,6 @@ def _run_seed(db: Session, *, force: bool, language: str | None, variant: str = 
     elif question_bank_is_valid(db, chosen):
         stats = question_bank_stats(db, chosen)
         print(f"{chosen} to'plami to'liq ({stats['active_total']} faol savol), o'zgartirilmadi")
-    elif not questions_are_empty(db, chosen):
-        print(
-            f"{chosen} to'plami yetarli emas yoki noto'g'ri tuzilgan; "
-            f"sync uchun `python -m app.seed --yes` yoki `--force --yes` ishlating"
-        )
 
     languages = (language,) if language else SEED_LANGUAGES
     for code in languages:
@@ -96,6 +147,9 @@ def _run_seed(db: Session, *, force: bool, language: str | None, variant: str = 
             print(f"Natija kontenti yuklandi/yangilandi: {results} ta ({code})")
         elif not results_are_empty(db, code):
             print(f"Natija kontenti allaqachon mavjud ({code}), o'zgartirilmadi (--force bilan almashtiring)")
+
+    stats = assert_question_bank_ready(db, chosen)
+    print(format_question_bank_report(stats))
     return 0
 
 
@@ -121,8 +175,16 @@ def main(argv: list[str] | None = None) -> int:
         print("Bekor qilindi. --yes bayrog'i bilan tasdiqlashingiz mumkin.")
         return 1
 
+    guard_code = _guard_production_database_url()
+    if guard_code is not None:
+        return guard_code
+
+    print(f"Database: {database_target_label()}")
+
     db = SessionLocal()
     try:
+        if args.verify:
+            return _run_verify(db, args.variant)
         if args.recompute:
             return _run_recompute(db)
         if args.purge_visited:

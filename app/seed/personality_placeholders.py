@@ -231,8 +231,37 @@ def question_bank_is_valid(db: Session, variant: str = DEFAULT_VARIANT) -> bool:
     return True
 
 
+def format_question_bank_report(stats: dict[str, object]) -> str:
+    """Human-readable active bank counts for deploy logs."""
+    variant = stats.get("variant", "?")
+    total = stats.get("active_total", 0)
+    by_dimension = stats.get("by_dimension")
+    lines = [f"Variant {variant!r} active questions: total={total}"]
+    if isinstance(by_dimension, dict):
+        for key in ("EI", "SN", "TF", "JP"):
+            lines.append(f"  {key}: {by_dimension.get(key, 0)}")
+    return "\n".join(lines)
+
+
+def assert_question_bank_ready(db: Session, variant: str = DEFAULT_VARIANT) -> dict[str, object]:
+    """Raise if the bank is not exactly 48 active (12×4 dimensions, 6+6 poles each)."""
+    stats = question_bank_stats(db, variant)
+    if question_bank_is_valid(db, variant):
+        return stats
+    expected = (
+        f"{MASTER_BANK_QUESTION_COUNT} active "
+        f"({BANK_QUESTIONS_PER_DIMENSION} per dimension EI/SN/TF/JP, "
+        f"{BANK_POLE_COUNT_PER_DIRECTION}+{BANK_POLE_COUNT_PER_DIRECTION} poles each)"
+    )
+    raise RuntimeError(
+        f"Question bank not ready for variant {variant!r} after seed.\n"
+        f"Expected: {expected}.\n"
+        f"{format_question_bank_report(stats)}"
+    )
+
+
 def seed_personality_questions(db: Session, *, force: bool = False, variant: str = DEFAULT_VARIANT) -> int:
-    """Savollarni yuklaydi. force=False bo'lsa faqat to'plam bo'sh bo'lganda ishlaydi.
+    """Savollarni yuklaydi. force=False bo'lsa to'plam allaqachon to'liq bo'lsa o'tkazib yuboriladi.
 
     A/B test uchun: `--variant B` bilan yuklab, so'ng B to'plamini tahrirlash mumkin —
     A to'plamiga tegilmaydi.
