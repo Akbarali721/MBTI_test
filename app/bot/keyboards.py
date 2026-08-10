@@ -20,7 +20,7 @@ def result_keyboard(token: str, label: str = "Natijaga qaytish") -> InlineKeyboa
 def premium_result_keyboard(token: str | None) -> InlineKeyboardMarkup | None:
     if not token:
         return None
-    return result_keyboard(token, "📊 Premium natijani ko‘rish")
+    return result_keyboard(token, "📊 Premium natijamni ko‘rish")
 
 
 def site_keyboard() -> InlineKeyboardMarkup | None:

@@ -1197,6 +1197,10 @@ body.personality-body.ref-page.theme-male {
   color: var(--navy);
 }
 
+.mbti-premium-status__text--preline {
+  white-space: pre-line;
+}
+
 .mbti-refresh-btn {
   width: 100%;
   max-width: 100%;

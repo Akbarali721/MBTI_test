@@ -141,14 +141,21 @@ class PaymentRepository:
             return stmt.where(PaymentRequest.status == status_filter)
         return stmt
 
-    def count_for_admin(self, *, status_filter: str | None = None) -> int:
+    def count_for_admin(
+        self, *, status_filter: str | None = None, session_ids: list[int] | None = None
+    ) -> int:
         stmt = self._apply_admin_filter(select(func.count()).select_from(PaymentRequest), status_filter)
+        if session_ids is not None:
+            if not session_ids:
+                return 0
+            stmt = stmt.where(PaymentRequest.session_id.in_(session_ids))
         return int(self.db.scalar(stmt) or 0)
 
     def list_for_admin(
         self,
         *,
         status_filter: str | None = None,
+        session_ids: list[int] | None = None,
         limit: int = 500,
         offset: int = 0,
     ) -> list[PaymentRequest]:
@@ -158,5 +165,10 @@ class PaymentRepository:
             .options(joinedload(PaymentRequest.session))
             .order_by(_ADMIN_STATUS_ORDER, desc(PaymentRequest.created_at), desc(PaymentRequest.id))
         )
-        stmt = self._apply_admin_filter(stmt, status_filter).offset(offset).limit(limit)
+        stmt = self._apply_admin_filter(stmt, status_filter)
+        if session_ids is not None:
+            if not session_ids:
+                return []
+            stmt = stmt.where(PaymentRequest.session_id.in_(session_ids))
+        stmt = stmt.offset(offset).limit(limit)
         return list(self.db.scalars(stmt).all())

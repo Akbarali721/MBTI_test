@@ -15,61 +15,41 @@ from app.pdf.result_report import PdfDimension, PdfReport, PdfSection, build_res
 from app.personality.share_code import share_code_for_session, share_path
 from app.services import ai_advice_service
 from app.services.personality_service import PersonalityService
+from app.services.premium_report import build_premium_report
 
 logger = logging.getLogger(__name__)
 
-PREMIUM_SECTIONS: tuple[tuple[str, str], ...] = (
-    ("result.section.motivation", "motivation_analysis"),
-    ("result.section.work_style", "work_style"),
-    ("result.section.career", "career_environment"),
-    ("result.section.friendship", "friendship_style"),
-    ("result.section.relationship", "relationship_needs"),
-    ("result.section.compatible_people", "compatible_people"),
-    ("result.section.difficult", "difficult_communication"),
-    ("result.section.action_plan", "action_plan"),
-)
-
-_DIMENSION_POLES = (("ei", "i", "e"), ("sn", "s", "n"), ("tf", "t", "f"), ("jp", "j", "p"))
-
 
 def build_report(db: Session, token: str, *, lang: str, base_url: str) -> PdfReport:
-    service = PersonalityService(db)
-    view = service.get_result_view(token, language=lang or DEFAULT_CONTENT_LANGUAGE)
-    session, content, result = view["session"], view["content"], view["result"]
-
+    resolved_lang = lang or DEFAULT_CONTENT_LANGUAGE
+    session = PersonalityService(db).get_session_or_404(token)
+    report = build_premium_report(db, session, language=resolved_lang)
     share_url = f"{base_url.rstrip('/')}{share_path(share_code_for_session(db, session))}"
     dimensions = [
         PdfDimension(
-            left_label=t(f"dimension.{left}", lang),
-            left_percent=getattr(result, name).left_percent,
-            right_label=t(f"dimension.{right}", lang),
-            right_percent=getattr(result, name).right_percent,
+            left_label=t(f"dimension.{dim.left_key}", resolved_lang),
+            left_percent=dim.left_percent,
+            right_label=t(f"dimension.{dim.right_key}", resolved_lang),
+            right_percent=dim.right_percent,
         )
-        for name, left, right in _DIMENSION_POLES
+        for dim in report.dimensions
     ]
-    sections = [
-        PdfSection(title=t(key, lang), body=getattr(content, field))
-        for key, field in PREMIUM_SECTIONS
-        if getattr(content, field, None)
-    ]
-    # AI maslahatlar hisobotga faqat ALLAQACHON yaratilgan bo'lsa qo'shiladi.
-    # PDF yig'ish tashqi xizmatga bog'lanib qolmasligi kerak: aks holda AI ishlamay
-    # qolganda navbatdagi hisobotlar ham yetkazilmasdi.
-    sections.extend(_advice_sections(db, session, lang))
+    sections = [PdfSection(title=section.title, body=section.body) for section in report.sections]
+    sections.extend(_advice_sections(db, report.session, resolved_lang))
     return PdfReport(
-        brand=t("site.name", lang),
-        result_type=session.result_type or "",
-        title=content.title,
-        short_description=content.short_description,
-        strengths=view["strengths"],
-        challenges=view["challenges"],
+        brand=t("site.name", resolved_lang),
+        result_type=report.result_type,
+        title=report.title,
+        short_description=report.short_description,
+        strengths=report.strengths,
+        challenges=report.challenges,
         dimensions=dimensions,
         sections=sections,
-        strengths_label=t("result.strengths", lang),
-        challenges_label=t("result.challenges", lang),
-        dimensions_label=t("result.dimensions", lang),
-        footer_note=t("result.disclaimer", lang),
-        generated_label=t("pdf.generated", lang),
+        strengths_label=t("result.strengths", resolved_lang),
+        challenges_label=t("result.challenges", resolved_lang),
+        dimensions_label=t("result.dimensions", resolved_lang),
+        footer_note=t("result.disclaimer", resolved_lang),
+        generated_label=t("pdf.generated", resolved_lang),
         generated_at=datetime.now(timezone.utc),
         share_url=share_url,
     )

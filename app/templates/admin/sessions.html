@@ -8,7 +8,7 @@
   <div class="d-flex gap-2 flex-wrap align-items-center">
     <form class="d-flex gap-2 flex-wrap" method="get" action="/admin/sessions">
       <input type="hidden" name="filter" value="{{ current_filter }}">
-      <input class="form-control form-control-sm" name="code" value="{{ search_code }}" placeholder="Test kodi (masalan 0155ac4f)" style="min-width: 200px;">
+      <input class="form-control form-control-sm" name="code" value="{{ search_code }}" placeholder="Test kodi" style="min-width: 200px;">
       <button class="btn btn-sm btn-outline-primary" type="submit">Qidirish</button>
       {% if search_code %}
       <a class="btn btn-sm btn-link" href="/admin/sessions?filter={{ current_filter }}">Tozalash</a>
@@ -47,9 +47,10 @@
           <th>Holat</th>
           <th>Progress</th>
           <th>Natija</th>
+          <th>Premium holati</th>
           <th>Manba</th>
           <th>Yaratilgan</th>
-          <th>Oxirgi faollik</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -72,12 +73,29 @@
           </td>
           <td>{{ s.answered_questions }}/{{ s.total_questions or '—' }}</td>
           <td>{{ s.result_type or '—' }}</td>
+          <td>
+            {% if s.is_premium %}
+            <span class="badge text-bg-success">Premium ✓</span>
+            {% else %}
+            <span class="text-muted">—</span>
+            {% endif %}
+          </td>
           <td>{{ s.source or '—' }}</td>
           <td class="small text-nowrap">{{ s.created_at }}</td>
-          <td class="small text-nowrap">{{ s.last_activity_at or '—' }}</td>
+          <td class="text-nowrap">
+            {% if request.state.admin and request.state.admin.can('moderate_payments') %}
+              {% if s.is_premium %}
+              <button class="btn btn-sm btn-outline-success" type="button" disabled>Premium ✓</button>
+              {% elif s.status.value == 'completed' %}
+              <form class="d-inline" method="post" action="/admin/sessions/{{ s.id }}/grant-premium">
+                <button class="btn btn-sm btn-success" type="submit">Premium berish</button>
+              </form>
+              {% endif %}
+            {% endif %}
+          </td>
         </tr>
         {% else %}
-        <tr><td colspan="9" class="text-center text-muted py-4">Sessiyalar topilmadi</td></tr>
+        <tr><td colspan="10" class="text-center text-muted py-4">Sessiyalar topilmadi</td></tr>
         {% endfor %}
       </tbody>
     </table>

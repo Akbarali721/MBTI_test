@@ -97,11 +97,19 @@ def test_crawler_and_prefetch_landing_hits_create_no_rows(client):
     assert _session_count(client) == 1
 
 
-def test_telegram_user_id_query_must_be_int(client):
-    bad = client.get("/personality/appearance?telegram_user_id=abc", follow_redirects=False)
-    assert bad.status_code == 422
-    good = client.get("/personality/appearance?telegram_user_id=42", follow_redirects=False)
-    assert good.status_code == 303
+def test_telegram_bind_rejects_invalid_init_data(client):
+    client.get("/personality")
+    response = client.post(
+        "/personality/telegram-bind",
+        data={"init_data": "not-valid"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 400
+
+
+def test_appearance_no_longer_trusts_telegram_user_id_query(client):
+    response = client.get("/personality/appearance?telegram_user_id=abc", follow_redirects=False)
+    assert response.status_code == 303
 
 
 def test_support_bot_endpoints_require_ownership(client):

@@ -176,23 +176,28 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "result.section.difficult": "Qaysi odamlar bilan muloqot qiyinroq?",
         "result.section.action_plan": "7 kunlik shaxsiy tavsiya",
         "result.locked_note": "Premium tahlil — ochish uchun to‘lov tasdiqlanishi kerak.",
-        "result.status_pending_title": "To‘lov tekshirilmoqda",
+        "result.status_pending_title": "So‘rovingiz qabul qilindi ✅",
         "result.status_pending_text": (
-            "Chekingiz administratorga yuborildi. Tasdiqlangach premium natija ochiladi."
+            "To‘lov tasdiqlangach, batafsil natijangiz tayyorlanadi.\n"
+            "Tayyor natijani Telegram orqali yuboramiz.\n"
+            "Odatda 1–2 soat ichida."
         ),
         "result.status_awaiting_title": "Chek kutilmoqda",
         "result.status_awaiting_text": (
             "To‘lovni amalga oshirib, chek rasmini Telegram bot orqali yuboring."
         ),
         "result.test_code_label": "Test kodi:",
-        "result.refresh_status": "Holatni yangilash",
+        "result.referral_teaser": (
+            "Premiumni bepul ochmoqchimisiz? "
+            "2 do‘stingiz testni oxirigacha tugatsa, Premium bepul ochiladi."
+        ),
         "result.cta_title": "To‘liq xarakter profilingizni oching",
         "result.cta_desc": (
             "Kuchli va zaif tomonlaringiz, sizga mos kasblar, ish uslubingiz va "
             "shaxsiy rivojlanish yo‘nalishlarini ko‘ring."
         ),
-        "result.cta_note": "To‘lov tasdiqlangach natija shu sahifada ochiladi.",
-        "result.open_premium": "Premium natijani ochish",
+        "result.cta_note": "Tasdiqlangach natija Telegram orqali yuboriladi — sahifada kutishingiz shart emas.",
+        "result.open_premium": "Premium natijani olish",
         "result.restart": "Testni qayta ishlash",
         "result.currency": "so‘m",
         # To‘lov modali

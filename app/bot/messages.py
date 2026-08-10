@@ -102,7 +102,13 @@ def user_approved_message(db: Session, session_id: int) -> Message | Outcome:
         return _cancelled("sessiya topilmadi")
     if not session.is_premium:
         return _cancelled("premium bekor qilingan")
-    return Message(text=APPROVED_TEXT, keyboard=premium_result_keyboard(session.token))
+    mbti_type = session.result_type or "—"
+    text = (
+        "🎯 Batafsil natijangiz tayyor!\n\n"
+        f"Sizning xarakter turingiz: {mbti_type}\n\n"
+        "Siz uchun tayyorlangan batafsil tahlilni quyidagi tugma orqali ochishingiz mumkin."
+    )
+    return Message(text=text, keyboard=premium_result_keyboard(session.token))
 
 
 def user_rejected_message(db: Session, payment_id: int) -> Message | Outcome:

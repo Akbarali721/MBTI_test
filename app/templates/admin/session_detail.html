@@ -40,8 +40,8 @@
           <span>{{ session.result_type or '—' }}</span>
         </li>
         <li class="list-group-item d-flex justify-content-between">
-          <span>Premium</span>
-          <span>{% if session.is_premium %}Ha{% else %}Yo‘q{% endif %}</span>
+          <span>Premium holati</span>
+          <span>{% if session.is_premium %}Premium berilgan{% else %}Yo‘q{% endif %}</span>
         </li>
       </ul>
     </div>
@@ -70,10 +70,14 @@
     </div>
   </div>
 </div>
-{% if not session.is_premium and session.status.value == 'completed' %}
-<form method="post" action="/admin/personality/{{ session.id }}/grant-premium" class="mb-4">
-  <button class="btn btn-success" type="submit">Premium berish</button>
-</form>
+{% if session.status.value == 'completed' %}
+  {% if session.is_premium %}
+  <button class="btn btn-success mb-4" type="button" disabled>Premium berilgan</button>
+  {% elif request.state.admin and request.state.admin.can('moderate_payments') %}
+  <form method="post" action="/admin/personality/{{ session.id }}/grant-premium" class="mb-4">
+    <button class="btn btn-success" type="submit">Premium berish</button>
+  </form>
+  {% endif %}
 {% endif %}
 {% if answers %}
 <h2 class="h5 mb-3">Berilgan javoblar</h2>

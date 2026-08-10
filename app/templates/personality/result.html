@@ -94,22 +94,23 @@
 
     {% include "personality/partials/ai_advice.html" %}
 
-    {% if is_reviewing or is_awaiting_receipt %}
+    {% if is_reviewing %}
     <div class="mbti-premium-status mbti-premium-status--pending">
-      <h3 class="mbti-premium-status__title">
-        {{ t('result.status_pending_title') if is_reviewing else t('result.status_awaiting_title') }}
-      </h3>
-      <p class="mbti-premium-status__text">
-        {{ t('result.status_pending_text') if is_reviewing else t('result.status_awaiting_text') }}
+      <h3 class="mbti-premium-status__title">{{ t('result.status_pending_title') }}</h3>
+      <p class="mbti-premium-status__text mbti-premium-status__text--preline">
+        {{ t('result.status_pending_text') }}
       </p>
+    </div>
+    {% elif is_awaiting_receipt %}
+    <div class="mbti-premium-status mbti-premium-status--pending">
+      <h3 class="mbti-premium-status__title">{{ t('result.status_awaiting_title') }}</h3>
+      <p class="mbti-premium-status__text">{{ t('result.status_awaiting_text') }}</p>
       <p class="mbti-premium-status__code">{{ t('result.test_code_label') }} <strong>{{ payment_code }}</strong></p>
-      {% if is_awaiting_receipt and payment_support_configured and telegram_pay_url %}
-      {# Chek hali yuborilmagan: foydalanuvchini to'g'ridan-to'g'ri botga olib boramiz. #}
+      {% if payment_support_configured and telegram_pay_url %}
       <a href="{{ telegram_pay_url }}" target="_blank" rel="noopener noreferrer" class="ref-cta ref-cta--primary">
         {{ t('payment.telegram_button') }}
       </a>
       {% endif %}
-      <a href="{{ result_page_url }}" class="ref-cta ref-cta--secondary mbti-refresh-btn">{{ t('result.refresh_status') }}</a>
     </div>
     {% elif payment_status == 'unpaid' %}
     <div class="mbti-premium-cta">
@@ -120,27 +121,14 @@
     </div>
     {% endif %}
 
-    <div class="mbti-share-box">
-      <h2 class="mbti-section-title">{{ t('share.box_title') }}</h2>
-      <p class="mbti-flow-text mbti-flow-text--left">{{ t('share.box_desc') }}</p>
-      <div class="mbti-payment-field__row">
-        <span class="mbti-payment-field__value mbti-share-url" id="share-url">{{ share_url }}</span>
-        <button type="button" class="mbti-copy-btn" data-copy-target="share-url"
-                data-copy-label="{{ t('payment.copy') }}"
-                data-copied-label="{{ t('payment.copied') }}"
-                data-copy-failed-label="{{ t('payment.copy_failed') }}">{{ t('payment.copy') }}</button>
-      </div>
-      <a href="{{ share_telegram_url }}" target="_blank" rel="noopener noreferrer"
-         class="ref-cta ref-cta--secondary mbti-share-box__telegram">{{ t('share.via_telegram') }}</a>
-      <p class="mbti-share-box__note">{{ t('share.box_note') }}</p>
-    </div>
-
-    {% include "personality/partials/referral_box.html" %}
+    {% if referral and not is_premium %}
+    <p class="mbti-referral-teaser text-muted small">{{ t('result.referral_teaser') }}</p>
+    {% endif %}
 
     <div class="result-actions">
       {% if can_pay %}
       <button type="button" class="ref-cta ref-cta--primary result-actions__primary" id="open-payment-modal" data-open-payment>
-        {{ t('result.open_premium') }}
+        {{ t('result.open_premium') }} — {{ premium_price_display }} {{ t('result.currency') }}
       </button>
       {% endif %}
       {# PDF faqat TO'LANGAN premiumda: yuklab olingan fayl sinov muddatidan keyin
@@ -148,7 +136,6 @@
       {% if is_paid_premium %}
       <a href="/personality/result/{{ token }}/pdf" class="ref-cta result-actions__outline">{{ t('pdf.download') }}</a>
       {% endif %}
-      <a href="/relationship" class="ref-cta result-actions__outline">{{ t('compat.result_cta') }}</a>
       {% if history_count > 1 %}
       <a href="/personality/history" class="ref-cta result-actions__outline">{{ t('history.link', count=history_count) }}</a>
       {% endif %}

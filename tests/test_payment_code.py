@@ -59,6 +59,18 @@ def test_payment_code_generation_ignores_empty_token(client):
         assert generate_payment_code(db, "   ") == ""
 
 
+def test_payment_code_lookup_falls_back_to_token_prefix(client):
+    with db_session(client) as db:
+        token = "ef87a82b" + "a" * 24
+        row = PersonalityTestSession(token=token, status=PersonalitySessionStatus.COMPLETED)
+        db.add(row)
+        db.commit()
+        assert row.payment_code is None
+        found = find_sessions_by_payment_code(db, "ef87a82b")
+        assert len(found) == 1
+        assert found[0].id == row.id
+
+
 def test_result_support_bot_flow(client, monkeypatch):
     monkeypatch.setattr(settings, "payment_support_bot_username", "xarakter_test_support_bot")
     token = complete_session(client)

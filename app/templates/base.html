@@ -58,6 +58,8 @@
   {% block bootstrap_js %}
   <script src="{{ asset_url('vendor/bootstrap.bundle.min.js') }}"></script>
   {% endblock %}
+  <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
+  <script src="{{ asset_url('js/telegram-webapp-bind.js') }}" defer></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

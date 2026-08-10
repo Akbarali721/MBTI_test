@@ -160,6 +160,27 @@ def personality_history(
     )
 
 
+@router.post("/telegram-bind", response_model=None)
+def personality_telegram_bind(
+    request: Request,
+    db: Session = Depends(get_db_session),
+    init_data: str = Form(..., alias="init_data"),
+) -> Response:
+    """Telegram WebApp initData orqali sessiyani foydalanuvchiga bog'laydi."""
+    from starlette.responses import JSONResponse
+
+    from app.services.telegram_session_bind import bind_session_from_webapp_init_data
+
+    session = get_bound_session(request, db)
+    if session is None:
+        return JSONResponse({"ok": False, "reason": "no_session"}, status_code=400)
+    updated = bind_session_from_webapp_init_data(db, session, init_data)
+    if updated is None:
+        return JSONResponse({"ok": False, "reason": "invalid_init_data"}, status_code=400)
+    db.commit()
+    return JSONResponse({"ok": True})
+
+
 @router.post("/begin")
 def personality_begin(
     request: Request,
@@ -182,9 +203,8 @@ def personality_restart(
 def personality_appearance_get(
     request: Request,
     db: Session = Depends(get_db_session),
-    telegram_user_id: int | None = Query(default=None),
 ) -> RedirectResponse:
-    bind_personality_session(request, db, telegram_user_id=telegram_user_id)
+    bind_personality_session(request, db)
     return RedirectResponse(url="/personality/instructions", status_code=303)
 
 
@@ -236,12 +256,11 @@ def personality_instructions(
 def personality_start(
     request: Request,
     db: Session = Depends(get_db_session),
-    telegram_user_id: int | None = Query(default=None),
     gender: str | None = Form(default=None),
 ) -> RedirectResponse | HTMLResponse:
     session = get_bound_session(request, db)
     if not session:
-        session = bind_personality_session(request, db, telegram_user_id=telegram_user_id)
+        session = bind_personality_session(request, db)
 
     if not gender or gender not in ALLOWED_APPEARANCE_VALUES:
         return templates.TemplateResponse(
@@ -404,6 +423,7 @@ def personality_result(
         return denied
     service = PersonalityService(db)
     session = service.get_session_or_404(token)
+    db.refresh(session)
     incomplete = redirect_for_incomplete_result(session)
     if incomplete:
         return incomplete

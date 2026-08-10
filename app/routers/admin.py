@@ -34,7 +34,7 @@ from app.dependencies import (
 )
 from app.models.enums import AdminRole
 from app.models.notification import OUTBOX_WORKER_HEARTBEAT, RETENTION_HEARTBEAT
-from app.personality.payment_code import payment_code_for_session
+from app.personality.payment_code import find_sessions_by_payment_code, payment_code_for_session
 from app.ratelimit import limiter
 from app.repositories.admin_repository import AdminRepository
 from app.repositories.payment_repository import PaymentRepository
@@ -45,8 +45,8 @@ from app.services.admin_analytics_service import (
     Page,
     normalize_page,
 )
-from app.services.personality_service import PersonalityService
 from app.services.premium_payment_service import PremiumPaymentService, format_price_uzs
+from app.services.premium_telegram_delivery import try_deliver_premium_approved_message
 from app.templating import templates
 from app.timeutils import utcnow
 
@@ -68,6 +68,9 @@ STATUS_BADGE = {
     "in_progress": "warning",
     "completed": "success",
 }
+
+PREMIUM_FLASH_OK = "premium_ok"
+PREMIUM_FLASH_TELEGRAM_FAILED = "premium_telegram_failed"
 
 TELEGRAM_API_BASE = "https://api.telegram.org"
 _TELEGRAM_TIMEOUT = 15.0
@@ -207,19 +210,72 @@ def admin_personality_sessions_legacy() -> RedirectResponse:
     return RedirectResponse(url="/admin/sessions", status_code=303)
 
 
+def _redirect_with_flash(url: str, flash: str | None = None) -> RedirectResponse:
+    if flash:
+        separator = "&" if "?" in url else "?"
+        url = f"{url}{separator}flash={quote(flash)}"
+    return RedirectResponse(url=url, status_code=303)
+
+
+def _grant_premium_redirect_target(return_to: str, session_id: int) -> str:
+    if return_to == "sessions":
+        return "/admin/sessions"
+    if return_to == "premium":
+        return "/admin/premium-requests"
+    return f"/admin/sessions/{session_id}"
+
+
+def _admin_grant_premium_session(
+    session_id: int,
+    db: Session,
+    admin: AdminIdentity,
+    *,
+    return_to: str,
+) -> RedirectResponse:
+    outcome = PremiumPaymentService(db).grant_manual_premium(
+        session_id, approved_by=admin.audit_actor
+    )
+    redirect_url = _grant_premium_redirect_target(return_to, session_id)
+    if outcome.code == "not_found":
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sessiya topilmadi")
+    if outcome.code == "incomplete":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Testni tugatmagan sessiyaga premium berib bo‘lmaydi",
+        )
+    if outcome.code == "granted" and outcome.session is not None:
+        audit_service.record(
+            db,
+            admin,
+            audit_service.MANUAL_PREMIUM_GRANTED,
+            target_type="session",
+            target_id=session_id,
+            detail={"session_id": session_id},
+        )
+        return _redirect_with_flash(redirect_url, PREMIUM_FLASH_OK)
+    return RedirectResponse(url=redirect_url, status_code=303)
+
+
 @router.post("/personality/{session_id}/grant-premium")
+@requires(MODERATE_PAYMENTS)
+def admin_grant_premium_legacy(
+    session_id: int,
+    db: Session = Depends(get_db_session),
+    admin: AdminIdentity = Depends(current_admin),
+    return_to: str = Query(default="detail"),
+) -> RedirectResponse:
+    return _admin_grant_premium_session(session_id, db, admin, return_to=return_to)
+
+
+@router.post("/sessions/{session_id}/grant-premium")
 @requires(MODERATE_PAYMENTS)
 def admin_grant_premium(
     session_id: int,
     db: Session = Depends(get_db_session),
     admin: AdminIdentity = Depends(current_admin),
+    return_to: str = Query(default="sessions"),
 ) -> RedirectResponse:
-    PersonalityService(db).grant_premium(session_id)
-    # Bu marshrut pulsiz premium ochadi va avval hech qanday iz qoldirmasdi.
-    audit_service.record(
-        db, admin, audit_service.PREMIUM_GRANTED, target_type="session", target_id=session_id
-    )
-    return RedirectResponse(url=f"/admin/sessions/{session_id}", status_code=303)
+    return _admin_grant_premium_session(session_id, db, admin, return_to=return_to)
 
 
 @router.get("/premium-requests", response_class=HTMLResponse, response_model=None)
@@ -228,27 +284,40 @@ def admin_premium_requests(
     request: Request,
     db: Session = Depends(get_db_session),
     filter: str = "all",
+    code: str | None = Query(default=None),
     page: int = Query(default=1, ge=1),
 ) -> Response:
     repo = PaymentRepository(db)
     current_page = normalize_page(page)
+    session_ids: list[int] | None = None
+    search_code = (code or "").strip()
+    if search_code:
+        session_ids = [s.id for s in find_sessions_by_payment_code(db, search_code)]
     payments = repo.list_for_admin(
         status_filter=filter,
+        session_ids=session_ids,
         limit=DEFAULT_PAGE_SIZE,
         offset=(current_page - 1) * DEFAULT_PAGE_SIZE,
     )
     result = Page(
         items=payments,
-        total=repo.count_for_admin(status_filter=filter),
+        total=repo.count_for_admin(status_filter=filter, session_ids=session_ids),
         page=current_page,
         page_size=DEFAULT_PAGE_SIZE,
     )
+    session_codes = {
+        p.session_id: payment_code_for_session(db, p.session)
+        for p in payments
+        if p.session is not None
+    }
     return templates.TemplateResponse(
         request,
         "admin/premium_requests.html",
         {
             "payments": result.items,
+            "session_codes": session_codes,
             "current_filter": filter,
+            "search_code": search_code,
             "pagination": result,
             "format_price": format_price_uzs,
         },
@@ -262,12 +331,41 @@ def admin_premium_approve(
     db: Session = Depends(get_db_session),
     admin: AdminIdentity = Depends(current_admin),
 ) -> RedirectResponse:
-    outcome = PremiumPaymentService(db).approve_payment(payment_id, approved_by=admin.audit_actor)
+    service = PremiumPaymentService(db)
+    outcome = service.approve_payment(payment_id, approved_by=admin.audit_actor)
+    url = "/admin/premium-requests"
     if outcome.code == "approved":
         audit_service.record(
             db, admin, audit_service.PAYMENT_APPROVED, target_type="payment", target_id=payment_id
         )
-    return RedirectResponse(url="/admin/premium-requests", status_code=303)
+        session_id = outcome.session.id if outcome.session else None
+        warning = (
+            try_deliver_premium_approved_message(db, session_id=session_id)
+            if session_id is not None
+            else "Telegram xabari yuborilmadi."
+        )
+        if warning:
+            return _redirect_with_flash(url, PREMIUM_FLASH_TELEGRAM_FAILED)
+        return _redirect_with_flash(url, PREMIUM_FLASH_OK)
+    if outcome.code == "already_approved":
+        return RedirectResponse(url=url, status_code=303)
+    return RedirectResponse(url=url, status_code=303)
+
+
+@router.post("/premium-requests/{payment_id}/resend-telegram")
+@requires(MODERATE_PAYMENTS)
+def admin_premium_resend_telegram(
+    payment_id: int,
+    db: Session = Depends(get_db_session),
+) -> RedirectResponse:
+    payment = PaymentRepository(db).get_by_id_with_session(payment_id)
+    url = "/admin/premium-requests"
+    if payment is None or payment.session is None or not payment.session.is_premium:
+        return RedirectResponse(url=url, status_code=303)
+    warning = try_deliver_premium_approved_message(db, session_id=payment.session.id)
+    if warning:
+        return _redirect_with_flash(url, PREMIUM_FLASH_TELEGRAM_FAILED)
+    return _redirect_with_flash(url, PREMIUM_FLASH_OK)
 
 
 @router.post("/premium-requests/{payment_id}/reject")

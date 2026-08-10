@@ -280,6 +280,56 @@ class PremiumPaymentService:
         self.db.refresh(payment)
         return ReceiptOutcome(code="saved", payment=payment)
 
+    def grant_manual_premium(self, session_id: int, *, approved_by: str) -> ModerationOutcome:
+        """Admin qo'lda premium ochadi (to'lov qatori bo'lmasa ham).
+
+        Idempotent: allaqachon premium bo'lsa qayta yozilmaydi va bildirishnoma takrorlanmaydi.
+        """
+        session = self.sessions.get_session_by_id(session_id)
+        if session is None:
+            return ModerationOutcome(code="not_found")
+
+        if session.status != PersonalitySessionStatus.COMPLETED:
+            return ModerationOutcome(code="incomplete", session=session)
+
+        if session.is_premium:
+            return ModerationOutcome(code="already_premium", session=session)
+
+        now = datetime.now(timezone.utc)
+        session.is_premium = True
+        session.premium_requested = True
+        session.premium_requested_at = session.premium_requested_at or now
+        session.premium_approved_at = session.premium_approved_at or now
+
+        payment = self._approve_active_payment_for_session(session.id, approved_by=approved_by, now=now)
+
+        self.db.flush()
+        chat_id = session.telegram_user_id
+        if chat_id is None and payment is not None:
+            chat_id = payment.telegram_user_id
+        enqueue_premium_granted(self.db, session=session, chat_id=chat_id)
+        self.db.commit()
+        self.db.refresh(session)
+        if payment is not None:
+            self.db.refresh(payment)
+        return ModerationOutcome(code="granted", session=session, payment=payment)
+
+    def _approve_active_payment_for_session(
+        self,
+        session_id: int,
+        *,
+        approved_by: str,
+        now: datetime,
+    ) -> PaymentRequest | None:
+        active = self.payments.get_active_for_session(session_id)
+        if active is None:
+            return None
+        active.status = PAYMENT_STATUS_APPROVED
+        active.approved_at = active.approved_at or now
+        active.approved_by = approved_by
+        active.rejected_at = None
+        return active
+
     def approve_payment(self, payment_id: int, *, approved_by: str) -> ModerationOutcome:
         payment = self.payments.get_by_id_with_session(payment_id, for_update=True)
         if not payment:
@@ -302,6 +352,12 @@ class PremiumPaymentService:
         session.premium_requested = True
         session.premium_requested_at = session.premium_requested_at or now
         session.premium_approved_at = session.premium_approved_at or now
+        if session.telegram_user_id is None and payment.telegram_user_id not in UNOWNED_TELEGRAM_IDS:
+            session.telegram_user_id = payment.telegram_user_id
+            if payment.telegram_username and not session.telegram_username:
+                session.telegram_username = payment.telegram_username
+            if payment.telegram_first_name and not session.telegram_first_name:
+                session.telegram_first_name = payment.telegram_first_name
 
         self.db.flush()
         enqueue_premium_granted(self.db, session=session, chat_id=payment.telegram_user_id)

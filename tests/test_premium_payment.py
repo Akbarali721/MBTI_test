@@ -295,3 +295,36 @@ def test_payment_code_is_stable_across_lookups(client):
         session = session_by_token(db, token)
         assert payment_code_for_session(db, session) == payment_code_for_session(db, session)
         assert token.startswith(session.payment_code)
+
+
+def test_manual_grant_without_payment_request(client):
+    token = complete_session(client)
+    admin_login(client)
+    with db_session(client) as db:
+        session_id = session_by_token(db, token).id
+        assert db.scalar(select(func.count()).select_from(PaymentRequest)) == 0
+
+    response = client.post(f"/admin/sessions/{session_id}/grant-premium", follow_redirects=False)
+    assert response.status_code == 303
+    assert "flash=premium_ok" in response.headers["location"]
+
+    with db_session(client) as db:
+        session = session_by_token(db, token)
+        assert session.is_premium is True
+        assert session.premium_approved_at is not None
+
+    page = client.get(f"/personality/result/{token}")
+    assert LOCKED_PREMIUM_MARKER not in page.text
+
+
+def test_manual_grant_is_idempotent(client):
+    token = complete_session(client)
+    admin_login(client)
+    with db_session(client) as db:
+        session_id = session_by_token(db, token).id
+
+    client.post(f"/admin/sessions/{session_id}/grant-premium")
+    again = client.post(f"/admin/sessions/{session_id}/grant-premium", follow_redirects=False)
+    assert again.status_code == 303
+    assert "flash=premium_ok" not in (again.headers.get("location") or "")
+

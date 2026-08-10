@@ -4,6 +4,17 @@
 {% set active_nav = 'premium' %}
 {% block content %}
 <h1 class="h4 mb-4">Premium so‘rovlar</h1>
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+  <form class="d-flex gap-2 flex-wrap" method="get" action="/admin/premium-requests">
+    <input type="hidden" name="filter" value="{{ current_filter }}">
+    <input class="form-control form-control-sm" name="code" value="{{ search_code }}"
+           placeholder="Test kodi" style="min-width: 200px;">
+    <button class="btn btn-sm btn-outline-primary" type="submit">Qidirish</button>
+    {% if search_code %}
+    <a class="btn btn-sm btn-link" href="/admin/premium-requests?filter={{ current_filter }}">Tozalash</a>
+    {% endif %}
+  </form>
+</div>
 <div class="btn-group flex-wrap mb-3" role="group">
   {% for key, label in [
     ('all', t('admin.status.all')),
@@ -12,7 +23,7 @@
     ('approved', t('admin.status.approved')),
     ('rejected', t('admin.status.rejected')),
   ] %}
-  <a href="/admin/premium-requests?filter={{ key }}"
+  <a href="/admin/premium-requests?filter={{ key }}{% if search_code %}&amp;code={{ search_code | urlencode }}{% endif %}"
      class="btn btn-sm {% if current_filter == key %}btn-primary{% else %}btn-outline-secondary{% endif %}">
     {{ label }}
   </a>
@@ -28,36 +39,39 @@
     <table class="table table-hover align-middle mb-0 small">
       <thead class="table-light">
         <tr>
-          <th>ID</th>
-          <th>Ism</th>
-          <th>Username</th>
-          <th>Telegram ID</th>
-          <th>Session</th>
-          <th>Token</th>
-          <th>MBTI</th>
-          <th>Summa</th>
-          <th>Holat</th>
-          <th>Kim hal qildi</th>
+          <th>Test kodi</th>
+          <th>Telegram</th>
+          <th>Natija (MBTI)</th>
           <th>So‘rov vaqti</th>
+          <th>To‘lov holati</th>
+          <th>Premium holati</th>
           <th>Chek</th>
           <th></th>
         </tr>
       </thead>
       <tbody>
         {% for p in payments %}
+        {% set sess = p.session %}
         <tr>
-          <td>#{{ p.id }}</td>
-          <td>{{ p.telegram_first_name or '—' }}</td>
-          <td>{% if p.telegram_username %}@{{ p.telegram_username }}{% else %}—{% endif %}</td>
-          <td>{{ p.telegram_user_id }}</td>
-          <td><a href="/admin/sessions/{{ p.session_id }}">#{{ p.session_id }}</a></td>
-          <td><code>{{ p.session.token[:8] }}…</code></td>
-          <td>{{ p.session.result_type or '—' }}</td>
-          <td class="text-nowrap">{{ format_price(p.amount or 0) }} {{ t('result.currency') }}</td>
-          <td><span class="badge text-bg-secondary">{{ t('admin.status.' ~ p.status) }}</span></td>
-          {# Eski qatorlarda "web-admin" yoki "telegram:<id>" bo'lishi mumkin. #}
-          <td class="text-nowrap">{{ p.approved_by or '—' }}</td>
+          <td>
+            {% if sess %}
+            <a href="/admin/sessions/{{ sess.id }}"><code>{{ session_codes.get(sess.id, sess.token[:8]) }}</code></a>
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-nowrap">
+            {% if p.telegram_username %}@{{ p.telegram_username }}<br>{% endif %}
+            {% if p.telegram_user_id %}{{ p.telegram_user_id }}{% elif p.telegram_first_name %}{{ p.telegram_first_name }}{% else %}—{% endif %}
+          </td>
+          <td>{{ sess.result_type if sess else '—' }}</td>
           <td class="text-nowrap">{{ p.created_at }}</td>
+          <td><span class="badge text-bg-secondary">{{ t('admin.status.' ~ p.status) }}</span></td>
+          <td>
+            {% if sess and sess.is_premium %}
+            <span class="badge text-bg-success">Premium berilgan</span>
+            {% else %}
+            <span class="badge text-bg-light text-dark border">Yo‘q</span>
+            {% endif %}
+          </td>
           <td>
             {% if p.receipt_file_id %}
             {% set receipt_url = '/admin/premium-requests/' ~ p.id ~ '/receipt' %}
@@ -68,24 +82,31 @@
             {% else %}<span class="text-muted">{{ t('admin.receipt.none') }}</span>{% endif %}
           </td>
           <td class="text-nowrap">
-            {% if p.status == 'receipt_sent' or p.status == 'pending' %}
-            <form class="d-inline" method="post" action="/admin/premium-requests/{{ p.id }}/approve">
-              <button class="btn btn-sm btn-success" type="submit">Tasdiqlash</button>
-            </form>
-            <form class="d-inline" method="post" action="/admin/premium-requests/{{ p.id }}/reject"
-                  data-confirm="{{ t('admin.reject_confirm') }}">
-              <button class="btn btn-sm btn-outline-danger" type="submit">Rad</button>
-            </form>
+            {% if request.state.admin and request.state.admin.can('moderate_payments') %}
+              {% if sess and sess.is_premium %}
+              <button class="btn btn-sm btn-outline-success" type="button" disabled>Premium berilgan</button>
+              <form class="d-inline" method="post" action="/admin/premium-requests/{{ p.id }}/resend-telegram">
+                <button class="btn btn-sm btn-outline-primary" type="submit">Xabarni qayta yuborish</button>
+              </form>
+              {% elif p.status == 'receipt_sent' or p.status == 'pending' %}
+              <form class="d-inline" method="post" action="/admin/premium-requests/{{ p.id }}/approve">
+                <button class="btn btn-sm btn-success" type="submit">Tasdiqlash va Premium yuborish</button>
+              </form>
+              <form class="d-inline" method="post" action="/admin/premium-requests/{{ p.id }}/reject"
+                    data-confirm="{{ t('admin.reject_confirm') }}">
+                <button class="btn btn-sm btn-outline-danger" type="submit">Rad etish</button>
+              </form>
+              {% endif %}
             {% endif %}
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="13" class="text-center text-muted py-4">So‘rovlar yo‘q</td></tr>
+        <tr><td colspan="8" class="text-center text-muted py-4">So‘rovlar yo‘q</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
-{{ pager.render(pagination, '/admin/premium-requests', {'filter': current_filter}, t) }}
+{{ pager.render(pagination, '/admin/premium-requests', {'filter': current_filter, 'code': search_code}, t) }}
 <p class="text-muted small mt-3">Chek rasmi Telegram’dan server orqali olinadi — bot tokeni brauzerga chiqmaydi. Rasm ko‘rinmasa <code>BOT_TOKEN</code> sozlanganini tekshiring.</p>
 {% endblock %}

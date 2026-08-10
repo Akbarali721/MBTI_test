@@ -29,6 +29,7 @@ PERMISSION_DENIED = "permission_denied"
 PAYMENT_APPROVED = "payment_approved"
 PAYMENT_REJECTED = "payment_rejected"
 PREMIUM_GRANTED = "premium_granted"
+MANUAL_PREMIUM_GRANTED = "manual_premium_granted"
 EXPORT_SESSIONS = "export_sessions"
 EXPORT_PAYMENTS = "export_payments"
 USER_CREATED = "user_created"
@@ -46,6 +47,7 @@ NEVER_PURGED_ACTIONS: frozenset[str] = frozenset(
         PAYMENT_APPROVED,
         PAYMENT_REJECTED,
         PREMIUM_GRANTED,
+        MANUAL_PREMIUM_GRANTED,
         EXPORT_SESSIONS,
         EXPORT_PAYMENTS,
         USER_CREATED,

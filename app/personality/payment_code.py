@@ -49,4 +49,15 @@ def find_sessions_by_payment_code(db: Session, code: str, *, limit: int = 50) ->
         .order_by(PersonalityTestSession.created_at.desc())
         .limit(limit)
     )
-    return list(db.scalars(stmt).all())
+    found = list(db.scalars(stmt).all())
+    if found:
+        return found
+    if len(normalized) >= PAYMENT_CODE_MIN_LENGTH and normalized.isalnum():
+        prefix_stmt = (
+            select(PersonalityTestSession)
+            .where(PersonalityTestSession.token.startswith(normalized, autoescape=True))
+            .order_by(PersonalityTestSession.created_at.desc())
+            .limit(limit)
+        )
+        return list(db.scalars(prefix_stmt).all())
+    return []

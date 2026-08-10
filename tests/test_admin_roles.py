@@ -313,7 +313,9 @@ def test_moderation_writes_an_audit_row_with_the_real_actor(client):
     assert client.post(f"/admin/personality/{session_id}/grant-premium").status_code == 200
 
     with db_session(client) as db:
-        entry = db.scalar(select(AdminAuditLog).where(AdminAuditLog.action == "premium_granted"))
+        entry = db.scalar(
+            select(AdminAuditLog).where(AdminAuditLog.action == "manual_premium_granted")
+        )
         assert entry is not None
         assert entry.actor_label == "moderator1"
         assert entry.target_type == "session"
