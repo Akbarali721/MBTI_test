@@ -318,7 +318,7 @@ voronka va A/B sonlari tozalashdan keyin ham oʻzgarmaydi.
 | Kalit | Nima qiladi | Eslatma |
 | --- | --- | --- |
 | `REFERRAL_ENABLED` | Referal blokini va mukofotni yoqadi | Standart `true`; `false` boʻlsa havola koʻrsatilmaydi va mukofot berilmaydi |
-| `REFERRAL_REQUIRED_COMPLETIONS` | Bitta mukofot uchun kerakli **tugatilgan** testlar soni | Standart `3`. Nol qabul qilinmaydi |
+| `REFERRAL_REQUIRED_COMPLETIONS` | Bitta mukofot uchun kerakli **tugatilgan** testlar soni | Standart `2`. Nol qabul qilinmaydi |
 | `REFERRAL_REWARD_DAYS` | Har mukofot beradigan kun | Standart `3`. Muddat **uzayadi**, boshidan boshlanmaydi |
 | `REFERRAL_MAX_REWARD_DAYS` | Yigʻilgan bepul muddat chegarasi | Standart `30`. Bitta mukofot muddatidan kichik boʻlishi mumkin emas |
 | `AI_API_KEY` | Anthropic kaliti | **Boʻsh boʻlsa funksiya butunlay oʻchiq** va tugma koʻrinmaydi |

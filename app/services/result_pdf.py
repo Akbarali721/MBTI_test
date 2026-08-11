@@ -15,6 +15,7 @@ from app.pdf.result_report import PdfDimension, PdfReport, PdfSection, build_res
 from app.personality.share_code import share_code_for_session, share_path
 from app.services import ai_advice_service
 from app.services.personality_service import PersonalityService
+from app.services.premium_presentation import PremiumBlock
 from app.services.premium_report import build_premium_report
 
 logger = logging.getLogger(__name__)
@@ -34,7 +35,7 @@ def build_report(db: Session, token: str, *, lang: str, base_url: str) -> PdfRep
         )
         for dim in report.dimensions
     ]
-    sections = [PdfSection(title=section.title, body=section.body) for section in report.sections]
+    sections = _blocks_to_pdf_sections(report.blocks, resolved_lang)
     sections.extend(_advice_sections(db, report.session, resolved_lang))
     return PdfReport(
         brand=t("site.name", resolved_lang),
@@ -53,6 +54,26 @@ def build_report(db: Session, token: str, *, lang: str, base_url: str) -> PdfRep
         generated_at=datetime.now(timezone.utc),
         share_url=share_url,
     )
+
+
+def _blocks_to_pdf_sections(blocks: tuple[PremiumBlock, ...], lang: str) -> list[PdfSection]:
+    sections: list[PdfSection] = []
+    for block in blocks:
+        parts: list[str] = []
+        if block.body:
+            parts.append(escape(block.body).replace("\n\n", "<br/><br/>"))
+        if block.bullets:
+            items = "".join(f"<li>{escape(item)}</li>" for item in block.bullets)
+            parts.append(f"<ul>{items}</ul>")
+        if block.sub_bullets:
+            note = escape(t("result.premium.work_disclaimer", lang))
+            items = "".join(f"<li>{escape(item)}</li>" for item in block.sub_bullets)
+            parts.append(
+                f"<p><i>{note}</i></p><ul>{items}</ul>"
+            )
+        if parts:
+            sections.append(PdfSection(title=block.title, body="".join(parts)))
+    return sections
 
 
 def _advice_sections(db: Session, session: PersonalityTestSession, lang: str) -> list[PdfSection]:

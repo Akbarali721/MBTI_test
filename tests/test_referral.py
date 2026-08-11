@@ -15,6 +15,7 @@ from app.config import settings
 from app.models.enums import NotificationStatus, PersonalitySessionStatus
 from app.models.notification import NotificationOutbox
 from app.models.personality import PersonalityTestSession
+from app.personality.session_binding import make_result_access_token
 from app.services import referral_service
 from app.services.notification_outbox import REFERRAL_REWARD
 from app.services.premium_access import has_premium_access, trial_days_left
@@ -51,9 +52,85 @@ def referrer_row(client, token: str) -> PersonalityTestSession:
 def test_the_result_page_shows_a_referral_link_with_the_share_code(client):
     token = complete_session(client)
     code = share_code(client, token)
+    required = settings.referral_required_completions
 
     page = client.get(f"/personality/result/{token}")
     assert f"/personality?ref={code}" in page.text
+    assert "Premiumni bepul oching" in page.text
+    assert f"{required} do‘st orqali bepul ochish" in page.text
+
+
+def _result_page(client, token: str):
+    access = make_result_access_token(token)
+    return client.get(f"/personality/result/{token}?access={access}")
+
+
+def test_referral_progress_ui_shows_each_milestone_state(client):
+    referrer = complete_session(client)
+    code = share_code(client, referrer)
+    required = settings.referral_required_completions
+
+    page = _result_page(client, referrer)
+    assert f"0 / {required} do‘st testni tugatdi" in page.text
+    assert f"Yana {required} ta qoldi" in page.text
+    assert f"{required} ta do‘stingiz testni oxirigacha tugatsa" in page.text
+
+    for done in range(1, required):
+        refer_and_complete(client, code, count=1)
+        page = _result_page(client, referrer)
+        assert f"{done} / {required} do‘st testni tugatdi" in page.text
+        assert f"Yana {required - done} ta qoldi" in page.text
+
+    refer_and_complete(client, code, count=1)
+    page = _result_page(client, referrer)
+    assert "Premium natijangiz ochildi" in page.text
+    assert f"{required} do‘st orqali bepul ochish" not in page.text
+
+
+def test_self_referral_with_the_same_telegram_account_does_not_count(client):
+    """Yangi brauzerda o'z havolangni bosish — bir xil Telegram hisob sanalmasin."""
+    from sqlalchemy import select
+
+    referrer = complete_session(client)
+    code = share_code(client, referrer)
+    telegram_id = 424242
+    with db_session(client) as db:
+        session_by_token(db, referrer).telegram_user_id = telegram_id
+        db.commit()
+
+    client.cookies.clear()
+    client.get(f"/personality?ref={code}")
+    with db_session(client) as db:
+        referred = db.scalars(
+            select(PersonalityTestSession).order_by(PersonalityTestSession.id.desc()).limit(1)
+        ).one()
+        referred.telegram_user_id = telegram_id
+        db.commit()
+
+    complete_session(client)
+
+    row = referrer_row(client, referrer)
+    assert has_premium_access(row) is False
+    assert row.referral_milestones_granted == 0
+    with db_session(client) as db:
+        assert referral_service.completed_referral_count(db, row.id) == 0
+
+
+def test_the_same_referred_session_never_counts_twice(client):
+    """Bitta taklif qilingan sessiya ikki marta sanalmaydi."""
+    referrer = complete_session(client)
+    code = share_code(client, referrer)
+    tokens = refer_and_complete(client, code, count=settings.referral_required_completions)
+
+    with db_session(client) as db:
+        last = session_by_token(db, tokens[-1])
+        before = referral_service.completed_referral_count(db, session_by_token(db, referrer).id)
+        again = referral_service.reward_referrer_if_earned(db, last)
+        after = referral_service.completed_referral_count(db, session_by_token(db, referrer).id)
+
+    assert before == settings.referral_required_completions
+    assert again is None
+    assert after == before
 
 
 def test_a_visitor_arriving_by_the_link_is_attributed_to_the_referrer(client):
@@ -161,7 +238,7 @@ def test_a_visitor_who_only_looked_around_can_still_be_attributed_later(client):
 # --------------------------- mukofot ---------------------------
 
 
-def test_three_completed_referrals_open_premium_for_three_days(client):
+def test_two_completed_referrals_open_premium_for_three_days(client):
     referrer = complete_session(client)
     code = share_code(client, referrer)
 

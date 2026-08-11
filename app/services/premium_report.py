@@ -9,17 +9,7 @@ from sqlalchemy.orm import Session
 from app.i18n import DEFAULT as DEFAULT_LANG
 from app.models.personality import PersonalityTestSession
 from app.services.personality_service import PersonalityService
-
-PREMIUM_CONTENT_FIELDS: tuple[tuple[str, str], ...] = (
-    ("result.section.motivation", "motivation_analysis"),
-    ("result.section.work_style", "work_style"),
-    ("result.section.career", "career_environment"),
-    ("result.section.friendship", "friendship_style"),
-    ("result.section.relationship", "relationship_needs"),
-    ("result.section.compatible_people", "compatible_people"),
-    ("result.section.difficult", "difficult_communication"),
-    ("result.section.action_plan", "action_plan"),
-)
+from app.services.premium_presentation import PremiumBlock, compose_premium_blocks
 
 _DIMENSION_POLES = (("ei", "i", "e"), ("sn", "s", "n"), ("tf", "t", "f"), ("jp", "j", "p"))
 
@@ -34,13 +24,6 @@ class PremiumDimension:
 
 
 @dataclass(frozen=True)
-class PremiumSection:
-    title_key: str
-    title: str
-    body: str
-
-
-@dataclass(frozen=True)
 class PremiumReport:
     session: PersonalityTestSession
     result_type: str
@@ -50,7 +33,7 @@ class PremiumReport:
     challenges: list[str]
     public_view: str
     dimensions: tuple[PremiumDimension, ...]
-    sections: tuple[PremiumSection, ...]
+    blocks: tuple[PremiumBlock, ...]
     language: str
 
 
@@ -77,16 +60,11 @@ def build_premium_report(
         )
         for name, left, right in _DIMENSION_POLES
     )
-    from app.i18n import t
-
-    sections = tuple(
-        PremiumSection(
-            title_key=key,
-            title=t(key, lang),
-            body=getattr(content, field) or "",
-        )
-        for key, field in PREMIUM_CONTENT_FIELDS
-        if getattr(content, field, None)
+    blocks = compose_premium_blocks(
+        content,
+        list(view["strengths"]),
+        list(view["challenges"]),
+        language=lang,
     )
 
     return PremiumReport(
@@ -98,6 +76,6 @@ def build_premium_report(
         challenges=list(view["challenges"]),
         public_view=content.public_view or "",
         dimensions=dimensions,
-        sections=sections,
+        blocks=blocks,
         language=lang,
     )

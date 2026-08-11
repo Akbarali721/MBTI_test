@@ -1201,6 +1201,21 @@ body.personality-body.ref-page.theme-male {
   white-space: pre-line;
 }
 
+.mbti-premium-body--preline {
+  white-space: pre-line;
+}
+
+.mbti-premium-note {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted, #5f6877);
+}
+
+.mbti-list--premium {
+  margin-top: 0;
+}
+
 .mbti-refresh-btn {
   width: 100%;
   max-width: 100%;

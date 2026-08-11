@@ -1,7 +1,7 @@
 """Referal: do'st taklif qilib bepul premium olish.
 
 Qoida: taklif havolasi orqali kelgan N ta odam testni OXIRIGACHA tugatsa, taklif
-qilgan odamga premium bir necha kunga ochiladi (sozlamada: 3 ta odam -> 3 kun).
+qilgan odamga premium bir necha kunga ochiladi (sozlamada: 2 ta odam -> 3 kun).
 
 Havola sifatida sessiyaning mavjud `share_code` i ishlatiladi. Alohida "referal kodi"
 qo'shilmadi: shunda odam natijasini ulashsa, o'sha havolaning O'ZI mukofot keltiradi
@@ -55,7 +55,7 @@ _CODE_RE = re.compile(rf"^[A-Za-z0-9_-]{{1,{MAX_CODE_LENGTH}}}$")
 
 @dataclass(frozen=True)
 class ReferralProgress:
-    """Natija sahifasidagi "2/3 do'st tugatdi" bloki uchun."""
+    """Natija sahifasidagi "1/2 do'st tugatdi" bloki uchun."""
 
     code: str
     invited: int
@@ -76,6 +76,31 @@ class ReferralProgress:
     @property
     def percent(self) -> int:
         return min(100, round(self.toward_next / self.required * 100)) if self.required else 0
+
+    @property
+    def display_completed(self) -> int:
+        """Birinchi bosqich progressi: 0/2 … 2/2 (mukofotdan keyin ham 2)."""
+        if not self.required:
+            return 0
+        if self.milestones_granted >= 1:
+            return self.required
+        return min(self.completed, self.required)
+
+    @property
+    def display_remaining(self) -> int:
+        if self.milestones_granted >= 1:
+            return 0
+        return max(0, self.required - self.display_completed)
+
+    @property
+    def is_unlocked(self) -> bool:
+        return self.milestones_granted >= 1
+
+    @property
+    def display_percent(self) -> int:
+        if not self.required:
+            return 0
+        return min(100, round(self.display_completed / self.required * 100))
 
 
 @dataclass(frozen=True)
@@ -101,6 +126,18 @@ def normalize_code(raw: str | None) -> str | None:
 def referral_url(code: str) -> str:
     base = settings.public_base_url.rstrip("/")
     return f"{base}/personality?{REFERRAL_QUERY_KEY}={code}"
+
+
+def _is_self_referral(
+    referrer: PersonalityTestSession,
+    referred: PersonalityTestSession,
+) -> bool:
+    """O'z havolangni yangi brauzerda bosish yoki bir xil Telegram hisob."""
+    if referrer.id == referred.id:
+        return True
+    ref_tid = referrer.telegram_user_id
+    refd_tid = referred.telegram_user_id
+    return ref_tid is not None and refd_tid is not None and ref_tid == refd_tid
 
 
 def find_referrer(db: Session, code: str) -> PersonalityTestSession | None:
@@ -149,7 +186,7 @@ def attribute_session(
     if browser_has_completed_test:
         return False
     referrer = find_referrer(db, code)
-    if referrer is None or referrer.id == session.id:
+    if referrer is None or _is_self_referral(referrer, session):
         return False
     session.referred_by_session_id = referrer.id
     db.flush()
@@ -157,14 +194,17 @@ def attribute_session(
 
 
 def completed_referral_count(db: Session, referrer_id: int) -> int:
-    stmt = (
-        select(func.count())
-        .select_from(PersonalityTestSession)
-        .where(
-            PersonalityTestSession.referred_by_session_id == referrer_id,
-            PersonalityTestSession.status == PersonalitySessionStatus.COMPLETED,
+    referrer = db.get(PersonalityTestSession, referrer_id)
+    conditions = [
+        PersonalityTestSession.referred_by_session_id == referrer_id,
+        PersonalityTestSession.status == PersonalitySessionStatus.COMPLETED,
+    ]
+    if referrer is not None and referrer.telegram_user_id is not None:
+        conditions.append(
+            (PersonalityTestSession.telegram_user_id.is_(None))
+            | (PersonalityTestSession.telegram_user_id != referrer.telegram_user_id)
         )
-    )
+    stmt = select(func.count()).select_from(PersonalityTestSession).where(*conditions)
     return int(db.scalar(stmt) or 0)
 
 
@@ -219,13 +259,16 @@ def reward_referrer_if_earned(
     if completed_session.status != PersonalitySessionStatus.COMPLETED:
         return None
 
+    referrer = db.get(PersonalityTestSession, referrer_id)
+    if referrer is None or _is_self_referral(referrer, completed_session):
+        return None
+
     required = max(1, settings.referral_required_completions)
     earned = completed_referral_count(db, referrer_id) // required
     if earned < 1:
         return None
 
-    referrer = db.get(PersonalityTestSession, referrer_id)
-    if referrer is None or (referrer.referral_milestones_granted or 0) >= earned:
+    if (referrer.referral_milestones_granted or 0) >= earned:
         return None
 
     moment = as_utc(now) or utcnow()

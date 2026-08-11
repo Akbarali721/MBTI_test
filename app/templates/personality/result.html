@@ -26,6 +26,7 @@
 
     <p class="mbti-flow-text mbti-flow-text--left">{{ content.short_description }}</p>
 
+    {% if not is_premium %}
     <h2 class="mbti-section-title">{{ t('result.strengths') }}</h2>
     <ul class="mbti-list">
       {% for item in strengths %}
@@ -42,6 +43,7 @@
 
     <h2 class="mbti-section-title">{{ t('result.public_view') }}</h2>
     <p class="mbti-flow-text mbti-flow-text--left">{{ content.public_view }}</p>
+    {% endif %}
 
     <h2 class="mbti-section-title">{{ t('result.dimensions') }}</h2>
     {% with compact = false %}{% include "personality/partials/dimension_bars.html" %}{% endwith %}
@@ -61,25 +63,31 @@
     <p class="mbti-premium-locked-note">{{ t('referral.trial_note') }}</p>
     {% endif %}
 
-    {% set premium_sections = [
-      (t('result.section.motivation'), content.motivation_analysis),
-      (t('result.section.work_style'), content.work_style),
-      (t('result.section.career'), content.career_environment),
-      (t('result.section.friendship'), content.friendship_style),
-      (t('result.section.relationship'), content.relationship_needs),
-      (t('result.section.compatible_people'), content.compatible_people),
-      (t('result.section.difficult'), content.difficult_communication),
-      (t('result.section.action_plan'), content.action_plan),
-    ] %}
-
-    {% for title, body in premium_sections %}
+    {% for block in premium_blocks %}
     <div class="mbti-premium-card {% if not is_premium %}is-locked{% endif %}">
-      <h3>{{ title }}</h3>
+      <h3>{{ block.title }}</h3>
       {% if is_premium %}
-      <p>{{ body }}</p>
+        {% if block.body %}
+        <p class="mbti-premium-body{% if block.title_key == 'result.premium.relationships' %} mbti-premium-body--preline{% endif %}">{{ block.body }}</p>
+        {% endif %}
+        {% if block.bullets %}
+        <ul class="mbti-list mbti-list--premium">
+          {% for item in block.bullets %}
+          <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+        {% if block.sub_bullets %}
+        <p class="mbti-premium-note">{{ t('result.premium.work_disclaimer') }}</p>
+        <ul class="mbti-list mbti-list--premium mbti-list--career">
+          {% for item in block.sub_bullets %}
+          <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
       {% else %}
-      {# Teaser hech qachon matnning yarmidan oshmaydi: qolgani pullik bo'lib qoladi. #}
-      {% set body_text = body or '' %}
+      {% set teaser_source = block.body or (block.bullets[0] if block.bullets else '') %}
+      {% set body_text = teaser_source or '' %}
       {% set teaser_len = [body_text|length // 2, 90]|min %}
       {% if teaser_len >= 30 %}
       {% set teaser = body_text|truncate(teaser_len, false, '…', 0) %}
@@ -112,7 +120,7 @@
       </a>
       {% endif %}
     </div>
-    {% elif payment_status == 'unpaid' %}
+    {% elif payment_status == 'unpaid' and not referral %}
     <div class="mbti-premium-cta">
       <h3 class="mbti-premium-cta__title">{{ t('result.cta_title') }}</h3>
       <p class="mbti-premium-cta__desc">{{ t('result.cta_desc') }}</p>
@@ -121,13 +129,20 @@
     </div>
     {% endif %}
 
-    {% if referral and not is_premium %}
-    <p class="mbti-referral-teaser text-muted small">{{ t('result.referral_teaser') }}</p>
+    {% if referral and not is_paid_premium %}
+    {% include "personality/partials/referral_box.html" %}
     {% endif %}
 
     <div class="result-actions">
+      {% if referral and not is_paid_premium and not referral.progress.is_unlocked %}
+      <button type="button" class="ref-cta ref-cta--primary result-actions__primary" id="referral-share-btn"
+              data-copy-target="referral-url"
+              data-copy-label="{{ t('referral.cta_share', required=referral.progress.required) }}"
+              data-copied-label="{{ t('payment.copied') }}"
+              data-copy-failed-label="{{ t('payment.copy_failed') }}">{{ t('referral.cta_share', required=referral.progress.required) }}</button>
+      {% endif %}
       {% if can_pay %}
-      <button type="button" class="ref-cta ref-cta--primary result-actions__primary" id="open-payment-modal" data-open-payment>
+      <button type="button" class="ref-cta {% if not referral or is_paid_premium or referral.progress.is_unlocked %}ref-cta--primary result-actions__primary{% else %}result-actions__outline{% endif %}" id="open-payment-modal" data-open-payment>
         {{ t('result.open_premium') }} — {{ premium_price_display }} {{ t('result.currency') }}
       </button>
       {% endif %}

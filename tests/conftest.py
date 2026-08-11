@@ -11,6 +11,7 @@ _test_pwd_context = CryptContext(schemes=["bcrypt"], bcrypt__rounds=4)
 os.environ.setdefault("DATABASE_URL", "sqlite://")
 os.environ.setdefault("SECRET_KEY", "test-secret-key-not-a-placeholder")
 os.environ.setdefault("DEBUG", "true")
+os.environ["REFERRAL_REQUIRED_COMPLETIONS"] = "2"
 os.environ.setdefault("ADMIN_USERNAME", ADMIN_USERNAME)
 os.environ.setdefault("ADMIN_PASSWORD", ADMIN_PASSWORD)
 os.environ.setdefault("ADMIN_PASSWORD_HASH", _test_pwd_context.hash(ADMIN_PASSWORD))

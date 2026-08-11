@@ -40,6 +40,7 @@ from app.services.premium_payment_service import (
     premium_deeplink_url,
     support_bot_public_url,
 )
+from app.services.premium_presentation import compose_premium_blocks
 from app.services.result_pdf import PdfFontsUnavailable, PdfNotPremium, build_pdf_bytes
 from app.templating import templates
 
@@ -478,6 +479,12 @@ def personality_result(
             "premium_deeplink_url": deeplink_url,
             # Deep link sozlanmagan holat uchun zaxira: server tomonda yo'naltiradi.
             "support_bot_open_url": f"/personality/result/{token}/support-bot",
+            "premium_blocks": compose_premium_blocks(
+                content,
+                view["strengths"],
+                view["challenges"],
+                language=lang,
+            ),
         }
     )
     return templates.TemplateResponse(request, "personality/result.html", ctx)

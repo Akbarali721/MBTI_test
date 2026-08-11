@@ -86,7 +86,7 @@ def test_personality_full_flow_and_premium_grant(client):
     assert result_premium.status_code == 200
     assert LOCKED_PREMIUM_MARKER not in result_premium.text
     assert "placeholder" not in result_premium.text.lower()
-    assert t("result.section.motivation", "uz") in result_premium.text
+    assert t("result.premium.brief", "uz") in result_premium.text
 
     retest = client.get(f"/personality/test/{token}", follow_redirects=False)
     assert retest.status_code == 303

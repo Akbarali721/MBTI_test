@@ -119,13 +119,14 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "share.cta_desc": "24 ta savol, taxminan 4 daqiqa. Ro‘yxatdan o‘tish shart emas.",
         "share.cta_button": "Testni boshlash",
         # Referal
-        "referral.title": "Do‘st taklif qiling — premium bepul",
+        "referral.title": "Premiumni bepul oching 🎁",
         "referral.desc": (
-            "Quyidagi havola orqali {required} ta do‘stingiz testni oxirigacha topshirsa, "
-            "premium tahlil sizga {days} kunga bepul ochiladi."
+            "{required} ta do‘stingiz testni oxirigacha tugatsa, Premium bepul ochiladi."
         ),
-        "referral.progress": "{completed} / {required} do‘stingiz testni tugatdi",
-        "referral.remaining": "Yana {count} kishi qoldi",
+        "referral.progress": "{completed} / {required} do‘st testni tugatdi",
+        "referral.remaining": "Yana {count} ta qoldi",
+        "referral.unlocked": "🎉 Premium natijangiz ochildi!",
+        "referral.cta_share": "{required} do‘st orqali bepul ochish",
         "referral.invited": "Havola orqali kelganlar: {count}",
         "referral.copy_hint": "Havolani nusxalab, do‘stlaringizga yuboring.",
         "referral.rewarded": "Mukofot olingan: {count} marta",
@@ -175,6 +176,15 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "result.section.compatible_people": "Sizga mos odamlar",
         "result.section.difficult": "Qaysi odamlar bilan muloqot qiyinroq?",
         "result.section.action_plan": "7 kunlik shaxsiy tavsiya",
+        "result.premium.brief": "Siz haqingizda qisqacha",
+        "result.premium.strengths": "Kuchli tomonlaringiz",
+        "result.premium.drains": "Sizni nima charchatadi",
+        "result.premium.work": "Sizga mos ish va muhit",
+        "result.premium.work_disclaimer": (
+            "Quyidagi yo‘nalishlar faqat taxmin — har bir kasb sizga mos kelishi kafolatlanmaydi."
+        ),
+        "result.premium.relationships": "Odamlar bilan munosabat",
+        "result.premium.actions": "7 kunlik amaliy tavsiya",
         "result.locked_note": "Premium tahlil — ochish uchun to‘lov tasdiqlanishi kerak.",
         "result.status_pending_title": "So‘rovingiz qabul qilindi ✅",
         "result.status_pending_text": (
@@ -187,17 +197,13 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "To‘lovni amalga oshirib, chek rasmini Telegram bot orqali yuboring."
         ),
         "result.test_code_label": "Test kodi:",
-        "result.referral_teaser": (
-            "Premiumni bepul ochmoqchimisiz? "
-            "2 do‘stingiz testni oxirigacha tugatsa, Premium bepul ochiladi."
-        ),
         "result.cta_title": "To‘liq xarakter profilingizni oching",
         "result.cta_desc": (
             "Kuchli va zaif tomonlaringiz, sizga mos kasblar, ish uslubingiz va "
             "shaxsiy rivojlanish yo‘nalishlarini ko‘ring."
         ),
         "result.cta_note": "Tasdiqlangach natija Telegram orqali yuboriladi — sahifada kutishingiz shart emas.",
-        "result.open_premium": "Premium natijani olish",
+        "result.open_premium": "Premium olish",
         "result.restart": "Testni qayta ishlash",
         "result.currency": "so‘m",
         # To‘lov modali
@@ -499,13 +505,14 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "share.cta_desc": "24 вопроса, около 4 минут. Регистрация не нужна.",
         "share.cta_button": "Начать тест",
         # Реферальная программа
-        "referral.title": "Пригласите друзей — премиум бесплатно",
+        "referral.title": "Откройте премиум бесплатно 🎁",
         "referral.desc": (
-            "Если {required} ваших друзей пройдут тест до конца по ссылке ниже, "
-            "премиум-разбор откроется вам бесплатно на {days} дня."
+            "Если {required} друга пройдут тест до конца — премиум-результат откроется бесплатно."
         ),
         "referral.progress": "{completed} из {required} друзей прошли тест",
         "referral.remaining": "Осталось ещё {count}",
+        "referral.unlocked": "🎉 Ваш премиум-результат открыт!",
+        "referral.cta_share": "Открыть через {required} друзей",
         "referral.invited": "Перешли по ссылке: {count}",
         "referral.copy_hint": "Скопируйте ссылку и отправьте друзьям.",
         "referral.rewarded": "Награда получена: {count} раз",
@@ -553,6 +560,15 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "result.section.compatible_people": "Люди, которые вам подходят",
         "result.section.difficult": "С кем общение даётся сложнее?",
         "result.section.action_plan": "Личный план на 7 дней",
+        "result.premium.brief": "Кратко о вас",
+        "result.premium.strengths": "Ваши сильные стороны",
+        "result.premium.drains": "Что вас утомляет",
+        "result.premium.work": "Подходящая работа и среда",
+        "result.premium.work_disclaimer": (
+            "Ниже лишь возможные направления — мы не гарантируем, что каждая профессия вам подойдёт."
+        ),
+        "result.premium.relationships": "Отношения с людьми",
+        "result.premium.actions": "Практичный план на 7 дней",
         "result.locked_note": "Премиум-анализ — откроется после подтверждения оплаты.",
         "result.status_pending_title": "Оплата проверяется",
         "result.status_pending_text": (

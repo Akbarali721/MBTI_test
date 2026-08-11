@@ -244,7 +244,7 @@ def test_non_premium_session_hides_premium_content(client):
     token = complete_session(client)
     page = client.get(f"/personality/result/{token}")
     assert LOCKED_PREMIUM_MARKER in page.text
-    assert page.text.count("mbti-premium-card is-locked") == 8
+    assert page.text.count("mbti-premium-card is-locked") == 6
     assert "mbti-premium-success-badge" not in page.text
 
 
@@ -265,7 +265,7 @@ def test_premium_session_shows_premium_content(client):
     assert LOCKED_PREMIUM_MARKER not in page.text
     assert "is-locked" not in page.text
     assert t("result.premium_opened", "uz") in page.text
-    assert t("result.section.motivation", "uz") in page.text
+    assert t("result.premium.brief", "uz") in page.text
 
 
 def test_cannot_view_other_session_result(client):

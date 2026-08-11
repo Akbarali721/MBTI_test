@@ -4,32 +4,23 @@
 <div class="mbti-share-box mbti-referral-box">
   <h2 class="mbti-section-title">{{ t('referral.title') }}</h2>
   <p class="mbti-flow-text mbti-flow-text--left">
-    {{ t('referral.desc', required=progress.required, days=referral.reward_days) }}
+    {{ t('referral.desc', required=progress.required) }}
   </p>
 
-  <div class="mbti-payment-field__row">
-    <span class="mbti-payment-field__value mbti-share-url" id="referral-url">{{ referral.url }}</span>
-    <button type="button" class="mbti-copy-btn" data-copy-target="referral-url"
-            data-copy-label="{{ t('payment.copy') }}"
-            data-copied-label="{{ t('payment.copied') }}"
-            data-copy-failed-label="{{ t('payment.copy_failed') }}">{{ t('payment.copy') }}</button>
-  </div>
-  <p class="mbti-share-box__note">{{ t('referral.copy_hint') }}</p>
-
+  {% if progress.is_unlocked %}
+  <p class="mbti-referral-unlocked" role="status">{{ t('referral.unlocked') }}</p>
+  {% else %}
   <p class="mbti-referral-progress">
-    <strong>{{ t('referral.progress', completed=progress.toward_next, required=progress.required) }}</strong>
+    <strong>{{ t('referral.progress', completed=progress.display_completed, required=progress.required) }}</strong>
   </p>
-  {# Progress chizig'i inline style bilan chiziladi (CSP style-src 'unsafe-inline' shuning uchun). #}
   <div class="mbti-referral-bar" role="progressbar"
-       aria-valuenow="{{ progress.toward_next }}" aria-valuemin="0" aria-valuemax="{{ progress.required }}">
-    <span class="mbti-referral-bar__fill" style="width: {{ progress.percent }}%"></span>
+       aria-valuenow="{{ progress.display_completed }}" aria-valuemin="0" aria-valuemax="{{ progress.required }}">
+    <span class="mbti-referral-bar__fill" style="width: {{ progress.display_percent }}%"></span>
   </div>
-  <p class="mbti-share-box__note">
-    {{ t('referral.remaining', count=progress.remaining) }} ·
-    {{ t('referral.invited', count=progress.invited) }}
-    {% if progress.milestones_granted %}
-    · {{ t('referral.rewarded', count=progress.milestones_granted) }}
-    {% endif %}
-  </p>
+  <p class="mbti-share-box__note">{{ t('referral.remaining', count=progress.display_remaining) }}</p>
+  {% endif %}
+
+  {# Nusxalash uchun yashirin havola — result-actions dagi tugma shu elementni ishlatadi. #}
+  <span id="referral-url" hidden>{{ referral.url }}</span>
 </div>
 {% endif %}

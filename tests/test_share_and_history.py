@@ -151,14 +151,12 @@ def test_og_image_files_exist_for_every_type(client):
 # --------------------------- natija sahifasidagi ulashish ---------------------------
 
 
-def test_result_page_offers_share_link(client):
+def test_result_page_offers_referral_link(client):
     token = complete_session(client)
     html = client.get(f"/personality/result/{token}").text
 
-    match = SHARE_URL_RE.search(html)
-    assert match, "natija sahifasida ulashish havolasi yo'q"
-    assert match.group(1) == _share_code(client, token)
-    assert "t.me/share/url" in html
+    code = _share_code(client, token)
+    assert f"/personality?ref={code}" in html, "natija sahifasida referal havolasi yo'q"
 
 
 def test_telegram_share_url_encodes_parameters():

@@ -152,7 +152,7 @@ class Settings(BaseSettings):
     # --- Referal (do'st taklif qilish) ---
     referral_enabled: bool = True
     # Shuncha taklif qilingan odam testni TUGATSA bir mukofot beriladi.
-    referral_required_completions: int = 3
+    referral_required_completions: int = 2
     referral_reward_days: int = 3
     # Yig'ilgan bepul premiumning yuqori chegarasi: mukofot takrorlanadigan bo'lgani
     # uchun cheklovsiz qoldirilsa, pullik mahsulot o'z-o'zini yeb qo'yardi.
