@@ -133,6 +133,110 @@ def test_the_same_referred_session_never_counts_twice(client):
     assert after == before
 
 
+def test_referral_survives_landing_begin_and_full_start_flow(client):
+    """Ishlab chiqarish oqimi: ?ref= → POST /begin → POST /start → tugatish."""
+    referrer = complete_session(client)
+    code = share_code(client, referrer)
+
+    client.cookies.clear()
+    assert client.get(f"/personality?ref={code}").status_code == 200
+    assert client.post("/personality/begin", follow_redirects=False).status_code == 303
+
+    token = complete_session(client)
+
+    row = referrer_row(client, referrer)
+    with db_session(client) as db:
+        referred = session_by_token(db, token)
+        assert referred.referred_by_session_id == row.id
+        assert referred.status == PersonalitySessionStatus.COMPLETED
+        assert referral_service.completed_referral_count(db, row.id) == 1
+
+    page = _result_page(client, referrer)
+    assert "1 /" in page.text and "do‘st testni tugatdi" in page.text
+
+
+def test_pending_referral_applies_when_begin_opens_a_fresh_db_session(client, monkeypatch):
+    """Landing sessiyasi cookie yo'qolsa ham, saqlangan ref kodi yangi qatorga yoziladi."""
+    import app.personality.session_binding as binding
+
+    referrer = complete_session(client)
+    code = share_code(client, referrer)
+
+    client.cookies.clear()
+    assert client.get(f"/personality?ref={code}").status_code == 200
+
+    original_get_bound = binding.get_bound_session
+    skip_binding = {"active": True}
+
+    def get_bound_without_token(request, db):
+        if skip_binding["active"]:
+            return None
+        return original_get_bound(request, db)
+
+    monkeypatch.setattr(binding, "get_bound_session", get_bound_without_token)
+    assert client.post("/personality/begin", follow_redirects=False).status_code == 303
+    skip_binding["active"] = False
+
+    token = complete_session(client)
+    with db_session(client) as db:
+        referred = session_by_token(db, token)
+        referrer_id = session_by_token(db, referrer).id
+        assert referred.referred_by_session_id == referrer_id
+        assert referral_service.completed_referral_count(db, referrer_id) == 1
+
+
+def test_referral_counts_for_browser_user_when_referrer_has_telegram(client):
+    """Telegram ID bo'lgan referrer uchun brauzer-only taklif sanalishi kerak."""
+    referrer = complete_session(client)
+    code = share_code(client, referrer)
+    with db_session(client) as db:
+        session_by_token(db, referrer).telegram_user_id = 424242
+        db.commit()
+
+    refer_and_complete(client, code, count=1)
+
+    row = referrer_row(client, referrer)
+    assert row.referral_milestones_granted == 0
+    with db_session(client) as db:
+        assert referral_service.completed_referral_count(db, row.id) == 1
+
+    refer_and_complete(client, code, count=settings.referral_required_completions - 1)
+    row = referrer_row(client, referrer)
+    assert has_premium_access(row) is True
+
+
+def test_referral_via_instructions_ref_query_without_prior_landing(client):
+    referrer = complete_session(client)
+    code = share_code(client, referrer)
+
+    client.cookies.clear()
+    assert client.get(f"/personality/instructions?ref={code}").status_code == 200
+    token = complete_session(client)
+
+    with db_session(client) as db:
+        referred = session_by_token(db, token)
+        assert referred.referred_by_session_id == session_by_token(db, referrer).id
+
+
+def test_referred_completion_clears_pending_code_without_double_count_on_reload(client):
+    referrer = complete_session(client)
+    code = share_code(client, referrer)
+    tokens = refer_and_complete(client, code, count=1)
+
+    with db_session(client) as db:
+        referrer_id = session_by_token(db, referrer).id
+        count_once = referral_service.completed_referral_count(db, referrer_id)
+
+    page1 = _result_page(client, referrer)
+    page2 = _result_page(client, referrer)
+    assert "1 /" in page1.text
+    assert page1.text.count("1 /") == page2.text.count("1 /")
+
+    with db_session(client) as db:
+        assert referral_service.completed_referral_count(db, referrer_id) == count_once
+        assert session_by_token(db, tokens[0]).referred_by_session_id == referrer_id
+
+
 def test_a_visitor_arriving_by_the_link_is_attributed_to_the_referrer(client):
     referrer = complete_session(client)
     code = share_code(client, referrer)

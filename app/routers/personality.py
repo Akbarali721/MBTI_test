@@ -14,13 +14,16 @@ from app.pdf import pdf_filename
 from app.personality.payment_code import payment_code_for_session
 from app.personality.session_binding import (
     bind_personality_session,
+    clear_pending_referral,
     completed_tokens,
     ensure_visitor_session,
     get_bound_session,
     may_access_session,
     redirect_for_incomplete_result,
     redirect_for_session_progress,
+    remember_referral_code,
     start_new_test,
+    sync_referral_attribution,
 )
 from app.personality.share_code import share_code_for_session, share_path, telegram_share_url
 from app.personality.themes import (
@@ -237,10 +240,15 @@ def _instructions_context(session, *, gender_error: str | None = None) -> dict:
 def personality_instructions(
     request: Request,
     db: Session = Depends(get_db_session),
+    ref: str | None = Query(default=None),
 ) -> HTMLResponse | RedirectResponse:
+    if ref:
+        remember_referral_code(request, ref)
     session = get_bound_session(request, db)
     if not session:
-        session = bind_personality_session(request, db)
+        session = bind_personality_session(request, db, ref=ref)
+    else:
+        sync_referral_attribution(request, db, session, ref)
 
     advanced = redirect_for_session_progress(session)
     if advanced:
@@ -350,6 +358,9 @@ def personality_answer(
         question_index=question_index,
     )
     if outcome["redirect"] == "loading":
+        session = outcome["session"]
+        if session.referred_by_session_id is not None:
+            clear_pending_referral(request)
         return RedirectResponse(url=f"/personality/result/{token}/loading", status_code=303)
     if outcome["redirect"] == "result":
         return RedirectResponse(url=f"/personality/result/{token}", status_code=303)

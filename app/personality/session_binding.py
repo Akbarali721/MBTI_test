@@ -15,6 +15,7 @@ from app.services import referral_service
 from app.services.personality_service import PersonalityService
 
 COMPLETED_TOKENS_KEY = "personality_completed_tokens"
+PENDING_REFERRAL_KEY = "personality_pending_ref"
 MAX_COMPLETED_TOKENS = 5
 
 RESULT_ACCESS_SALT = "personality-result-access"
@@ -115,6 +116,56 @@ def _normalize_source(source: str | None) -> str | None:
     return cleaned or None
 
 
+def remember_referral_code(request: Request, code: str | None) -> None:
+    """Taklif kodini brauzer sessiyasida saqlaydi — keyingi sessiya yaratilganda qo'llash uchun."""
+    normalized = referral_service.normalize_code(code)
+    if normalized:
+        request.session[PENDING_REFERRAL_KEY] = normalized
+
+
+def pending_referral_code(request: Request) -> str | None:
+    raw = request.session.get(PENDING_REFERRAL_KEY)
+    if isinstance(raw, str):
+        return referral_service.normalize_code(raw)
+    return None
+
+
+def clear_pending_referral(request: Request) -> None:
+    request.session.pop(PENDING_REFERRAL_KEY, None)
+
+
+def _resolve_referral_code(request: Request, ref: str | None) -> str | None:
+    if ref:
+        remember_referral_code(request, ref)
+    return referral_service.normalize_code(ref) or pending_referral_code(request)
+
+
+def sync_referral_attribution(
+    request: Request,
+    db: Session,
+    session: PersonalityTestSession,
+    ref: str | None,
+) -> None:
+    """Taklif havolasini sessiyaga biriktiradi (shartlar `referral_service` da).
+
+    `?ref=` faqat landingda emas — kod Starlette sessiyasida saqlanadi va
+    `/begin`, `/instructions` va yangi sessiya yaratilganda qayta qo'llanadi.
+    Aks holda `create_fresh_session` referralsiz qator ochib, progress 0/3 da qoladi.
+    """
+    if session.referred_by_session_id is not None:
+        clear_pending_referral(request)
+        return
+    code = _resolve_referral_code(request, ref)
+    if not code:
+        return
+    referral_service.attribute_session(
+        db,
+        session=session,
+        code=code,
+        browser_has_completed_test=bool(completed_tokens(request)),
+    )
+
+
 def ensure_visitor_session(
     request: Request,
     db: Session,
@@ -131,33 +182,12 @@ def ensure_visitor_session(
         # Tugallangan sessiya cookie'si bu yerda almashtirilmaydi: aks holda premium natija yo'qoladi.
         if normalized_source and not existing.source:
             repo.set_source_if_empty(existing, normalized_source)
-        _attribute_referral(request, db, existing, ref)
+        sync_referral_attribution(request, db, existing, ref)
         return existing
     session = repo.create_session(source=normalized_source, status=PersonalitySessionStatus.VISITED)
     assign_session_cookie(request, session)
-    _attribute_referral(request, db, session, ref)
+    sync_referral_attribution(request, db, session, ref)
     return session
-
-
-def _attribute_referral(
-    request: Request,
-    db: Session,
-    session: PersonalityTestSession,
-    ref: str | None,
-) -> None:
-    """Taklif havolasini sessiyaga biriktiradi (shartlar `referral_service` da).
-
-    Brauzerda tugatilgan test bo'lsa biriktirilmaydi — bu "o'z havolangni o'zing
-    bosish" va "bitta brauzerda qayta-qayta topshirish" yo'llarini yopadi.
-    """
-    if not ref:
-        return
-    referral_service.attribute_session(
-        db,
-        session=session,
-        code=ref,
-        browser_has_completed_test=bool(completed_tokens(request)),
-    )
 
 
 def create_fresh_session(
@@ -166,6 +196,7 @@ def create_fresh_session(
     *,
     telegram_user_id: int | None = None,
     copy_gender_from: PersonalityTestSession | None = None,
+    ref: str | None = None,
 ) -> PersonalityTestSession:
     service = PersonalityService(db)
     session = service.start_session(telegram_user_id=telegram_user_id)
@@ -175,6 +206,7 @@ def create_fresh_session(
             service.set_appearance(session.token, theme)
             session = service.get_session_or_404(session.token)
     assign_session_cookie(request, session)
+    sync_referral_attribution(request, db, session, ref)
     return session
 
 
@@ -191,11 +223,13 @@ def bind_personality_session(
     db: Session,
     *,
     telegram_user_id: int | None = None,
+    ref: str | None = None,
 ) -> PersonalityTestSession:
     existing = get_bound_session(request, db)
     if existing:
+        sync_referral_attribution(request, db, existing, ref)
         return existing
-    return create_fresh_session(request, db, telegram_user_id=telegram_user_id)
+    return create_fresh_session(request, db, telegram_user_id=telegram_user_id, ref=ref)
 
 
 def redirect_for_session_progress(session: PersonalityTestSession) -> RedirectResponse | None:
