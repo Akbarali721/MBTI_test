@@ -12,18 +12,29 @@ from app.i18n import resolve_lang
 from app.models.enums import AppearanceTheme, PersonalitySessionStatus
 from app.pdf import pdf_filename
 from app.personality.payment_code import payment_code_for_session
+from app.personality.analytics_constants import (
+    FEEDBACK_INTEREST_VALUES,
+    FEEDBACK_RATING_VALUES,
+    INTENT_VALUES,
+)
 from app.personality.session_binding import (
     bind_personality_session,
     clear_pending_referral,
     completed_tokens,
     ensure_visitor_session,
+    feedback_skipped_for,
     get_bound_session,
     may_access_session,
     redirect_for_incomplete_result,
+    redirect_for_intent_or_none,
     redirect_for_session_progress,
+    remember_feedback_skipped,
     remember_referral_code,
+    remember_source_code,
+    session_needs_intent,
     start_new_test,
     sync_referral_attribution,
+    sync_source_attribution,
 )
 from app.personality.share_code import share_code_for_session, share_path, telegram_share_url
 from app.personality.themes import (
@@ -241,14 +252,18 @@ def personality_instructions(
     request: Request,
     db: Session = Depends(get_db_session),
     ref: str | None = Query(default=None),
+    source: str | None = Query(default=None),
 ) -> HTMLResponse | RedirectResponse:
     if ref:
         remember_referral_code(request, ref)
+    if source:
+        remember_source_code(request, source)
     session = get_bound_session(request, db)
     if not session:
-        session = bind_personality_session(request, db, ref=ref)
+        session = bind_personality_session(request, db, ref=ref, source=source)
     else:
         sync_referral_attribution(request, db, session, ref)
+        sync_source_attribution(request, db, session, source)
 
     advanced = redirect_for_session_progress(session)
     if advanced:
@@ -286,6 +301,64 @@ def personality_start(
     service = PersonalityService(db)
     session = service.prepare_test_start(session, theme)
     db.commit()
+    return RedirectResponse(url="/personality/intent", status_code=303)
+
+
+@router.get("/intent", response_class=HTMLResponse, response_model=None)
+def personality_intent_get(
+    request: Request,
+    db: Session = Depends(get_db_session),
+) -> HTMLResponse | RedirectResponse:
+    session = get_bound_session(request, db)
+    if not session:
+        session = bind_personality_session(request, db)
+
+    advanced = redirect_for_session_progress(session)
+    if advanced:
+        return advanced
+
+    if not has_appearance_choice(session):
+        return RedirectResponse(url="/personality/instructions", status_code=303)
+
+    if not session_needs_intent(session):
+        return RedirectResponse(url=f"/personality/test/{session.token}?q=0", status_code=303)
+
+    ctx = _themed_context(session)
+    ctx["intent_options"] = [
+        ("strengths", "intent.option.strengths"),
+        ("career", "intent.option.career"),
+        ("self_understanding", "intent.option.self_understanding"),
+        ("curiosity", "intent.option.curiosity"),
+    ]
+    return templates.TemplateResponse(request, "personality/intent.html", ctx)
+
+
+@router.post("/intent", response_model=None)
+def personality_intent_post(
+    request: Request,
+    db: Session = Depends(get_db_session),
+    intent: str = Form(...),
+) -> RedirectResponse | HTMLResponse:
+    session = get_bound_session(request, db)
+    if not session:
+        session = bind_personality_session(request, db)
+
+    if not has_appearance_choice(session):
+        return RedirectResponse(url="/personality/instructions", status_code=303)
+
+    if intent not in INTENT_VALUES:
+        ctx = _themed_context(session)
+        ctx["intent_options"] = [
+            ("strengths", "intent.option.strengths"),
+            ("career", "intent.option.career"),
+            ("self_understanding", "intent.option.self_understanding"),
+            ("curiosity", "intent.option.curiosity"),
+        ]
+        ctx["intent_error"] = True
+        return templates.TemplateResponse(request, "personality/intent.html", ctx, status_code=400)
+
+    PersonalityRepository(db).set_intent(session, intent)
+    db.commit()
     return RedirectResponse(url=f"/personality/test/{session.token}?q=0", status_code=303)
 
 
@@ -310,6 +383,12 @@ def personality_test(
     appearance_redirect = _require_appearance_or_redirect(session)
     if appearance_redirect:
         return appearance_redirect
+    intent_redirect = redirect_for_intent_or_none(session)
+    if intent_redirect:
+        return intent_redirect
+    PersonalityRepository(db).mark_test_started_if_needed(session)
+    db.commit()
+    db.refresh(session)
     view = service.get_test_view(token, question_index=q)
     if view.get("redirect") == "result":
         return RedirectResponse(url=f"/personality/result/{token}", status_code=303)
@@ -496,9 +575,65 @@ def personality_result(
                 view["challenges"],
                 language=lang,
             ),
+            "feedback_skipped": feedback_skipped_for(request, token),
+            "show_feedback_rating": (
+                not feedback_skipped_for(request, token) and not session.feedback_rating
+            ),
+            "show_feedback_interest": (
+                not feedback_skipped_for(request, token)
+                and bool(session.feedback_rating)
+                and not session.feedback_interest
+            ),
+            "feedback_rating_options": [
+                ("very_accurate", "feedback.rating.very_accurate"),
+                ("partly_accurate", "feedback.rating.partly_accurate"),
+                ("not_accurate", "feedback.rating.not_accurate"),
+            ],
+            "feedback_interest_options": [
+                ("career", "feedback.interest.career"),
+                ("strengths", "feedback.interest.strengths"),
+                ("relationships", "feedback.interest.relationships"),
+                ("stress", "feedback.interest.stress"),
+                ("confidence", "feedback.interest.confidence"),
+            ],
         }
     )
     return templates.TemplateResponse(request, "personality/result.html", ctx)
+
+
+@router.post("/result/{token}/feedback", response_model=None)
+def personality_result_feedback(
+    request: Request,
+    token: str,
+    db: Session = Depends(get_db_session),
+    rating: str | None = Form(default=None),
+    interest: str | None = Form(default=None),
+    skip: str | None = Form(default=None),
+) -> RedirectResponse:
+    denied = _require_session_owner(request, token, db)
+    if denied:
+        return denied
+    session = PersonalityService(db).get_session_or_404(token)
+    if session.status != PersonalitySessionStatus.COMPLETED:
+        return RedirectResponse(url=f"/personality/result/{token}", status_code=303)
+
+    repo = PersonalityRepository(db)
+    if skip:
+        remember_feedback_skipped(request, token)
+        db.commit()
+        return RedirectResponse(url=f"/personality/result/{token}", status_code=303)
+
+    if rating and rating in FEEDBACK_RATING_VALUES:
+        repo.set_feedback_rating(session, rating)
+        db.commit()
+        return RedirectResponse(url=f"/personality/result/{token}", status_code=303)
+
+    if interest and interest in FEEDBACK_INTEREST_VALUES:
+        repo.set_feedback_interest(session, interest)
+        db.commit()
+        return RedirectResponse(url=f"/personality/result/{token}", status_code=303)
+
+    return RedirectResponse(url=f"/personality/result/{token}", status_code=303)
 
 
 @router.get("/result/{token}/pdf", response_model=None)

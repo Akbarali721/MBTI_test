@@ -1127,6 +1127,109 @@ body.personality-body.ref-page.theme-male {
   filter: brightness(0.98);
 }
 
+/* Intent va feedback tanlovlari */
+.mbti-choice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 20px 0 16px;
+}
+
+.mbti-choice-list--compact {
+  margin-top: 12px;
+}
+
+.mbti-choice-option {
+  position: relative;
+  display: block;
+  cursor: pointer;
+}
+
+.mbti-choice-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mbti-choice-label {
+  display: block;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 2px solid rgba(15, 35, 64, 0.12);
+  background: #fff;
+  font-size: 1rem;
+  line-height: 1.35;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.mbti-choice-check {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+  opacity: 0;
+  color: var(--navy);
+  font-weight: 700;
+}
+
+.mbti-choice-input:checked + .mbti-choice-label {
+  border-color: var(--navy);
+  background: rgba(15, 35, 64, 0.04);
+}
+
+.mbti-choice-input:checked ~ .mbti-choice-check {
+  opacity: 1;
+}
+
+.mbti-choice-input:focus-visible + .mbti-choice-label {
+  outline: 2px solid var(--navy);
+  outline-offset: 2px;
+}
+
+.mbti-intent-submit {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.mbti-feedback {
+  margin-top: 8px;
+}
+
+.mbti-feedback-form {
+  margin-bottom: 4px;
+}
+
+.mbti-choice-btn {
+  display: block;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 2px solid rgba(15, 35, 64, 0.12);
+  background: #fff;
+  color: var(--navy);
+  font-size: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mbti-choice-btn:hover,
+.mbti-choice-btn:focus-visible {
+  border-color: var(--navy);
+  background: rgba(15, 35, 64, 0.04);
+}
+
+.mbti-feedback-skip {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: rgba(15, 35, 64, 0.65);
+  font-size: 0.9rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 @media (min-width: 640px) {
   .result-actions {
     flex-direction: row;

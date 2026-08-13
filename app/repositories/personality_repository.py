@@ -17,6 +17,12 @@ from app.models.personality import (
     PersonalityResultContent,
     PersonalityTestSession,
 )
+from app.personality.analytics_constants import (
+    DEFAULT_SOURCE,
+    FEEDBACK_INTEREST_VALUES,
+    FEEDBACK_RATING_VALUES,
+    INTENT_VALUES,
+)
 from app.personality.constants import SESSION_QUESTION_COUNT
 from app.personality.payment_code import generate_payment_code
 from app.personality.question_selection import ensure_session_questions
@@ -44,6 +50,7 @@ class PersonalityRepository:
         # Variant sessiya yaratilganda bir marta tanlanadi va o'zgarmaydi.
         chosen = normalize_variant(variant) if variant else choose_variant(settings.question_variants)
         token = uuid.uuid4().hex
+        resolved_source = (source or "").strip()[:64] if source else DEFAULT_SOURCE
         session = PersonalityTestSession(
             token=token,
             payment_code=generate_payment_code(self.db, token),
@@ -55,7 +62,7 @@ class PersonalityRepository:
             current_question_index=0,
             total_questions=SESSION_QUESTION_COUNT,
             answered_questions=0,
-            source=source,
+            source=resolved_source or DEFAULT_SOURCE,
             last_activity_at=now,
         )
         self.db.add(session)
@@ -68,9 +75,45 @@ class PersonalityRepository:
         self.db.flush()
 
     def set_source_if_empty(self, session: PersonalityTestSession, source: str) -> None:
-        if session.source or not source:
+        cleaned = (source or "").strip()[:64]
+        if not cleaned:
             return
-        session.source = source
+        if session.source and session.source not in ("", DEFAULT_SOURCE):
+            return
+        if session.source == cleaned:
+            return
+        session.source = cleaned
+        self.db.flush()
+
+    def set_intent(self, session: PersonalityTestSession, intent: str) -> None:
+        if intent not in INTENT_VALUES:
+            raise ValueError(f"Invalid intent: {intent}")
+        if session.intent:
+            return
+        session.intent = intent
+        self.db.flush()
+
+    def set_feedback_rating(self, session: PersonalityTestSession, rating: str) -> None:
+        if rating not in FEEDBACK_RATING_VALUES:
+            raise ValueError(f"Invalid feedback rating: {rating}")
+        session.feedback_rating = rating
+        self.db.flush()
+
+    def set_feedback_interest(self, session: PersonalityTestSession, interest: str) -> None:
+        if interest not in FEEDBACK_INTEREST_VALUES:
+            raise ValueError(f"Invalid feedback interest: {interest}")
+        session.feedback_interest = interest
+        self.db.flush()
+
+    def mark_test_started_if_needed(self, session: PersonalityTestSession) -> None:
+        """Birinchi savol sahifasiga kirganda — faqat bir marta."""
+        if session.started_at is not None:
+            return
+        now = datetime.now(timezone.utc)
+        session.started_at = now
+        session.last_activity_at = now
+        if session.status == PersonalitySessionStatus.VISITED:
+            session.status = PersonalitySessionStatus.STARTED
         self.db.flush()
 
     def count_answers(self, session_id: int) -> int:

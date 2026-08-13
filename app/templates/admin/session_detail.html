@@ -32,6 +32,26 @@
           <span>{{ session.source or '—' }}</span>
         </li>
         <li class="list-group-item d-flex justify-content-between">
+          <span>Intent</span>
+          <span>{{ intent_label }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Feedback</span>
+          <span>
+            {% if session.feedback_rating %}
+            <span class="badge text-bg-info">{{ feedback_rating_label }}</span>
+            {% else %}—{% endif %}
+          </span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Keyingi qiziqish</span>
+          <span>
+            {% if session.feedback_interest %}
+            <span class="badge text-bg-secondary">{{ feedback_interest_label }}</span>
+            {% else %}—{% endif %}
+          </span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
           <span>Javoblar</span>
           <span>{{ session.answered_questions }} / {{ session.total_questions }}</span>
         </li>

@@ -115,6 +115,9 @@ class PersonalityTestSession(Base):
     total_questions: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     answered_questions: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     source: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    intent: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    feedback_rating: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    feedback_interest: Mapped[str | None] = mapped_column(String(32), nullable=True)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_activity_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     # Python tomonidagi default ham bor: voronka barcha vaqt belgilarini bitta soatdan

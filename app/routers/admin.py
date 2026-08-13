@@ -38,6 +38,11 @@ from app.personality.payment_code import find_sessions_by_payment_code, payment_
 from app.ratelimit import limiter
 from app.repositories.admin_repository import AdminRepository
 from app.repositories.payment_repository import PaymentRepository
+from app.personality.analytics_constants import (
+    feedback_interest_admin_label,
+    feedback_rating_admin_label,
+    intent_admin_label,
+)
 from app.services import admin_service, audit_service, csv_export, notification_outbox, retention_service
 from app.services.admin_analytics_service import (
     DEFAULT_PAGE_SIZE,
@@ -179,6 +184,10 @@ def admin_sessions_list(
             "status_badge": STATUS_BADGE,
             "search_code": (code or "").strip(),
             "pagination": result,
+            "funnel_summary": service.session_funnel_summary(),
+            "intent_label": intent_admin_label,
+            "feedback_rating_label": feedback_rating_admin_label,
+            "feedback_interest_label": feedback_interest_admin_label,
         },
     )
 
@@ -200,6 +209,9 @@ def admin_session_detail(
             "session": detail["session"],
             "answers": detail["answers"],
             "status_badge": STATUS_BADGE,
+            "intent_label": intent_admin_label(detail["session"].intent),
+            "feedback_rating_label": feedback_rating_admin_label(detail["session"].feedback_rating),
+            "feedback_interest_label": feedback_interest_admin_label(detail["session"].feedback_interest),
         },
     )
 

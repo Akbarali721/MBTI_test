@@ -113,10 +113,20 @@ def test_start_redirect_reaches_first_question_without_second_post(client):
         follow_redirects=True,
     )
     assert response.status_code == 200
-    assert "/personality/test/" in str(response.url)
-    assert "q=0" in str(response.url)
-    assert 'name="question_id"' in response.text
-    assert "gender-selector" not in response.text
+    assert "/personality/intent" in str(response.url) or "/personality/test/" in str(response.url)
+    intent_page = client.get("/personality/intent")
+    assert intent_page.status_code == 200
+    assert t("intent.title", "uz") in intent_page.text
+    after_intent = client.post(
+        "/personality/intent",
+        data={"intent": "career"},
+        follow_redirects=True,
+    )
+    assert after_intent.status_code == 200
+    assert "/personality/test/" in str(after_intent.url)
+    assert "q=0" in str(after_intent.url)
+    assert 'name="question_id"' in after_intent.text
+    assert "gender-selector" not in after_intent.text
 
 
 def test_start_without_gender_shows_error(client):

@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.personality.share_code import generate_share_code, share_path, telegram_share_url
-from tests.helpers import complete_session, db_session, session_by_token
+from tests.helpers import complete_session, db_session, session_by_token, start_session
 
 SHARE_URL_RE = re.compile(r"https?://[^\s\"<]+/r/([A-Za-z0-9_-]+)")
 
@@ -77,11 +77,7 @@ def test_shared_result_404_for_unknown_code(client):
 
 def test_shared_result_404_before_completion(client):
     client.get("/personality")
-    client.get("/personality/instructions")
-    start = client.post("/personality/start", data={"gender": "male"}, follow_redirects=False)
-    from tests.helpers import token_from_location
-
-    token = token_from_location(start.headers["location"])
+    token = start_session(client)
     code = _share_code(client, token)
     assert client.get(share_path(code)).status_code == 404
 

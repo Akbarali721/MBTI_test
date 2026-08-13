@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.models.enums import PersonalitySessionStatus
 from app.models.personality import PersonalityTestSession
+from app.personality.analytics_constants import DEFAULT_SOURCE
 from app.personality.themes import PERSONALITY_SESSION_COOKIE_KEY, has_appearance_choice
 from app.repositories.personality_repository import PersonalityRepository
 from app.services import referral_service
@@ -16,6 +17,8 @@ from app.services.personality_service import PersonalityService
 
 COMPLETED_TOKENS_KEY = "personality_completed_tokens"
 PENDING_REFERRAL_KEY = "personality_pending_ref"
+PENDING_SOURCE_KEY = "personality_pending_source"
+FEEDBACK_SKIPPED_KEY = "personality_feedback_skipped"
 MAX_COMPLETED_TOKENS = 5
 
 RESULT_ACCESS_SALT = "personality-result-access"
@@ -116,6 +119,72 @@ def _normalize_source(source: str | None) -> str | None:
     return cleaned or None
 
 
+def remember_source_code(request: Request, source: str | None) -> None:
+    normalized = _normalize_source(source)
+    if normalized:
+        request.session[PENDING_SOURCE_KEY] = normalized
+
+
+def pending_source_code(request: Request) -> str | None:
+    raw = request.session.get(PENDING_SOURCE_KEY)
+    if isinstance(raw, str):
+        return _normalize_source(raw)
+    return None
+
+
+def _resolve_source_code(request: Request, source: str | None) -> str | None:
+    if source:
+        remember_source_code(request, source)
+    return _normalize_source(source) or pending_source_code(request)
+
+
+def sync_source_attribution(
+    request: Request,
+    db: Session,
+    session: PersonalityTestSession,
+    source: str | None,
+) -> None:
+    resolved = _resolve_source_code(request, source)
+    if not resolved:
+        return
+    PersonalityRepository(db).set_source_if_empty(session, resolved)
+
+
+def session_needs_intent(session: PersonalityTestSession) -> bool:
+    """Intent faqat test boshlanishidan oldin, bir marta so'raladi."""
+    if session.intent:
+        return False
+    if session.status == PersonalitySessionStatus.COMPLETED:
+        return False
+    if (session.answered_questions or 0) > 0:
+        return False
+    return True
+
+
+def redirect_for_intent_or_none(session: PersonalityTestSession) -> RedirectResponse | None:
+    if not session_needs_intent(session):
+        return None
+    if not has_appearance_choice(session):
+        return None
+    return RedirectResponse(url="/personality/intent", status_code=303)
+
+
+def feedback_skipped_for(request: Request, token: str) -> bool:
+    skipped = request.session.get(FEEDBACK_SKIPPED_KEY)
+    if isinstance(skipped, list):
+        return token in skipped
+    return False
+
+
+def remember_feedback_skipped(request: Request, token: str) -> None:
+    skipped = request.session.get(FEEDBACK_SKIPPED_KEY)
+    if not isinstance(skipped, list):
+        skipped = []
+    if token not in skipped:
+        skipped.append(token)
+    request.session[FEEDBACK_SKIPPED_KEY] = skipped
+
+
 def remember_referral_code(request: Request, code: str | None) -> None:
     """Taklif kodini brauzer sessiyasida saqlaydi — keyingi sessiya yaratilganda qo'llash uchun."""
     normalized = referral_service.normalize_code(code)
@@ -176,16 +245,16 @@ def ensure_visitor_session(
     if is_non_human_request(request):
         return None
     repo = PersonalityRepository(db)
-    normalized_source = _normalize_source(source)
+    resolved_source = _resolve_source_code(request, source)
     existing = get_bound_session(request, db)
     if existing:
         # Tugallangan sessiya cookie'si bu yerda almashtirilmaydi: aks holda premium natija yo'qoladi.
-        if normalized_source and not existing.source:
-            repo.set_source_if_empty(existing, normalized_source)
+        sync_source_attribution(request, db, existing, source)
         sync_referral_attribution(request, db, existing, ref)
         return existing
-    session = repo.create_session(source=normalized_source, status=PersonalitySessionStatus.VISITED)
+    session = repo.create_session(source=resolved_source, status=PersonalitySessionStatus.VISITED)
     assign_session_cookie(request, session)
+    sync_source_attribution(request, db, session, source)
     sync_referral_attribution(request, db, session, ref)
     return session
 
@@ -197,15 +266,24 @@ def create_fresh_session(
     telegram_user_id: int | None = None,
     copy_gender_from: PersonalityTestSession | None = None,
     ref: str | None = None,
+    source: str | None = None,
 ) -> PersonalityTestSession:
     service = PersonalityService(db)
-    session = service.start_session(telegram_user_id=telegram_user_id)
-    if copy_gender_from is not None and has_appearance_choice(copy_gender_from):
-        theme = copy_gender_from.appearance_theme
-        if theme is not None:
-            service.set_appearance(session.token, theme)
-            session = service.get_session_or_404(session.token)
+    resolved_source = _resolve_source_code(request, source)
+    session = service.start_session(
+        telegram_user_id=telegram_user_id,
+        source=resolved_source,
+    )
+    if copy_gender_from is not None:
+        if copy_gender_from.source and copy_gender_from.source != DEFAULT_SOURCE:
+            PersonalityRepository(db).set_source_if_empty(session, copy_gender_from.source)
+        if has_appearance_choice(copy_gender_from):
+            theme = copy_gender_from.appearance_theme
+            if theme is not None:
+                service.set_appearance(session.token, theme)
+                session = service.get_session_or_404(session.token)
     assign_session_cookie(request, session)
+    sync_source_attribution(request, db, session, source)
     sync_referral_attribution(request, db, session, ref)
     return session
 
@@ -224,12 +302,20 @@ def bind_personality_session(
     *,
     telegram_user_id: int | None = None,
     ref: str | None = None,
+    source: str | None = None,
 ) -> PersonalityTestSession:
     existing = get_bound_session(request, db)
     if existing:
+        sync_source_attribution(request, db, existing, source)
         sync_referral_attribution(request, db, existing, ref)
         return existing
-    return create_fresh_session(request, db, telegram_user_id=telegram_user_id, ref=ref)
+    return create_fresh_session(
+        request,
+        db,
+        telegram_user_id=telegram_user_id,
+        ref=ref,
+        source=source,
+    )
 
 
 def redirect_for_session_progress(session: PersonalityTestSession) -> RedirectResponse | None:

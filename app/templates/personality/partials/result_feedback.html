@@ -1,0 +1,29 @@
+{% if show_feedback_rating or show_feedback_interest %}
+<section class="mbti-feedback" aria-labelledby="feedback-heading">
+  {% if show_feedback_rating %}
+  <h2 id="feedback-heading" class="mbti-section-title">{{ t('feedback.rating.title') }}</h2>
+  <form class="mbti-feedback-form" action="/personality/result/{{ token }}/feedback" method="post">
+    <div class="mbti-choice-list mbti-choice-list--compact" role="radiogroup">
+      {% for value, label_key in feedback_rating_options %}
+      <button type="submit" name="rating" value="{{ value }}" class="mbti-choice-btn">
+        {{ t(label_key) }}
+      </button>
+      {% endfor %}
+    </div>
+    <button type="submit" name="skip" value="1" class="mbti-feedback-skip">{{ t('feedback.skip') }}</button>
+  </form>
+  {% elif show_feedback_interest %}
+  <h2 id="feedback-heading" class="mbti-section-title">{{ t('feedback.interest.title') }}</h2>
+  <form class="mbti-feedback-form" action="/personality/result/{{ token }}/feedback" method="post">
+    <div class="mbti-choice-list mbti-choice-list--compact" role="radiogroup">
+      {% for value, label_key in feedback_interest_options %}
+      <button type="submit" name="interest" value="{{ value }}" class="mbti-choice-btn">
+        {{ t(label_key) }}
+      </button>
+      {% endfor %}
+    </div>
+    <button type="submit" name="skip" value="1" class="mbti-feedback-skip">{{ t('feedback.skip') }}</button>
+  </form>
+  {% endif %}
+</section>
+{% endif %}

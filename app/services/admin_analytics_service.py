@@ -29,6 +29,7 @@ __all__ = [
     "FunnelReport",
     "FunnelStage",
     "GrowthStats",
+    "SessionFunnelSummary",
     "Page",
     "VariantStats",
     "normalize_page",
@@ -108,6 +109,14 @@ def normalize_page_size(page_size: int | None) -> int:
     if not page_size or page_size < 1:
         return DEFAULT_PAGE_SIZE
     return min(page_size, MAX_PAGE_SIZE)
+
+
+@dataclass(frozen=True)
+class SessionFunnelSummary:
+    total_visitors: int
+    test_started: int
+    test_completed: int
+    premium_clicks: int
 
 
 @dataclass(frozen=True)
@@ -652,6 +661,35 @@ class AdminAnalyticsService:
             for order, question_text, option_text in self.db.execute(stmt).all()
         ]
         return {"session": session, "answers": answers}
+
+    def session_funnel_summary(self) -> SessionFunnelSummary:
+        """Admin sessiyalar sahifasi uchun qisqa voronka."""
+        total = self._scalar_count(select(func.count()).select_from(PersonalityTestSession))
+        started = self._scalar_count(
+            select(func.count())
+            .select_from(PersonalityTestSession)
+            .where(PersonalityTestSession.started_at.is_not(None))
+        )
+        completed = self._scalar_count(
+            select(func.count())
+            .select_from(PersonalityTestSession)
+            .where(PersonalityTestSession.status == PersonalitySessionStatus.COMPLETED)
+        )
+        premium_clicks = self._scalar_count(
+            select(func.count())
+            .select_from(PersonalityTestSession)
+            .where(PersonalityTestSession.premium_requested.is_(True))
+        )
+        archived = self._archived_totals()
+        total += archived[0]
+        started += archived[1]
+        completed += archived[2]
+        return SessionFunnelSummary(
+            total_visitors=total,
+            test_started=started,
+            test_completed=completed,
+            premium_clicks=premium_clicks,
+        )
 
     def _filter_clauses(
         self,

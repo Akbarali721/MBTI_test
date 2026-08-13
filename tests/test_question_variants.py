@@ -10,7 +10,7 @@ from app.personality.variants import choose_variant, known_variants, normalize_v
 from app.seed.personality_placeholders import seed_personality_questions
 from app.services.admin_analytics_service import AdminAnalyticsService, VariantStats
 from tests.conftest import ADMIN_PASSWORD, ADMIN_USERNAME
-from tests.helpers import complete_session, db_session, session_by_token
+from tests.helpers import complete_session, db_session, session_by_token, start_session
 
 # --------------------------- taqsimot mantiqi ---------------------------
 
@@ -101,10 +101,7 @@ def test_visitor_gets_questions_from_the_assigned_variant(client, monkeypatch):
 
     client.get("/personality")
     client.get("/personality/instructions")
-    start = client.post("/personality/start", data={"gender": "male"}, follow_redirects=False)
-    from tests.helpers import token_from_location
-
-    token = token_from_location(start.headers["location"])
+    token = start_session(client)
 
     page = client.get(f"/personality/test/{token}?q=0")
     from tests.helpers import extract_hidden

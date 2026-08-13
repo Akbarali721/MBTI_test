@@ -21,6 +21,44 @@
     {% endif %}
   </div>
 </div>
+
+{% if funnel_summary %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted small">Jami kirganlar</div>
+        <div class="fs-4 fw-semibold">{{ funnel_summary.total_visitors }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted small">Test boshlaganlar</div>
+        <div class="fs-4 fw-semibold">{{ funnel_summary.test_started }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted small">Test tugatganlar</div>
+        <div class="fs-4 fw-semibold">{{ funnel_summary.test_completed }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted small">Premium bosganlar</div>
+        <div class="fs-4 fw-semibold">{{ funnel_summary.premium_clicks }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <div class="btn-group flex-wrap mb-3" role="group">
   {% for key, label in [
     ('all', 'Hammasi'),
@@ -44,11 +82,14 @@
           <th>Session ID</th>
           <th>Test kodi</th>
           <th>Foydalanuvchi</th>
+          <th>Manba</th>
+          <th>Intent</th>
           <th>Holat</th>
           <th>Progress</th>
           <th>Natija</th>
+          <th>Feedback</th>
+          <th>Keyingi qiziqish</th>
           <th>Premium holati</th>
-          <th>Manba</th>
           <th>Yaratilgan</th>
           <th></th>
         </tr>
@@ -66,6 +107,8 @@
             <span class="badge text-bg-warning ms-1">Premium so‘rov</span>
             {% endif %}
           </td>
+          <td>{{ s.source or '—' }}</td>
+          <td>{{ intent_label(s.intent) }}</td>
           <td>
             <span class="badge text-bg-{{ status_badge.get(s.status.value, 'secondary') }}">
               {{ s.status.value }}
@@ -74,13 +117,22 @@
           <td>{{ s.answered_questions }}/{{ s.total_questions or '—' }}</td>
           <td>{{ s.result_type or '—' }}</td>
           <td>
+            {% if s.feedback_rating %}
+            <span class="badge text-bg-info">{{ feedback_rating_label(s.feedback_rating) }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if s.feedback_interest %}
+            <span class="badge text-bg-secondary">{{ feedback_interest_label(s.feedback_interest) }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
             {% if s.is_premium %}
             <span class="badge text-bg-success">Premium ✓</span>
             {% else %}
             <span class="text-muted">—</span>
             {% endif %}
           </td>
-          <td>{{ s.source or '—' }}</td>
           <td class="small text-nowrap">{{ s.created_at }}</td>
           <td class="text-nowrap">
             {% if request.state.admin and request.state.admin.can('moderate_payments') %}
@@ -95,7 +147,7 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="10" class="text-center text-muted py-4">Sessiyalar topilmadi</td></tr>
+        <tr><td colspan="13" class="text-center text-muted py-4">Sessiyalar topilmadi</td></tr>
         {% endfor %}
       </tbody>
     </table>

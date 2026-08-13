@@ -93,13 +93,16 @@ def favor_right_option_index(question: PersonalityQuestion) -> int:
     return 0 if question.primary_pole == right else 3
 
 
-def start_session(client, gender: str = "male") -> str:
+def start_session(client, gender: str = "male", intent: str = "curiosity") -> str:
     """Koʻrsatma sahifasidan oʻtib yangi test tokenini qaytaradi."""
     instructions = client.get("/personality/instructions")
     assert instructions.status_code == 200
     start = client.post("/personality/start", data={"gender": gender}, follow_redirects=False)
     assert start.status_code == 303, start.status_code
-    return token_from_location(start.headers["location"])
+    assert start.headers["location"] == "/personality/intent"
+    intent_resp = client.post("/personality/intent", data={"intent": intent}, follow_redirects=False)
+    assert intent_resp.status_code == 303, intent_resp.status_code
+    return token_from_location(intent_resp.headers["location"])
 
 
 def answer_question(

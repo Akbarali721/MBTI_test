@@ -203,10 +203,10 @@ def test_repeated_get_test_does_not_duplicate_session_links(client):
 
 def test_repeated_post_start_does_not_duplicate_session_links(client):
     client.get("/personality/instructions")
-    for gender in ("male", "male", "female"):
+    token = start_session(client, "male")
+    for gender in ("male", "female"):
         start = client.post("/personality/start", data={"gender": gender}, follow_redirects=False)
         assert start.status_code == 303
-        token = start.headers["location"].split("/")[-1].split("?")[0]
     with db_session(client) as db:
         session = session_by_token(db, token)
         count = db.scalar(

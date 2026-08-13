@@ -48,6 +48,8 @@
     <h2 class="mbti-section-title">{{ t('result.dimensions') }}</h2>
     {% with compact = false %}{% include "personality/partials/dimension_bars.html" %}{% endwith %}
 
+    {% include "personality/partials/result_feedback.html" %}
+
     <hr class="mbti-flow-divider">
 
     <h2 class="mbti-flow-title mbti-flow-title--sm">{{ t('result.premium_headline') }}</h2>
