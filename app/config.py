@@ -279,17 +279,33 @@ class Settings(BaseSettings):
         if not cleaned:
             cleaned = self.public_base_url.strip().rstrip("/")
 
-        # PUBLIC_BASE_URL=https://domain.com/personality bo'lsa, yana /personality qo'shilmasin.
-        while cleaned.endswith("/personality/personality"):
-            cleaned = cleaned[: -len("/personality")]
-
-        # Bot /start buyrug'i bilan aralashgan eski/noto'g'ri web path'lar.
-        for suffix in ("/start", "/home", "/webapp", "/app", "/index.html", "/index"):
-            if cleaned.endswith(suffix):
-                cleaned = cleaned[: -len(suffix)].rstrip("/")
-                break
+        bad_suffixes = ("/start", "/home", "/webapp", "/app", "/index.html", "/index")
+        changed = True
+        while changed:
+            changed = False
+            while cleaned.endswith("/personality/personality"):
+                cleaned = cleaned[: -len("/personality")]
+                changed = True
+            for suffix in bad_suffixes:
+                if cleaned.endswith(suffix):
+                    cleaned = cleaned[: -len(suffix)].rstrip("/")
+                    changed = True
+                    break
 
         return cleaned or self.public_base_url.strip().rstrip("/")
+
+    def web_app_url_debug(self) -> dict[str, str]:
+        """WebApp URL qayerdan olinayotganini ko'rsatish (log uchun)."""
+        explicit = (self.web_app_url or "").strip()
+        source = "WEB_APP_URL" if explicit else "PUBLIC_BASE_URL"
+        raw = explicit or self.public_base_url
+        return {
+            "source": source,
+            "WEB_APP_URL": self.web_app_url or "(bo'sh)",
+            "PUBLIC_BASE_URL": self.public_base_url,
+            "raw_before_normalize": raw,
+            "final": self.normalize_web_app_url(raw),
+        }
 
     @model_validator(mode="after")
     def _reward_cap_is_reachable(self) -> Settings:

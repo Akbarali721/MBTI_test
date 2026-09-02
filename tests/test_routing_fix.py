@@ -30,6 +30,21 @@ def test_web_app_url_strips_wrong_start_suffix():
     assert s.effective_web_app_url == "https://example.com"
 
 
+def test_web_app_url_strips_personality_then_start():
+    s = _settings(web_app_url="https://example.com/personality/start")
+    assert s.effective_web_app_url == "https://example.com/personality"
+
+
+def test_web_app_url_debug_shows_source():
+    s = _settings(
+        public_base_url="https://mbtitest-production.up.railway.app",
+        web_app_url="",
+    )
+    info = s.web_app_url_debug()
+    assert info["source"] == "PUBLIC_BASE_URL"
+    assert info["final"] == "https://mbtitest-production.up.railway.app"
+
+
 def test_legacy_start_redirects_to_root(client):
     response = client.get("/start", headers={"accept": "text/html"}, follow_redirects=False)
     assert response.status_code == 303
