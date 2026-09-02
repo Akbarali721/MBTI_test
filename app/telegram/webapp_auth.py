@@ -18,6 +18,7 @@ class TelegramWebAppUser:
     id: int
     username: str | None = None
     first_name: str | None = None
+    last_name: str | None = None
 
 
 def validate_init_data(init_data: str, bot_token: str) -> dict[str, str] | None:
@@ -58,8 +59,10 @@ def parse_webapp_user(init_data: str, bot_token: str) -> TelegramWebAppUser | No
         return None
     username = payload.get("username")
     first_name = payload.get("first_name")
+    last_name = payload.get("last_name")
     return TelegramWebAppUser(
         id=user_id,
         username=username if isinstance(username, str) and username else None,
         first_name=first_name if isinstance(first_name, str) and first_name else None,
+        last_name=last_name if isinstance(last_name, str) and last_name else None,
     )

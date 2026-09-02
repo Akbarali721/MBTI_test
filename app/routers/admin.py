@@ -208,6 +208,8 @@ def admin_session_detail(
         {
             "session": detail["session"],
             "answers": detail["answers"],
+            "telegram_info": detail.get("telegram_info"),
+            "referral_invites": detail.get("referral_invites") or [],
             "status_badge": STATUS_BADGE,
             "intent_label": intent_admin_label(detail["session"].intent),
             "feedback_rating_label": feedback_rating_admin_label(detail["session"].feedback_rating),

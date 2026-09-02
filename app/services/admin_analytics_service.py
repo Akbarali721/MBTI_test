@@ -642,6 +642,12 @@ class AdminAnalyticsService:
 
     def get_session_detail(self, session_id: int) -> dict | None:
         from app.repositories.personality_repository import PersonalityRepository
+        from app.services import referral_service
+        from app.services.premium_access import has_premium_access
+        from app.services.telegram_user_service import (
+            get_by_telegram_id,
+            list_referrals_for_referrer,
+        )
 
         repo = PersonalityRepository(self.db)
         session = repo.get_session_by_id(session_id)
@@ -660,7 +666,52 @@ class AdminAnalyticsService:
             {"order": order, "question_text": question_text, "option_text": option_text or "—"}
             for order, question_text, option_text in self.db.execute(stmt).all()
         ]
-        return {"session": session, "answers": answers}
+
+        telegram_info = None
+        referral_invites: list[dict] = []
+        if session.telegram_user_id:
+            tg_user = get_by_telegram_id(self.db, session.telegram_user_id)
+            if tg_user:
+                share_code = session.share_code or ""
+                ref_progress = (
+                    referral_service.progress(self.db, session, code=share_code)
+                    if share_code
+                    else None
+                )
+                telegram_info = {
+                    "telegram_id": tg_user.telegram_id,
+                    "username": tg_user.telegram_username,
+                    "first_name": tg_user.telegram_first_name,
+                    "last_name": tg_user.telegram_last_name,
+                    "phone_number": tg_user.phone_number,
+                    "bot_started_at": tg_user.bot_started_at,
+                    "phone_shared_at": tg_user.phone_shared_at,
+                    "test_started_at": session.started_at,
+                    "test_completed_at": session.completed_at,
+                    "result_type": session.result_type,
+                    "is_premium": has_premium_access(session),
+                    "premium_source": tg_user.premium_source or session.premium_source,
+                    "referral_completed": ref_progress.completed if ref_progress else 0,
+                    "referral_required": ref_progress.required if ref_progress else settings.referral_required_completions,
+                }
+                for idx, ref in enumerate(list_referrals_for_referrer(self.db, tg_user.id), start=1):
+                    referred = ref.referred
+                    referral_invites.append(
+                        {
+                            "index": idx,
+                            "username": referred.telegram_username if referred else None,
+                            "first_name": referred.telegram_first_name if referred else None,
+                            "telegram_id": referred.telegram_id if referred else None,
+                            "completed": ref.completed_at is not None,
+                        }
+                    )
+
+        return {
+            "session": session,
+            "answers": answers,
+            "telegram_info": telegram_info,
+            "referral_invites": referral_invites,
+        }
 
     def session_funnel_summary(self) -> SessionFunnelSummary:
         """Admin sessiyalar sahifasi uchun qisqa voronka."""

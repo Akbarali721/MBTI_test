@@ -31,18 +31,7 @@ logger = logging.getLogger(__name__)
 configure_logging()
 init_sentry()
 
-ERROR_TITLES = {
-    403: "Ruxsat yo‘q",
-    404: "Sahifa topilmadi",
-    429: "Juda ko‘p urinish",
-    500: "Serverda xatolik",
-}
-ERROR_MESSAGES = {
-    403: "Bu sahifani ko‘rish uchun huquqingiz yo‘q.",
-    404: "So‘ralgan sahifa mavjud emas yoki ko‘chirilgan.",
-    429: "Juda ko‘p urinish bo‘ldi. Bir daqiqadan so‘ng qayta urinib ko‘ring.",
-    500: "Kutilmagan xatolik yuz berdi. Biroz o‘tib qayta urinib ko‘ring.",
-}
+HOME_URL = "/"
 
 
 class SecurityHeadersMiddleware:
@@ -142,14 +131,29 @@ def _fallback_error_html(status_code: int, title: str, message: str) -> str:
     )
 
 
+def _error_copy(request: Request, status_code: int, message: str | None) -> tuple[str, str]:
+    """Xato sarlavha va matni — tanlangan til bo'yicha (404 sahifada aralash til bo'lmasin)."""
+    from app.i18n import resolve_lang, t
+
+    lang = resolve_lang(request)
+    title_key = f"errors.title_{status_code}"
+    message_key = f"errors.message_{status_code}"
+    title = t(title_key, lang)
+    if title == title_key:
+        title = t("errors.title_default", lang)
+    text_message = message or t(message_key, lang)
+    if text_message == message_key:
+        text_message = t("errors.message_default", lang)
+    return title, text_message
+
+
 def error_response(request: Request, status_code: int, message: str | None = None) -> Response:
     """HTML so'ralganda shablonli xato sahifasi, aks holda JSON."""
-    title = ERROR_TITLES.get(status_code, "Xatolik")
-    text_message = message or ERROR_MESSAGES.get(status_code, "Xatolik yuz berdi.")
+    title, text_message = _error_copy(request, status_code, message)
     if not _wants_html(request):
         return JSONResponse({"detail": text_message}, status_code=status_code)
 
-    context = {"status_code": status_code, "title": title, "message": text_message}
+    context = {"status_code": status_code, "title": title, "message": text_message, "home_url": HOME_URL}
     for name in (f"errors/{status_code}.html", "errors/error.html"):
         # Shablonlar alohida qo'shiladi; bo'lmasa oddiy HTML bilan javob beramiz.
         rendered = render_template_or_none(request, name, context, status_code=status_code)
@@ -244,3 +248,23 @@ def sitemap() -> Response:
 @app.get("/")
 def root() -> RedirectResponse:
     return RedirectResponse(url="/personality", status_code=303)
+
+
+@app.get("/start", include_in_schema=False)
+@app.get("/home", include_in_schema=False)
+@app.get("/webapp", include_in_schema=False)
+@app.get("/app", include_in_schema=False)
+@app.get("/index.html", include_in_schema=False)
+def legacy_web_entry() -> RedirectResponse:
+    """Eski/noto'g'ri kirish yo'llari — bosh sahifaga."""
+    return RedirectResponse(url=HOME_URL, status_code=303)
+
+
+@app.get("/uz", include_in_schema=False)
+def legacy_lang_uz() -> RedirectResponse:
+    return RedirectResponse(url="/?lang=uz", status_code=303)
+
+
+@app.get("/ru", include_in_schema=False)
+def legacy_lang_ru() -> RedirectResponse:
+    return RedirectResponse(url="/?lang=ru", status_code=303)

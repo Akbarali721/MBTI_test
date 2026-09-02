@@ -56,8 +56,8 @@ def test_the_result_page_shows_a_referral_link_with_the_share_code(client):
 
     page = client.get(f"/personality/result/{token}")
     assert f"/personality?ref={code}" in page.text
-    assert "Premiumni bepul oching" in page.text
-    assert f"{required} do‘st orqali bepul ochish" in page.text
+    assert "Premium natijani bepul oching" in page.text
+    assert "Do‘stlarga yuborish" in page.text
 
 
 def _result_page(client, token: str):
@@ -71,14 +71,14 @@ def test_referral_progress_ui_shows_each_milestone_state(client):
     required = settings.referral_required_completions
 
     page = _result_page(client, referrer)
-    assert f"0 / {required} do‘st testni tugatdi" in page.text
+    assert f"0 / {required}" in page.text
     assert f"Yana {required} ta qoldi" in page.text
-    assert f"{required} ta do‘stingiz testni oxirigacha tugatsa" in page.text
+    assert "premium natijangiz bepul ochiladi" in page.text
 
     for done in range(1, required):
         refer_and_complete(client, code, count=1)
         page = _result_page(client, referrer)
-        assert f"{done} / {required} do‘st testni tugatdi" in page.text
+        assert f"{done} / {required}" in page.text
         assert f"Yana {required - done} ta qoldi" in page.text
 
     refer_and_complete(client, code, count=1)
@@ -152,7 +152,7 @@ def test_referral_survives_landing_begin_and_full_start_flow(client):
         assert referral_service.completed_referral_count(db, row.id) == 1
 
     page = _result_page(client, referrer)
-    assert "1 /" in page.text and "do‘st testni tugatdi" in page.text
+    assert "1 /" in page.text
 
 
 def test_pending_referral_applies_when_begin_opens_a_fresh_db_session(client, monkeypatch):

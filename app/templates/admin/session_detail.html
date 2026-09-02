@@ -63,9 +63,70 @@
           <span>Premium holati</span>
           <span>{% if session.is_premium %}Premium berilgan{% else %}Yo‘q{% endif %}</span>
         </li>
+        {% if session.premium_source %}
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Premium manbasi</span>
+          <span>{{ session.premium_source }}</span>
+        </li>
+        {% endif %}
       </ul>
     </div>
   </div>
+  {% if telegram_info %}
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold">Telegram foydalanuvchi</div>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Ism</span>
+          <span>{{ telegram_info.first_name or '—' }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Telegram</span>
+          <span>
+            {% if telegram_info.username %}@{{ telegram_info.username }}
+            {% else %}Username yo‘q{% endif %}
+          </span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Telegram ID</span>
+          <span>{{ telegram_info.telegram_id }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Telefon</span>
+          <span>
+            {% if telegram_info.phone_number %}{{ telegram_info.phone_number }}
+            {% else %}Telefon berilmagan{% endif %}
+          </span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Bot boshlangan</span>
+          <span>{% if telegram_info.bot_started_at %}Ha{% else %}Yo‘q{% endif %}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Test boshlangan</span>
+          <span>{% if telegram_info.test_started_at %}Ha{% else %}Yo‘q{% endif %}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Test tugallangan</span>
+          <span>{% if telegram_info.test_completed_at %}Ha{% else %}Yo‘q{% endif %}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Natija</span>
+          <span>{{ telegram_info.result_type or '—' }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Premium</span>
+          <span>{% if telegram_info.is_premium %}Ha{% else %}Yo‘q{% endif %}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Referal</span>
+          <span>{{ telegram_info.referral_completed }} / {{ telegram_info.referral_required }}</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+  {% else %}
   <div class="col-lg-6">
     <div class="card border-0 shadow-sm h-100">
       <div class="card-header bg-white fw-semibold">Vaqt</div>
@@ -89,7 +150,28 @@
       </ul>
     </div>
   </div>
+  {% endif %}
 </div>
+{% endif %}
+{% if referral_invites %}
+<h2 class="h5 mb-3">Taklif qilingan foydalanuvchilar</h2>
+<p class="text-muted">Referal progress: {{ telegram_info.referral_completed }} / {{ telegram_info.referral_required }}</p>
+<div class="card border-0 shadow-sm mb-4">
+  <ol class="list-group list-group-flush list-group-numbered">
+    {% for invite in referral_invites %}
+    <li class="list-group-item">
+      <div class="fw-semibold">
+        {% if invite.username %}@{{ invite.username }}
+        {% elif invite.first_name %}{{ invite.first_name }}
+        {% else %}—{% endif %}
+      </div>
+      <div class="small text-muted">Telegram ID: {{ invite.telegram_id or '—' }}</div>
+      <div class="small">Test tugallangan: {% if invite.completed %}✅{% else %}❌{% endif %}</div>
+    </li>
+    {% endfor %}
+  </ol>
+</div>
+{% endif %}
 {% if session.status.value == 'completed' %}
   {% if session.is_premium %}
   <button class="btn btn-success mb-4" type="button" disabled>Premium berilgan</button>

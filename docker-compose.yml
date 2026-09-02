@@ -49,7 +49,7 @@ services:
         condition: service_healthy
       web:
         condition: service_healthy
-    command: ["python", "-m", "app.bot"]
+    command: ["python", "-m", "bot.main"]
     # Image darajasidagi HEALTHCHECK /health ni curl qiladi, bot esa HTTP xizmat
     # ko'rsatmaydi — shu sababli u DOIM "unhealthy" deb ko'rinardi. Bot holatini
     # /admin/notifications sahifasidagi ishchi belgisi (heartbeat) ko'rsatadi.

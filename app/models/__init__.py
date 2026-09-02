@@ -12,6 +12,7 @@ from app.models.personality import (
     PersonalityTestSession,
 )
 from app.models.team import Team, TeamMember
+from app.models.telegram_user import TelegramReferral, TelegramUser
 
 __all__ = [
     "AdminAuditLog",
@@ -29,4 +30,6 @@ __all__ = [
     "SessionDailyStats",
     "Team",
     "TeamMember",
+    "TelegramReferral",
+    "TelegramUser",
 ]

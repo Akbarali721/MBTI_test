@@ -14,7 +14,7 @@
     <p class="mbti-error-code" aria-hidden="true">{{ status_code }}</p>
     <h1 class="mbti-flow-title">{{ title }}</h1>
     <p class="mbti-flow-text">{{ message }}</p>
-    <a href="/personality" class="ref-cta ref-cta--primary">{{ t('common.back_home') }}</a>
+    <a href="{{ home_url | default('/') }}" class="ref-cta ref-cta--primary">{{ t('common.back_home') }}</a>
   </article>
 </section>
 {% endblock %}

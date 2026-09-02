@@ -6,6 +6,12 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models.personality import PersonalityTestSession
+from app.services.telegram_referral_service import sync_referral_to_session
+from app.services.telegram_user_service import (
+    TelegramProfileInput,
+    sync_session_telegram_fields,
+    upsert_from_webapp,
+)
 from app.telegram.webapp_auth import TelegramWebAppUser, parse_webapp_user
 
 
@@ -14,13 +20,18 @@ def bind_telegram_user_to_session(
     session: PersonalityTestSession,
     user: TelegramWebAppUser,
 ) -> PersonalityTestSession:
-    """Sessiyaga Telegram ID/username yozadi (mavjud qiymat ustiga yozilmaydi)."""
-    if session.telegram_user_id is None:
-        session.telegram_user_id = user.id
-    if user.username and not session.telegram_username:
-        session.telegram_username = user.username[:64]
-    if user.first_name and not session.telegram_first_name:
-        session.telegram_first_name = user.first_name[:128]
+    """Sessiyaga Telegram ID/username yozadi va profil jadvalini yangilaydi."""
+    tg_user = upsert_from_webapp(
+        db,
+        TelegramProfileInput(
+            telegram_id=user.id,
+            username=user.username,
+            first_name=user.first_name,
+            last_name=user.last_name,
+        ),
+    )
+    sync_session_telegram_fields(session, tg_user)
+    sync_referral_to_session(db, tg_user=tg_user, session=session)
     db.flush()
     db.refresh(session)
     return session

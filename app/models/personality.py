@@ -41,6 +41,7 @@ class PersonalityTestSession(Base):
     telegram_user_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True, index=True)
     telegram_username: Mapped[str | None] = mapped_column(String(64), nullable=True)
     telegram_first_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    telegram_last_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
     token: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
     payment_code: Mapped[str | None] = mapped_column(String(16), unique=True, index=True, nullable=True)
     # Ommaviy ulashish kodi: tokendan mustaqil, chunki token — natijaga to'liq kirish huquqi.
@@ -88,6 +89,8 @@ class PersonalityTestSession(Base):
     #    ya'ni "allaqachon premium" tekshiruvlari `is_premium` da qolishi shart.
     # Kirish huquqi HAR IKKISIDAN olinadi — `app/services/premium_access.py`.
     is_premium: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Premium qayerdan olingan: "payment", "referral", "manual" va hokazo.
+    premium_source: Mapped[str | None] = mapped_column(String(32), nullable=True)
     # Referal mukofoti bergan vaqtli premium tugash lahzasi (UTC).
     premium_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     # Bu sessiya kimning havolasi orqali kelgan. Faqat qator YARATILGANDA yoziladi:

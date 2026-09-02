@@ -45,6 +45,7 @@ from app.personality.themes import (
 from app.ratelimit import limiter as advice_limiter
 from app.repositories.personality_repository import PersonalityRepository
 from app.services import ai_advice_service, referral_service
+from app.services.telegram_referral_service import telegram_referral_url
 from app.services.personality_scoring import calculate_personality_result
 from app.services.personality_service import PersonalityService
 from app.services.premium_access import has_premium_access, trial_days_left
@@ -276,6 +277,12 @@ def personality_instructions(
     )
 
 
+@router.get("/start", response_model=None, include_in_schema=False)
+def personality_start_get() -> RedirectResponse:
+    """GET /personality/start (eski havolalar) — ko'rsatmalar sahifasiga."""
+    return RedirectResponse(url="/personality/instructions", status_code=303)
+
+
 @router.post("/start", response_model=None)
 def personality_start(
     request: Request,
@@ -475,8 +482,12 @@ def _referral_context(db: Session, session, share_code: str, base_url: str) -> d
     if not settings.referral_enabled:
         return None
     progress = referral_service.progress(db, session, code=share_code)
+    if session.telegram_user_id:
+        share_url = telegram_referral_url(session.telegram_user_id)
+    else:
+        share_url = f"{base_url}/personality?{referral_service.REFERRAL_QUERY_KEY}={share_code}"
     return {
-        "url": f"{base_url}/personality?{referral_service.REFERRAL_QUERY_KEY}={share_code}",
+        "url": share_url,
         "progress": progress,
         "reward_days": settings.referral_reward_days,
     }

@@ -123,6 +123,10 @@ class Settings(BaseSettings):
 
     bot_username: str = ""
     bot_token: str = ""
+    # Yangi nomlar (Railway / Telegram Mini App integratsiyasi uchun alias).
+    telegram_bot_username: str = ""
+    telegram_bot_token: str = ""
+    web_app_url: str = ""
     premium_price: int = 9990
     # Savol to'plamlari taqsimoti: "A" yoki vaznli "A:70,B:30".
     question_variants: str = "A"
@@ -152,7 +156,7 @@ class Settings(BaseSettings):
     # --- Referal (do'st taklif qilish) ---
     referral_enabled: bool = True
     # Shuncha taklif qilingan odam testni TUGATSA bir mukofot beriladi.
-    referral_required_completions: int = 2
+    referral_required_completions: int = 3
     referral_reward_days: int = 3
     # Yig'ilgan bepul premiumning yuqori chegarasi: mukofot takrorlanadigan bo'lgani
     # uchun cheklovsiz qoldirilsa, pullik mahsulot o'z-o'zini yeb qo'yardi.
@@ -246,6 +250,46 @@ class Settings(BaseSettings):
         if value < 1:
             raise ValueError(f"{info.field_name} kamida 1 bo'lishi kerak")
         return value
+
+    @model_validator(mode="after")
+    def _sync_telegram_aliases(self) -> Settings:
+        """TELEGRAM_BOT_* va BOT_* o'zaro moslashtiriladi."""
+        if self.telegram_bot_token.strip() and not self.bot_token.strip():
+            self.bot_token = self.telegram_bot_token.strip()
+        elif self.bot_token.strip() and not self.telegram_bot_token.strip():
+            self.telegram_bot_token = self.bot_token.strip()
+
+        if self.telegram_bot_username.strip() and not self.bot_username.strip():
+            self.bot_username = self.telegram_bot_username.strip().lstrip("@")
+        elif self.bot_username.strip() and not self.telegram_bot_username.strip():
+            self.telegram_bot_username = self.bot_username.strip().lstrip("@")
+        return self
+
+    @property
+    def effective_web_app_url(self) -> str:
+        """Telegram WebApp tugmasi uchun manzil (mavjud route'ga)."""
+        explicit = (self.web_app_url or "").strip()
+        if explicit:
+            return self.normalize_web_app_url(explicit)
+        return self.normalize_web_app_url(self.public_base_url)
+
+    def normalize_web_app_url(self, raw: str) -> str:
+        """WebApp manzilini tekshiradi: double /personality va /start kabi xatolarni tuzatadi."""
+        cleaned = (raw or "").strip().rstrip("/")
+        if not cleaned:
+            cleaned = self.public_base_url.strip().rstrip("/")
+
+        # PUBLIC_BASE_URL=https://domain.com/personality bo'lsa, yana /personality qo'shilmasin.
+        while cleaned.endswith("/personality/personality"):
+            cleaned = cleaned[: -len("/personality")]
+
+        # Bot /start buyrug'i bilan aralashgan eski/noto'g'ri web path'lar.
+        for suffix in ("/start", "/home", "/webapp", "/app", "/index.html", "/index"):
+            if cleaned.endswith(suffix):
+                cleaned = cleaned[: -len(suffix)].rstrip("/")
+                break
+
+        return cleaned or self.public_base_url.strip().rstrip("/")
 
     @model_validator(mode="after")
     def _reward_cap_is_reachable(self) -> Settings:

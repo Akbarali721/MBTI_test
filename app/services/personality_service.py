@@ -129,6 +129,9 @@ class PersonalityService:
         """
         try:
             reward = referral_service.reward_referrer_if_earned(self.repo.db, session)
+            from app.services.telegram_referral_service import mark_referral_completed
+
+            mark_referral_completed(self.repo.db, session)
         except Exception:
             logger.exception("Referal mukofotini hisoblab bo‘lmadi: sessiya #%s", session.id)
             return

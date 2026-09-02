@@ -138,14 +138,15 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "share.cta_desc": "24 ta savol, taxminan 4 daqiqa. Ro‘yxatdan o‘tish shart emas.",
         "share.cta_button": "Testni boshlash",
         # Referal
-        "referral.title": "Premiumni bepul oching 🎁",
+        "referral.title": "Premium natijani bepul oching",
         "referral.desc": (
-            "{required} ta do‘stingiz testni oxirigacha tugatsa, Premium bepul ochiladi."
+            "{required} ta do‘stingiz testni oxirigacha ishlasa, "
+            "premium natijangiz bepul ochiladi."
         ),
-        "referral.progress": "{completed} / {required} do‘st testni tugatdi",
+        "referral.progress": "{completed} / {required}",
         "referral.remaining": "Yana {count} ta qoldi",
         "referral.unlocked": "🎉 Premium natijangiz ochildi!",
-        "referral.cta_share": "{required} do‘st orqali bepul ochish",
+        "referral.cta_share": "Do‘stlarga yuborish",
         "referral.invited": "Havola orqali kelganlar: {count}",
         "referral.copy_hint": "Havolani nusxalab, do‘stlaringizga yuboring.",
         "referral.rewarded": "Mukofot olingan: {count} marta",
@@ -414,6 +415,16 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         ),
         # Xato sahifalari
         "errors.retry": "Qayta urinish",
+        "errors.title_403": "Ruxsat yo‘q",
+        "errors.message_403": "Bu sahifani ko‘rish uchun huquqingiz yo‘q.",
+        "errors.title_404": "Sahifa topilmadi",
+        "errors.message_404": "So‘ralgan sahifa mavjud emas yoki ko‘chirilgan.",
+        "errors.title_429": "Juda ko‘p urinish",
+        "errors.message_429": "Juda ko‘p urinish bo‘ldi. Bir daqiqadan so‘ng qayta urinib ko‘ring.",
+        "errors.title_500": "Serverda xatolik",
+        "errors.message_500": "Kutilmagan xatolik yuz berdi. Biroz o‘tib qayta urinib ko‘ring.",
+        "errors.title_default": "Xatolik",
+        "errors.message_default": "Xatolik yuz berdi.",
         "errors.help_404": "Manzilni tekshiring yoki bosh sahifadan qaytadan boshlang.",
         "errors.help_500": "Xatolik bizning tomonda. Bir necha daqiqadan so‘ng qayta urinib ko‘ring.",
         # Admin
@@ -794,6 +805,16 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         ),
         # Страницы ошибок
         "errors.retry": "Попробовать снова",
+        "errors.title_403": "Доступ запрещён",
+        "errors.message_403": "У вас нет прав для просмотра этой страницы.",
+        "errors.title_404": "Страница не найдена",
+        "errors.message_404": "Запрошенная страница не существует или была перенесена.",
+        "errors.title_429": "Слишком много попыток",
+        "errors.message_429": "Слишком много попыток. Попробуйте снова через минуту.",
+        "errors.title_500": "Ошибка сервера",
+        "errors.message_500": "Произошла непредвиденная ошибка. Попробуйте позже.",
+        "errors.title_default": "Ошибка",
+        "errors.message_default": "Произошла ошибка.",
         "errors.help_404": "Проверьте адрес или начните заново с главной страницы.",
         "errors.help_500": "Ошибка на нашей стороне. Попробуйте снова через несколько минут.",
         # Админка

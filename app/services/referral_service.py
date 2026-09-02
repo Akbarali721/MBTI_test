@@ -290,6 +290,9 @@ def reward_referrer_if_earned(
         return None
 
     db.expire(referrer)
+    from app.services.telegram_referral_service import set_referral_premium_source
+
+    set_referral_premium_source(db, referrer)
     logger.info(
         "Referal mukofoti: sessiya #%s, %s kun, %s gacha",
         referrer_id,
