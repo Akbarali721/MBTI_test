@@ -26,6 +26,11 @@ def get_by_telegram_id(db: Session, telegram_id: int) -> TelegramUser | None:
     return db.scalar(select(TelegramUser).where(TelegramUser.telegram_id == telegram_id))
 
 
+def _touch_seen(user: TelegramUser, moment: datetime) -> None:
+    user.last_seen_at = moment
+    user.updated_at = moment
+
+
 def upsert_from_bot_start(
     db: Session,
     profile: TelegramProfileInput,
@@ -45,7 +50,7 @@ def upsert_from_bot_start(
         user.bot_started_at = moment
 
     _apply_profile_fields(user, profile)
-    user.updated_at = moment
+    _touch_seen(user, moment)
     db.flush()
     return user
 
@@ -64,7 +69,7 @@ def upsert_from_webapp(
         db.add(user)
 
     _apply_profile_fields(user, profile)
-    user.updated_at = moment
+    _touch_seen(user, moment)
     db.flush()
     return user
 
@@ -82,7 +87,7 @@ def save_phone_number(
     moment = now or utcnow()
     user.phone_number = phone_number[:32]
     user.phone_shared_at = moment
-    user.updated_at = moment
+    _touch_seen(user, moment)
     db.flush()
     return user
 

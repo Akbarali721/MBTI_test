@@ -397,6 +397,8 @@ def personality_test(
     db.commit()
     db.refresh(session)
     view = service.get_test_view(token, question_index=q)
+    service.record_question_view(token, view["question_index"])
+    db.commit()
     if view.get("redirect") == "result":
         return RedirectResponse(url=f"/personality/result/{token}", status_code=303)
     if view.get("redirect") == "questions_error":

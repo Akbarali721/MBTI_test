@@ -99,7 +99,7 @@ class PersonalityService:
         if not option or option.question_id != question_id:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid option")
 
-        self.repo.upsert_answer(session.id, question_id, option_id)
+        self.repo.upsert_answer(session.id, question_id, option_id, question_index=expected_index)
 
         next_index = expected_index + 1
         if next_index >= total:
@@ -117,6 +117,11 @@ class PersonalityService:
 
         self.repo.update_session_progress(session, next_index)
         return {"redirect": "question", "session": session, "next_index": next_index}
+
+    def record_question_view(self, token: str, question_index: int) -> PersonalityTestSession:
+        session = self.get_session_or_404(token)
+        self.repo.record_question_view(session, question_index)
+        return session
 
     def _reward_referrer(self, session: PersonalityTestSession) -> None:
         """Taklif qilgan odamga mukofot yetgan bo'lsa, uni beradi va xabar qo'yadi.

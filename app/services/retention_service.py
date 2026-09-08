@@ -281,6 +281,9 @@ def anonymize_sessions(db: Session, ids: list[int]) -> int:
         session.result_type = None
         session.answered_questions = 0
         session.current_question_index = 0
+        session.max_question_reached = 0
+        session.current_question_number = 0
+        session.last_answered_at = None
         for key in ("e", "i", "s", "n", "t", "f", "j", "p"):
             setattr(session, f"{key}_score", 0)
         session.anonymized_at = now

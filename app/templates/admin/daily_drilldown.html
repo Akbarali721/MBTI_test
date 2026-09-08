@@ -1,0 +1,91 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}{{ report.day_label }} — {{ report.metric_label }}{% endblock %}
+{% set active_nav = 'dashboard' %}
+{% block content %}
+<p class="mb-3">
+  <a href="/admin?range={{ current_range }}{% if current_variant %}&variant={{ current_variant }}{% endif %}">&larr; Analitika</a>
+</p>
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-4">
+  <div>
+    <h1 class="h4 mb-1">{{ report.day_label }}</h1>
+    <p class="text-muted mb-0">{{ report.metric_label }}</p>
+  </div>
+  <div class="text-md-end">
+    <div><span class="fw-semibold">{{ report.total_sessions }}</span> tashrif/sessiya</div>
+    <div class="text-muted small">{{ report.unique_users }} unique foydalanuvchi</div>
+  </div>
+</div>
+
+<div class="btn-group btn-group-sm flex-wrap mb-3" role="group">
+  <a href="/admin/analytics/day?date={{ report.day_label }}&metric={{ metric_visited }}&range={{ current_range }}{% if current_variant %}&variant={{ current_variant }}{% endif %}"
+     class="btn {% if report.metric == metric_visited %}btn-primary{% else %}btn-outline-secondary{% endif %}">Tashriflar</a>
+  <a href="/admin/analytics/day?date={{ report.day_label }}&metric={{ metric_completed }}&range={{ current_range }}{% if current_variant %}&variant={{ current_variant }}{% endif %}"
+     class="btn {% if report.metric == metric_completed %}btn-primary{% else %}btn-outline-secondary{% endif %}">Tugatganlar</a>
+  <a href="/admin/analytics/day?date={{ report.day_label }}&metric={{ metric_approved }}&range={{ current_range }}{% if current_variant %}&variant={{ current_variant }}{% endif %}"
+     class="btn {% if report.metric == metric_approved %}btn-primary{% else %}btn-outline-secondary{% endif %}">Tasdiqlangan</a>
+</div>
+
+{% if report.metric == metric_completed or report.metric == metric_approved %}
+<p class="text-muted small mb-3">
+  Ro‘yxat shu kundagi hodisa vaqti bo‘yicha filtrlangan (test tugatilgan / premium tasdiqlangan vaqti).
+  Dashboard jadvalidagi sonlar birinchi tashrif kuni bo‘yicha kogorta hisobidan kelishi mumkin.
+</p>
+{% endif %}
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-sm table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Foydalanuvchi</th>
+          <th>Telegram ID</th>
+          <th>Sessiya</th>
+          <th>Tashrif/boshlash</th>
+          <th>Test boshlangan</th>
+          <th>Progress</th>
+          <th>Max savol</th>
+          <th>Tugatilgan</th>
+          <th>Premium</th>
+          <th>Oxirgi faollik</th>
+          <th>Manba</th>
+          <th>Referral</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in report.rows %}
+        <tr>
+          <td>
+            {% if row.telegram_user_pk %}
+            <a href="/admin/telegram-users/{{ row.telegram_user_pk }}">{{ row.display_name }}</a>
+            {% else %}
+            {{ row.display_name }}
+            {% endif %}
+            {% if row.first_name and row.username %}
+            <div class="small text-muted">{{ row.first_name }}{% if row.last_name %} {{ row.last_name }}{% endif %}</div>
+            {% endif %}
+          </td>
+          <td>{% if row.telegram_id %}<code class="small">{{ row.telegram_id }}</code>{% else %}—{% endif %}</td>
+          <td><a href="/admin/sessions/{{ row.session_id }}">#{{ row.session_id }}</a></td>
+          <td class="small text-nowrap">{{ format_dt(row.visit_at) }}</td>
+          <td class="small text-nowrap">{{ format_dt(row.test_started_at) }}</td>
+          <td>{{ row.progress_reached }}/{{ row.progress_total }}</td>
+          <td>{{ row.max_question_reached or '—' }}</td>
+          <td class="small text-nowrap">{{ format_dt(row.completed_at) }}</td>
+          <td>{% if row.is_premium %}Ha{% if row.premium_source %} ({{ row.premium_source }}){% endif %}{% else %}Yo‘q{% endif %}</td>
+          <td class="small text-nowrap">{{ format_dt(row.last_activity_at) }}</td>
+          <td>{{ row.source or '—' }}</td>
+          <td>{{ row.referral_label or '—' }}</td>
+          <td><span class="badge text-bg-secondary">{{ row.status_label }}</span></td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="13" class="text-muted text-center py-4">Bu kategoriya bo‘yicha yozuv topilmadi</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

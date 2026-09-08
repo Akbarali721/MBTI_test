@@ -3,6 +3,103 @@
 {% set active_nav = 'dashboard' %}
 {% block content %}
 <h1 class="h4 mb-4">Analitika</h1>
+
+{% if telegram_funnel %}
+<h2 class="h6 text-muted text-uppercase mb-3">Telegram foydalanuvchilar</h2>
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-4 col-xl">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="text-muted small">Botga kirganlar</div>
+        <div class="fs-4 fw-semibold">{{ telegram_funnel.bot_entered }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="text-muted small">Test boshlaganlar</div>
+        <div class="fs-4 fw-semibold">{{ telegram_funnel.test_started }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="text-muted small">Test tugatganlar</div>
+        <div class="fs-4 fw-semibold">{{ telegram_funnel.test_completed }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="text-muted small">Tugatish foizi</div>
+        <div class="fs-4 fw-semibold">{{ telegram_funnel.completion_rate }}%</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="text-muted small">Premium olganlar</div>
+        <div class="fs-4 fw-semibold">{{ telegram_funnel.premium_users }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<h2 class="h6 text-muted text-uppercase mb-3 mt-4">Test funnel</h2>
+<p class="text-muted small mb-2">
+  Testni boshlagan sessiyalar bo‘yicha savol bosqichlari va chiqib ketish (drop-off) foizi.
+</p>
+{% if test_funnel %}
+<div class="card border-0 shadow-sm mb-3">
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Bosqich</th>
+          <th class="text-end">Soni</th>
+          <th class="text-end">Birinchidan %</th>
+          <th class="text-end">Oldingisidan %</th>
+          <th class="text-end">Drop-off</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for stage in test_funnel.stages %}
+        <tr>
+          <td>{{ stage.label }}</td>
+          <td class="text-end fw-semibold">{{ stage.count }}</td>
+          <td class="text-end">{{ stage.of_first }}%</td>
+          <td class="text-end">{{ stage.of_previous }}%</td>
+          <td class="text-end {% if stage.drop_off_pct >= 10 %}text-danger{% endif %}">
+            {% if loop.first %}—{% else %}{{ stage.drop_off_pct }}%{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if test_funnel.top_drop_offs %}
+<h3 class="h6 mb-2">TOP 5 chiqib ketish savollari</h3>
+<div class="card border-0 shadow-sm mb-4">
+  <ul class="list-group list-group-flush">
+    {% for row in test_funnel.top_drop_offs %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+      <span>Q{{ row.question_number }}</span>
+      <span class="fw-semibold {% if row.drop_off_pct >= 10 %}text-danger{% endif %}">{{ row.drop_off_pct }}% drop-off</span>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% endif %}
+
+<h2 class="h6 text-muted text-uppercase mb-3">Sessiyalar (brauzer)</h2>
 <div class="row g-3">
   <div class="col-6 col-md-4 col-xl-2">
     <div class="card stat-card h-100">
@@ -137,9 +234,21 @@
       {% for day in funnel.days %}
       <tr>
         <td class="text-nowrap">{{ day.label }}</td>
-        <td class="text-end">{{ day.visited }}</td>
-        <td class="text-end">{{ day.completed }}</td>
-        <td class="text-end">{{ day.approved }}</td>
+        <td class="text-end">
+          {% if day.visited %}
+          <a href="/admin/analytics/day?date={{ day.label }}&metric=visited&range={{ current_range }}{% if current_variant %}&variant={{ current_variant }}{% endif %}">{{ day.visited }}</a>
+          {% else %}0{% endif %}
+        </td>
+        <td class="text-end">
+          {% if day.completed %}
+          <a href="/admin/analytics/day?date={{ day.label }}&metric=completed&range={{ current_range }}{% if current_variant %}&variant={{ current_variant }}{% endif %}">{{ day.completed }}</a>
+          {% else %}0{% endif %}
+        </td>
+        <td class="text-end">
+          {% if day.approved %}
+          <a href="/admin/analytics/day?date={{ day.label }}&metric=approved&range={{ current_range }}{% if current_variant %}&variant={{ current_variant }}{% endif %}">{{ day.approved }}</a>
+          {% else %}0{% endif %}
+        </td>
       </tr>
       {% endfor %}
     </tbody>

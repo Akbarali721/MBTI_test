@@ -24,6 +24,7 @@ class TelegramUser(Base):
     telegram_last_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
     phone_number: Mapped[str | None] = mapped_column(String(32), nullable=True)
     bot_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     phone_shared_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     premium_source: Mapped[str | None] = mapped_column(String(32), nullable=True)
     created_at: Mapped[datetime] = mapped_column(

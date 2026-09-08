@@ -141,6 +141,7 @@ def start_test(db: Session, telegram_user_id: int, gender: str) -> _QuestionView
 
 def _question_view(service: PersonalityService, token: str, index: int | None) -> _QuestionView:
     view = service.get_test_view(token, index)
+    service.record_question_view(token, view["question_index"])
     question = view["question"]
     options = list(question.options)
     return _QuestionView(

@@ -1,0 +1,120 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Foydalanuvchi #{{ detail.user.id }}{% endblock %}
+{% set active_nav = 'telegram_users' %}
+{% block content %}
+<p class="mb-3"><a href="/admin/telegram-users">&larr; Foydalanuvchilar ro‘yxati</a></p>
+<h1 class="h4 mb-3">
+  {% if detail.user.telegram_username %}@{{ detail.user.telegram_username }}
+  {% elif detail.user.telegram_first_name %}{{ detail.user.telegram_first_name }}
+  {% else %}Foydalanuvchi #{{ detail.user.id }}{% endif %}
+</h1>
+
+<div class="row g-3 mb-4">
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold">Telegram ma’lumotlari</div>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Telegram ID</span><span>{{ detail.user.telegram_id }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Username</span>
+          <span>{% if detail.user.telegram_username %}@{{ detail.user.telegram_username }}{% else %}Username yo‘q{% endif %}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Ism</span><span>{{ detail.user.telegram_first_name or '—' }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Familiya</span><span>{{ detail.user.telegram_last_name or '—' }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Telefon</span>
+          <span>{% if detail.user.phone_number %}{{ detail.user.phone_number }}{% else %}Telefon berilmagan{% endif %}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Ro‘yxatdan o‘tgan</span><span class="small">{{ detail.user.created_at }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Oxirgi faollik</span><span class="small">{{ detail.user.last_seen_at or '—' }}</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold">Test va premium</div>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Progress</span>
+          <span>{{ detail.progress_reached }} / {{ detail.progress_total }} ({{ detail.progress_percent }}%)</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Test holati</span><span>{{ detail.progress_status_label }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Oxirgi faollik</span><span class="small">{{ detail.last_activity_at or '—' }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Eng uzoq savol</span><span>{{ detail.progress_reached or '—' }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Status</span><span class="badge text-bg-secondary">{{ detail.status_label }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Bot boshlangan</span><span class="small">{{ detail.user.bot_started_at or '—' }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Test boshlangan</span><span class="small">{{ detail.test_started_at or '—' }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Test tugagan</span><span class="small">{{ detail.test_completed_at or '—' }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>MBTI natija</span><span>{{ detail.mbti_type or '—' }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Premium</span><span>{% if detail.is_premium %}Ha{% else %}Yo‘q{% endif %}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Premium manbasi</span><span>{{ detail.premium_source or '—' }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Referral orqali kelgan</span>
+          <span>
+            {% if detail.inviter %}
+              {% if detail.inviter.telegram_username %}@{{ detail.inviter.telegram_username }}
+              {% elif detail.inviter.telegram_first_name %}{{ detail.inviter.telegram_first_name }}
+              {% else %}{{ detail.inviter.telegram_id }}{% endif %}
+            {% else %}—{% endif %}
+          </span>
+        </li>
+        {% if detail.session_id %}
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Sessiya</span>
+          <a href="/admin/sessions/{{ detail.session_id }}">#{{ detail.session_id }}</a>
+        </li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</div>
+
+{% if detail.referral_invites %}
+<h2 class="h5 mb-3">Taklif qilingan do‘stlar</h2>
+<div class="card border-0 shadow-sm mb-4">
+  <ol class="list-group list-group-flush list-group-numbered">
+    {% for invite in detail.referral_invites %}
+    <li class="list-group-item">
+      <div class="fw-semibold">
+        {% if invite.username %}@{{ invite.username }}
+        {% elif invite.first_name %}{{ invite.first_name }}
+        {% else %}—{% endif %}
+      </div>
+      <div class="small text-muted">Telegram ID: {{ invite.telegram_id or '—' }}</div>
+      <div class="small">Status: {{ invite.status_label }} · Test tugatdi: {% if invite.completed %}✅{% else %}❌{% endif %}</div>
+    </li>
+    {% endfor %}
+  </ol>
+</div>
+{% endif %}
+{% endblock %}

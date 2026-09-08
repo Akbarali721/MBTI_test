@@ -50,6 +50,18 @@ from app.services.admin_analytics_service import (
     Page,
     normalize_page,
 )
+from app.services.admin_daily_drilldown_service import (
+    METRIC_APPROVED,
+    METRIC_COMPLETED,
+    METRIC_VISITED,
+    AdminDailyDrilldownService,
+    format_dt,
+)
+from app.services.admin_telegram_user_service import (
+    FILTERS as TELEGRAM_USER_FILTERS,
+    AdminTelegramUserService,
+)
+from app.services.test_funnel_analytics_service import SessionTestFunnelAnalyticsService
 from app.services.premium_payment_service import PremiumPaymentService, format_price_uzs
 from app.services.premium_telegram_delivery import try_deliver_premium_approved_message
 from app.templating import templates
@@ -136,6 +148,8 @@ def admin_dashboard(
     variant: str | None = Query(default=None),
 ) -> Response:
     service = AdminAnalyticsService(db)
+    tg_service = AdminTelegramUserService(db)
+    test_funnel = SessionTestFunnelAnalyticsService(db).report()
     variants = service.variant_stats()
     known = [row.variant for row in variants]
     chosen = variant if variant in known else None
@@ -144,6 +158,8 @@ def admin_dashboard(
         "admin/dashboard.html",
         {
             "stats": service.dashboard_stats(),
+            "telegram_funnel": tg_service.funnel_stats(),
+            "test_funnel": test_funnel,
             "growth": service.growth_stats(),
             # Bitta to'plam bo'lsa taqqoslashning ma'nosi yo'q.
             "variants": variants if len(variants) > 1 else [],
@@ -153,6 +169,41 @@ def admin_dashboard(
             "variant_options": known,
             "current_variant": chosen,
             "admin": admin,
+        },
+    )
+
+
+@router.get("/analytics/day", response_class=HTMLResponse, response_model=None)
+@requires(VIEW_PII)
+def admin_daily_drilldown(
+    request: Request,
+    db: Session = Depends(get_db_session),
+    date: str = Query(..., min_length=10, max_length=10),
+    metric: str = Query(default=METRIC_VISITED),
+    range: int = Query(default=30, ge=0, le=365),
+    variant: str | None = Query(default=None),
+) -> Response:
+    analytics = AdminAnalyticsService(db)
+    known_variants = [row.variant for row in analytics.variant_stats()]
+    chosen_variant = variant if variant in known_variants else None
+    report = AdminDailyDrilldownService(db).report(
+        day_label=date,
+        metric=metric,
+        variant=chosen_variant,
+    )
+    if report is None:
+        return RedirectResponse(url="/admin", status_code=303)
+    return templates.TemplateResponse(
+        request,
+        "admin/daily_drilldown.html",
+        {
+            "report": report,
+            "format_dt": format_dt,
+            "current_range": range,
+            "current_variant": chosen_variant,
+            "metric_visited": METRIC_VISITED,
+            "metric_completed": METRIC_COMPLETED,
+            "metric_approved": METRIC_APPROVED,
         },
     )
 
@@ -189,6 +240,48 @@ def admin_sessions_list(
             "feedback_rating_label": feedback_rating_admin_label,
             "feedback_interest_label": feedback_interest_admin_label,
         },
+    )
+
+
+@router.get("/telegram-users", response_class=HTMLResponse, response_model=None)
+@requires(VIEW_PII)
+def admin_telegram_users_list(
+    request: Request,
+    db: Session = Depends(get_db_session),
+    filter: str = Query(default="all", alias="filter"),
+    page: int = Query(default=1, ge=1),
+) -> Response:
+    service = AdminTelegramUserService(db)
+    known_filters = {key for key, _ in TELEGRAM_USER_FILTERS}
+    chosen = filter if filter in known_filters else "all"
+    result = service.list_page(filter_key=chosen, page=page)
+    return templates.TemplateResponse(
+        request,
+        "admin/telegram_users.html",
+        {
+            "users": result.items,
+            "pagination": result,
+            "current_filter": chosen,
+            "filter_options": TELEGRAM_USER_FILTERS,
+            "funnel": service.funnel_stats(),
+        },
+    )
+
+
+@router.get("/telegram-users/{user_id}", response_class=HTMLResponse, response_model=None)
+@requires(VIEW_PII)
+def admin_telegram_user_detail(
+    request: Request,
+    user_id: int,
+    db: Session = Depends(get_db_session),
+) -> Response:
+    detail = AdminTelegramUserService(db).get_detail(user_id)
+    if detail is None:
+        return RedirectResponse(url="/admin/telegram-users", status_code=303)
+    return templates.TemplateResponse(
+        request,
+        "admin/telegram_user_detail.html",
+        {"detail": detail},
     )
 
 

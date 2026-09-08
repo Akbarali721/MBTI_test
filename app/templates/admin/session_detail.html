@@ -56,6 +56,14 @@
           <span>{{ session.answered_questions }} / {{ session.total_questions }}</span>
         </li>
         <li class="list-group-item d-flex justify-content-between">
+          <span>Eng uzoq savol</span>
+          <span>{{ session.max_question_reached or session.answered_questions }} / {{ session.total_questions }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Oxirgi javob</span>
+          <span class="small">{{ session.last_answered_at or '—' }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
           <span>Natija</span>
           <span>{{ session.result_type or '—' }}</span>
         </li>
@@ -152,7 +160,6 @@
   </div>
   {% endif %}
 </div>
-{% endif %}
 {% if referral_invites %}
 <h2 class="h5 mb-3">Taklif qilingan foydalanuvchilar</h2>
 <p class="text-muted">Referal progress: {{ telegram_info.referral_completed }} / {{ telegram_info.referral_required }}</p>

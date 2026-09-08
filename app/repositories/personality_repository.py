@@ -27,6 +27,7 @@ from app.personality.constants import SESSION_QUESTION_COUNT
 from app.personality.payment_code import generate_payment_code
 from app.personality.question_selection import ensure_session_questions
 from app.personality.share_code import generate_share_code
+from app.personality.test_progress import apply_question_reached, question_number_from_index
 from app.personality.variants import choose_variant, normalize_variant
 from app.services.personality_scoring import STRONG_OPTION_WEIGHT, calculate_personality_result
 
@@ -62,6 +63,8 @@ class PersonalityRepository:
             current_question_index=0,
             total_questions=SESSION_QUESTION_COUNT,
             answered_questions=0,
+            max_question_reached=0,
+            current_question_number=0,
             source=resolved_source or DEFAULT_SOURCE,
             last_activity_at=now,
         )
@@ -108,12 +111,23 @@ class PersonalityRepository:
     def mark_test_started_if_needed(self, session: PersonalityTestSession) -> None:
         """Birinchi savol sahifasiga kirganda — faqat bir marta."""
         if session.started_at is not None:
+            self.record_question_view(session, 0)
             return
         now = datetime.now(timezone.utc)
         session.started_at = now
         session.last_activity_at = now
         if session.status == PersonalitySessionStatus.VISITED:
             session.status = PersonalitySessionStatus.STARTED
+        apply_question_reached(session, 0)
+        session.current_question_number = 1
+        self.db.flush()
+
+    def record_question_view(self, session: PersonalityTestSession, question_index: int) -> None:
+        """Savol sahifasiga kirish — max_question_reached faqat oshadi."""
+        now = datetime.now(timezone.utc)
+        apply_question_reached(session, question_index)
+        session.current_question_number = question_number_from_index(question_index)
+        session.last_activity_at = now
         self.db.flush()
 
     def count_answers(self, session_id: int) -> int:
@@ -124,11 +138,15 @@ class PersonalityRepository:
         )
         return int(self.db.scalar(stmt) or 0)
 
-    def _apply_answer_analytics(self, session: PersonalityTestSession) -> None:
+    def _apply_answer_analytics(self, session: PersonalityTestSession, *, question_index: int | None = None) -> None:
         now = datetime.now(timezone.utc)
         count = self.count_answers(session.id)
         session.answered_questions = count
         session.last_activity_at = now
+        session.last_answered_at = now
+        if question_index is not None:
+            apply_question_reached(session, question_index)
+            session.current_question_number = question_number_from_index(question_index)
         if count == 0:
             self.db.flush()
             return
@@ -265,7 +283,14 @@ class PersonalityRepository:
         )
         return True
 
-    def upsert_answer(self, session_id: int, question_id: int, option_id: int) -> PersonalityAnswer:
+    def upsert_answer(
+        self,
+        session_id: int,
+        question_id: int,
+        option_id: int,
+        *,
+        question_index: int | None = None,
+    ) -> PersonalityAnswer:
         values = {"session_id": session_id, "question_id": question_id, "option_id": option_id}
 
         if not self._dialect_upsert_answer(values):
@@ -291,7 +316,7 @@ class PersonalityRepository:
         )
         session = self.get_session_by_id(session_id)
         if session:
-            self._apply_answer_analytics(session)
+            self._apply_answer_analytics(session, question_index=question_index)
         return answer  # type: ignore[return-value]
 
     def score_breakdown_for_session(
@@ -371,7 +396,11 @@ class PersonalityRepository:
         now = datetime.now(timezone.utc)
         session.completed_at = now
         session.last_activity_at = now
+        session.last_answered_at = now
         session.answered_questions = session.total_questions or answer_count
+        total = session.total_questions or SESSION_QUESTION_COUNT
+        session.max_question_reached = max(session.max_question_reached, total)
+        session.current_question_number = total
         self.db.flush()
         self.db.refresh(session)
         return session
