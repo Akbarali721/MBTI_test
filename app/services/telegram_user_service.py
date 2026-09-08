@@ -137,14 +137,16 @@ def primary_session_for_telegram_user(db: Session, telegram_id: int) -> Personal
 def sync_session_telegram_fields(
     session: PersonalityTestSession,
     tg_user: TelegramUser,
+    *,
+    overwrite_profile: bool = False,
 ) -> None:
     if session.telegram_user_id is None:
         session.telegram_user_id = tg_user.telegram_id
-    if tg_user.telegram_username and not session.telegram_username:
+    if overwrite_profile or not session.telegram_username:
         session.telegram_username = tg_user.telegram_username
-    if tg_user.telegram_first_name and not session.telegram_first_name:
+    if overwrite_profile or not session.telegram_first_name:
         session.telegram_first_name = tg_user.telegram_first_name
-    if tg_user.telegram_last_name and not session.telegram_last_name:
+    if overwrite_profile or not session.telegram_last_name:
         session.telegram_last_name = tg_user.telegram_last_name
 
 

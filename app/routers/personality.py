@@ -189,12 +189,19 @@ def personality_telegram_bind(
 
     session = get_bound_session(request, db)
     if session is None:
+        session = ensure_visitor_session(request, db)
+    if session is None:
         return JSONResponse({"ok": False, "reason": "no_session"}, status_code=400)
     updated = bind_session_from_webapp_init_data(db, session, init_data)
     if updated is None:
         return JSONResponse({"ok": False, "reason": "invalid_init_data"}, status_code=400)
     db.commit()
-    return JSONResponse({"ok": True})
+    logger.info(
+        "telegram webapp bind session_id=%s telegram_user_id=%s",
+        updated.id,
+        updated.telegram_user_id,
+    )
+    return JSONResponse({"ok": True, "telegram_user_id": updated.telegram_user_id})
 
 
 @router.post("/begin")

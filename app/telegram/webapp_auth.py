@@ -55,6 +55,8 @@ def parse_webapp_user(init_data: str, bot_token: str) -> TelegramWebAppUser | No
     if not isinstance(payload, dict):
         return None
     user_id = payload.get("id")
+    if isinstance(user_id, str) and user_id.isdigit():
+        user_id = int(user_id)
     if not isinstance(user_id, int):
         return None
     username = payload.get("username")

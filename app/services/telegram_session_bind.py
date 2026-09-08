@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models.personality import PersonalityTestSession
+from app.personality.analytics_constants import DEFAULT_SOURCE
+from app.repositories.personality_repository import PersonalityRepository
 from app.services.telegram_referral_service import sync_referral_to_session
 from app.services.telegram_user_service import (
     TelegramProfileInput,
@@ -30,7 +32,9 @@ def bind_telegram_user_to_session(
             last_name=user.last_name,
         ),
     )
-    sync_session_telegram_fields(session, tg_user)
+    sync_session_telegram_fields(session, tg_user, overwrite_profile=True)
+    if not session.source or session.source == DEFAULT_SOURCE:
+        PersonalityRepository(db).set_source_if_empty(session, "telegram-webapp")
     sync_referral_to_session(db, tg_user=tg_user, session=session)
     db.flush()
     db.refresh(session)
