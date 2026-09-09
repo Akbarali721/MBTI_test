@@ -44,15 +44,15 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         # Landing
         "landing.title": "Xarakter va hayot uslubi testi",
         "landing.eyebrow": "XARAKTER VA HAYOT USLUBI TESTI",
-        "landing.headline": "Siz dangasa emassiz",
-        "landing.lead": "Balki o‘zingizga mos bo‘lmagan usulda harakat qilayotgandirsiz.",
+        "landing.headline": "Siz aslida qanday odamsiz?",
+        "landing.lead": "Xarakteringizni bilish — o‘zingizni boshqarishni osonlashtiradi.",
         "landing.copy": (
-            "Xarakteringizning kuchli tomonlarini, motivatsiyangiz nega pasayishini va "
-            "sizga mos ishlash hamda muloqot usulini aniqlang."
+            "24 ta savol orqali kuchli va zaif tomonlaringizni, qaror qabul qilish va "
+            "muloqot uslubingizni yaxshiroq tushuning."
         ),
         "landing.meta_aria": "Test haqida",
         "landing.meta_questions": "24 ta savol",
-        "landing.meta_minutes": "4 daqiqa",
+        "landing.meta_minutes": "4–5 daqiqa",
         "landing.meta_personal": "Shaxsiy natija",
         "landing.cta": "O‘zim haqimda bilish",
         "landing.hero_alt": "Xarakterni anglash testi",
