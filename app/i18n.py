@@ -54,7 +54,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "landing.meta_questions": "24 ta savol",
         "landing.meta_minutes": "4 daqiqa",
         "landing.meta_personal": "Shaxsiy natija",
-        "landing.cta": "Xarakterimni aniqlash",
+        "landing.cta": "O‘zim haqimda bilish",
         "landing.hero_alt": "Xarakterni anglash testi",
         # Ko‘rsatma
         "instructions.title": "Testdan oldin",

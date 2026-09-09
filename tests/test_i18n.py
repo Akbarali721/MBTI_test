@@ -118,3 +118,25 @@ def test_resolve_lang_prefers_query_over_cookie_over_header():
     assert resolve_lang(_request("", "ru", "uz")) == "ru"
     assert resolve_lang(_request("", None, "ru-RU,ru;q=0.9")) == "ru"
     assert resolve_lang(_request("lang=xx", None, None)) == DEFAULT
+
+
+def test_landing_cta_text_and_begin_flow(client):
+    from sqlalchemy import func, select
+
+    from app.models.personality import PersonalityTestSession
+
+    landing = client.get("/personality")
+    assert landing.status_code == 200
+    assert t("landing.cta", "uz") in landing.text
+    assert t("landing.cta", "ru") not in landing.text
+    assert "Xarakterimni aniqlash" not in landing.text
+
+    begin = client.post("/personality/begin", follow_redirects=False)
+    assert begin.status_code == 303
+    assert begin.headers["location"] == "/personality/instructions"
+
+    with db_session(client) as db:
+        assert db.scalar(select(func.count()).select_from(PersonalityTestSession)) == 1
+        session = db.scalar(select(PersonalityTestSession))
+        assert session is not None
+        assert session.started_at is None
