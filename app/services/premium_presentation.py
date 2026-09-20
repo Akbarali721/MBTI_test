@@ -99,6 +99,10 @@ def _action_bullets(plan: str) -> tuple[str, ...]:
     text = (plan or "").strip()
     if not text:
         return ()
+    parts = re.split(r"(?<=\.)\s+(?=\d+-kun:)", text)
+    if len(parts) > 1:
+        cleaned = [trim_words(p.strip().rstrip("."), 28) for p in parts if p.strip()]
+        return tuple(cleaned[:ACTION_COUNT])
     parts = re.split(r"(?<=\.)\s+(?=\d+[-–]?(?:kun|hafta|Kun|Hafta))", text)
     if len(parts) <= 1:
         parts = re.split(r"\.\s+(?=[A-ZА-Я0-9«\"'])", text)
@@ -116,6 +120,7 @@ def compose_premium_blocks(
     challenges: list[str],
     *,
     language: str,
+    action_plan_override: str | None = None,
 ) -> tuple[PremiumBlock, ...]:
     lang = language
     career_examples = _career_example_bullets(content.career_environment or "")
@@ -164,6 +169,6 @@ def compose_premium_blocks(
         PremiumBlock(
             title_key="result.premium.actions",
             title=t("result.premium.actions", lang),
-            bullets=_action_bullets(content.action_plan or ""),
+            bullets=_action_bullets(action_plan_override or content.action_plan or ""),
         ),
     )

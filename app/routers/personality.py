@@ -55,6 +55,13 @@ from app.services.premium_payment_service import (
     premium_deeplink_url,
     support_bot_public_url,
 )
+from app.personality.result_guidance import (
+    action_plan_text,
+    get_growth_areas,
+    premium_week_plan,
+    public_today_card,
+    resolve_focus_area,
+)
 from app.services.premium_presentation import compose_premium_blocks
 from app.services.result_pdf import PdfFontsUnavailable, PdfNotPremium, build_pdf_bytes
 from app.templating import templates
@@ -528,6 +535,7 @@ def personality_result(
     # Bu yerda ham `max_length` yo'q: noma'lum qiymat `_advice_notice` da None
     # bo'ladi, 422 esa premium natijani butunlay yopib qo'yardi.
     notice: str | None = Query(default=None),
+    focus: str | None = Query(default=None, max_length=64),
 ) -> HTMLResponse | RedirectResponse:
     denied = _require_session_owner(request, token, db, access=access)
     if denied:
@@ -555,6 +563,25 @@ def personality_result(
     share_code = share_code_for_session(db, session)
     base_url = str(request.base_url).rstrip("/")
     share_url = f"{base_url}{share_path(share_code)}"
+    growth_pair = get_growth_areas(session.result_type or "", language=lang)
+    focus_area = None
+    growth_summaries: list[dict[str, str]] = []
+    today_card: dict[str, str | list[str]] | None = None
+    week_plan: list[dict[str, str | int]] | None = None
+    action_plan_override: str | None = None
+    growth_today_by_id: dict[str, dict[str, str | list[str]]] = {}
+    growth_week_by_id: dict[str, list[dict[str, str | int]]] | None = None
+    if growth_pair:
+        focus_area = resolve_focus_area(growth_pair, focus)
+        growth_summaries = [
+            {"id": a["id"], "name": a["name"], "situation": a["situation"]} for a in growth_pair
+        ]
+        growth_today_by_id = {a["id"]: public_today_card(a) for a in growth_pair}
+        today_card = growth_today_by_id[focus_area["id"]]
+        if has_premium_access(session):
+            growth_week_by_id = {a["id"]: premium_week_plan(a) for a in growth_pair}
+            week_plan = growth_week_by_id[focus_area["id"]]
+            action_plan_override = action_plan_text(focus_area)
     ctx = _themed_context(session)
     ctx.update(
         {
@@ -589,11 +616,18 @@ def personality_result(
             "premium_deeplink_url": deeplink_url,
             # Deep link sozlanmagan holat uchun zaxira: server tomonda yo'naltiradi.
             "support_bot_open_url": f"/personality/result/{token}/support-bot",
+            "growth_summaries": growth_summaries,
+            "growth_focus_id": focus_area["id"] if focus_area else None,
+            "today_card": today_card,
+            "week_plan": week_plan,
+            "growth_today_by_id": growth_today_by_id,
+            "growth_week_by_id": growth_week_by_id,
             "premium_blocks": compose_premium_blocks(
                 content,
                 view["strengths"],
                 view["challenges"],
                 language=lang,
+                action_plan_override=action_plan_override,
             ),
             "feedback_skipped": feedback_skipped_for(request, token),
             "show_feedback_rating": (

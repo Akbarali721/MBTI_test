@@ -109,11 +109,22 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "result.eyebrow_after": " tipiga eng yaqin.",
         "result.type_label": "Tip:",
         "result.disclaimer": (
-            "Bu natija sizning eng yaqin xarakter yo‘nalishingizni ko‘rsatadi. "
-            "Tibbiy yoki psixologik tashxis emas."
+            "Bu javoblaringizga asoslangan taxminiy tavsif, tibbiy yoki psixologik tashxis emas."
         ),
         "result.strengths": "Kuchli tomonlar",
-        "result.challenges": "Qiyin tomonlar",
+        "result.challenges": "Rivojlanish yo‘nalishlari",
+        "result.growth_intro": "Agar sizda ham shunday holat bo‘lsa, quyidagi yo‘nalishlardan biri mos kelishi mumkin.",
+        "result.try_today": "Bugun sinab ko‘ring",
+        "result.try_today_note": "Bu shartli tavsiya — mos kelmasa boshqa yo‘nalishni tanlang yoki «Hozir menga mos emas» deb belgilang.",
+        "result.focus_prompt": "Hozir qaysi biri sizga dolzarbroq?",
+        "result.focus_not_now": "Hozir menga mos emas",
+        "result.week_plan_title": "7 kunlik reja",
+        "result.week_plan_day": "{day}-kun",
+        "result.method": "Usul",
+        "result.steps": "Qadamlar",
+        "result.success_criteria": "Bajarish mezoni",
+        "result.lighter_variant": "Vaqt yoki kuch kam bo‘lsa",
+        "result.check_question": "Tekshiruv savoli",
         # O'lchov qutblari (scoring moduli sof qoladi, nomlar shu yerda tarjima qilinadi)
         "dimension.i": "Introvert (I)",
         "dimension.e": "Ekstravert (E)",
@@ -872,11 +883,10 @@ def _from_accept_language(header: str | None) -> str | None:
 
 
 def resolve_lang(request: Request) -> str:
-    """?lang= → cookie → Accept-Language → DEFAULT."""
+    """?lang= → cookie → DEFAULT (brauzer/Telegram Accept-Language ishlatilmaydi)."""
     return (
         normalize_lang(request.query_params.get(LANG_QUERY_KEY))
         or normalize_lang(request.cookies.get(LANG_COOKIE_KEY))
-        or _from_accept_language(request.headers.get("accept-language"))
         or DEFAULT
     )
 

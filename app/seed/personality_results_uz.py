@@ -28,8 +28,8 @@ class ResultCopy(TypedDict):
 GENERIC_FALLBACK: ResultCopy = {
     "title": "Sizning xarakter yo‘nalishingiz",
     "short_description": (
-        "Natija sizning javoblaringiz asosida shakllangan. Bu sizning qadriyatlar, "
-        "energiya manbai va qaror qabul qilish uslubingiz haqida umumiy tasvir."
+        "Bu javoblaringizga asoslangan taxminiy tavsif. Aniq tipni aniqlab bo‘lmadi — "
+        "qayta urinib ko‘rishingiz yoki natijani do‘stingiz bilan muhokama qilishingiz mumkin."
     ),
     "strengths": [
         "Vaziyatga moslashish va o‘rganishga tayyorlik",
@@ -41,7 +41,8 @@ GENERIC_FALLBACK: ResultCopy = {
         "O‘z chegaralaringizni aniq aytmaslik",
     ],
     "public_view": (
-        "Atrofdagilar sizni xotirjam, muloqotga ochiq va o‘z yo‘lini qidirayotgan inson deb ko‘rishlari mumkin."
+        "Bu uslubda odam atrofda xotirjam, muloqotga ochiq va o‘z yo‘lini qidirayotgan inson "
+        "deb qabul qilinishi mumkin — bu haqiqiy fikr emas, ehtimoliy tasvir."
     ),
     "advice": (
         "Kuchli tomonlaringizni kundalik kichik qadamlarda ishlating; bir vaqtning o‘zida "
@@ -141,8 +142,8 @@ PERSONALITY_RESULTS_UZ: dict[str, ResultCopy] = {
             "Halollik, hissiy xavfsizlik va ba’zan yolg‘iz qolish huquqi muhim."
         ),
         compatible=(
-            "His-tuyg‘u haqida to‘g‘ridan-to‘g‘ri va xotirjam gapiradigan odamlar bilan oson — ko‘pincha "
-            "ENFJ, INFJ, ENFP. Ishda esa g‘oyani oxiriga yetkazishga yordam beradigan uyushqoq odamlar foydali."
+            "Tinch tinglaydigan, baho bermay qo‘llab-quvvatlaydigan va chegarangizni hurmat qiladigan odamlar. "
+            "Ishda g‘oyani kichik qadamlarga bo‘lib beradigan hamkorlar foydali bo‘lishi mumkin."
         ),
         difficult=(
             "Keskin tanqid, baland ohang va darhol javob berish talab qilinadigan vaziyatlar qiyin kechadi. "
@@ -193,8 +194,7 @@ PERSONALITY_RESULTS_UZ: dict[str, ResultCopy] = {
             "Keskin o‘zgarishlar va munosabatdagi noaniqlik sizni hammasidan ko‘proq holdan toydiradi."
         ),
         compatible=(
-            "ENFP va ENTP bilan oson — ular yengillik va harakat qo‘shadi — hamda o‘z his-tuyg‘usi "
-            "haqida xotirjam gapira oladigan, jiddiy mavzudan qo‘rqmaydigan odamlar bilan."
+            "Chuqur suhbat va ishonchga tayyor odamlar. Yengillik qo‘shadigan, lekin sizning vaqt chegarangizni buzmaydigan do‘stlar ham qulay."
         ),
         difficult=(
             "Yuzaki janjal, manipulyatsiya va o‘zini boshqacha ko‘rsatish kerak bo‘lgan muloqot og‘ir. "
@@ -241,8 +241,7 @@ PERSONALITY_RESULTS_UZ: dict[str, ResultCopy] = {
             "Ishora va hissiy taxminlar sizni ochiq suhbatdan ko‘ra ko‘proq charchatadi."
         ),
         compatible=(
-            "ENFP va ENTP bilan yaxshi chiqishasiz — ular jonlantiradi va yumshatadi — hamda mantiqni "
-            "hurmat qiladigan, aniqlashtiruvchi savolni hujum deb qabul qilmaydigan odamlar bilan."
+            "Aniq maqsad va mantiqiy muloqotni qadrlaydiganlar. G‘oyani amalga oshirishda kichik qadamlarni ham hurmat qiladigan hamkorlar."
         ),
         difficult=(
             "To‘g‘ri gapdan xafa bo‘ladigan odamlar va aylanma muhokamalar qiyin. "
@@ -291,8 +290,7 @@ PERSONALITY_RESULTS_UZ: dict[str, ResultCopy] = {
             "ko‘rinib turmaydi."
         ),
         compatible=(
-            "G‘oyani amalga oshirishga yordam beradigan ENTJ va ENFJ bilan qulay, hamda tayyor javobdan "
-            "ko‘ra savolni ko‘proq yaxshi ko‘radigan odamlar bilan."
+            "G‘oyani amalga oshirishda yordam beradigan, lekin bosim qilmaydigan odamlar. Tayyor javob talab qilmaydigan ochiq suhbatdoshlar."
         ),
         difficult=(
             "Hissiy bosim, darhol javob talab qilish va mantiqni sovuqlik deb qabul qiladigan "
@@ -338,8 +336,7 @@ PERSONALITY_RESULTS_UZ: dict[str, ResultCopy] = {
             "qolmay, qilgan ishlaringizni ham sezishi siz uchun muhim."
         ),
         compatible=(
-            "ESFJ va ENFJ bilan, umuman muammoni o‘z vaqtida va yumshoq aytadigan, xafagarchilikni "
-            "yig‘ib yurmaydigan e’tiborli odamlar bilan yaxshi."
+            "Muammoni yumshoq va o‘z vaqtida aytadigan, xafagarchilikni uzoq yuritmaydigan odamlar. Sizning shaxsiy makoningizni hurmat qiladiganlar."
         ),
         difficult=(
             "Begonalar oldidagi tanqid sizni qattiq va uzoq yaralaydi. Bahsda himoyalanishdan ko‘ra "
@@ -389,8 +386,7 @@ PERSONALITY_RESULTS_UZ: dict[str, ResultCopy] = {
             "Ogohlantirishsiz o‘zgarish o‘zgarishning o‘zidan ko‘ra ko‘proq xavotir tug‘diradi."
         ),
         compatible=(
-            "Yengillik va harakat qo‘shadigan ESTP hamda ESFP bilan, umuman rahmatni ovoz chiqarib "
-            "ayta oladigan odamlar bilan yaxshi."
+            "Minnatdorlikni ochiq aytadigan odamlar. Rejada kutilmagan o‘zgarish bo‘lsa, oldindan xabar beradigan hamkorlar."
         ),
         difficult=(
             "Ziddiyat, sovuqlik va to‘g‘ridan-to‘g‘ri iltimos o‘rniga ishora qilish og‘ir kechadi. "
@@ -437,8 +433,7 @@ PERSONALITY_RESULTS_UZ: dict[str, ResultCopy] = {
             "So‘z siz uchun ishdan kamroq ma’no beradi — his-tuyg‘uni ham amal bilan ko‘rsatasiz."
         ),
         compatible=(
-            "Qat’iy jadvalni yumshatadigan ESFP va ESTP bilan, hamda vaqtga rioya qiladigan va "
-            "kelishuvni buzmaydigan odamlar bilan yaxshi."
+            "Vaqt va kelishuvlarni hurmat qiladigan odamlar. Ba’zan yengilroq va spontan reja taklif qiladiganlar ham foydali bo‘lishi mumkin."
         ),
         difficult=(
             "Kechikish, ogohlantirmay muddatni surish va «yurib turib» qabul qilingan qarorlar charchatadi. "
@@ -486,8 +481,7 @@ PERSONALITY_RESULTS_UZ: dict[str, ResultCopy] = {
             "o‘zi taxmin qiladi va ko‘pincha xato qiladi."
         ),
         compatible=(
-            "Tashkilotchilikni o‘z zimmasiga oladigan ESFJ va ESTJ bilan qulay, hamda hissiy bosim "
-            "o‘tkazmaydigan, doimiy hisobot talab qilmaydigan odamlar bilan."
+            "Hissiy bosim qilmasdan aniq gapiradigan odamlar. Tashkilotchilikni o‘z zimmasiga oladigan hamkorlar ba’zan yukni yengillashtiradi."
         ),
         difficult=(
             "Nazorat, uzun nasihat va hissiyot ustida munosabat oydinlashtirishni og‘ir ko‘tarasiz. "
@@ -518,9 +512,8 @@ PERSONALITY_RESULTS_UZ: dict[str, ResultCopy] = {
             "maqsadga aylantirish yordam beradi."
         ),
         work=(
-            "Siz g‘oyani ajoyib ishlab chiqasiz va boshqalarni ham yondirasiz, ammo tafsilot va kundalik "
-            "ish tashqi suyanchiqni talab qiladi. Tuzilmani yaxshi ko‘radigan odam bilan juft ishlash "
-            "natijangizni ikki barobar oshiradi."
+            "Siz g‘oyani yaxshi ko‘tarasiz va boshqalarni ham jalb qilasiz; kundalik tafsilot va "
+            "yakunlash bosqichi esa tashqi tartib yoki kichik qadamlar bilan yengillashtirilishi mumkin."
         ),
         career=(
             "Marketing, ijodiy sohalar, o‘qitish, psixologiya, startaplar, ommaviy kommunikatsiya mos. "
@@ -535,8 +528,7 @@ PERSONALITY_RESULTS_UZ: dict[str, ResultCopy] = {
             "Zerikish va sovuqlik sizni ochiq ziddiyatdan ko‘ra qattiqroq yaralaydi."
         ),
         compatible=(
-            "Chuqurlik va tuzilma beradigan INFJ hamda INTJ bilan yaxshi, va o‘z-o‘zidanligingizni "
-            "so‘ndirmay, ishga muloyim qaytaradigan odamlar bilan."
+            "Chuqurlik va tuzilma qo‘shadigan, lekin erkinligingizni cheklamaydigan odamlar. G‘oyani kichik qadamlarda amalga oshirishga yordam beradiganlar."
         ),
         difficult=(
             "Befarqlik, mayda-chuydaga tirishish va qattiq nazorat og‘ir kechadi. "
@@ -584,8 +576,7 @@ PERSONALITY_RESULTS_UZ: dict[str, ResultCopy] = {
             "Juftingizning jim masofasini siz rad etish sifatida boshdan kechirasiz."
         ),
         compatible=(
-            "Sizning qo‘llab-quvvatlashingiz haqiqatan kerak bo‘lgan INFP va ISFP bilan yaxshi, hamda "
-            "minnatdorlik bildira oladigan va g‘amxo‘rlikni qaytara oladigan odamlar bilan."
+            "Yordamingiz haqiqatan kerak bo‘lgan odamlar. O‘z ehtiyojingizni ham ayta oladigan, ikki tomonlama muloqotni qadrlaydiganlar."
         ),
         difficult=(
             "Sovuqlik, qadrsizlantirish va yaqin doiradagi ziddiyat og‘ir. Siz hammani yarashtirishga "
@@ -632,8 +623,7 @@ PERSONALITY_RESULTS_UZ: dict[str, ResultCopy] = {
             "sizdan faqat baho emas, e’tirof ham eshitishi kerak — buni ovoz chiqarib aytish arziydi."
         ),
         compatible=(
-            "Sur’atingizni muvozanatlaydigan INTP va INFP bilan yaxshi, hamda to‘g‘ri gapiradigan va "
-            "aniqlikdan xafa bo‘lmaydigan odamlar bilan."
+            "To‘g‘ridan-to‘g‘ri gapiradigan va vakolatni aniq bo‘lishadigan odamlar. Sur’atingizni yumshatishga yordam beradigan, tinch eshitadigan hamkorlar."
         ),
         difficult=(
             "Noaniq javoblar, bajarilmagan va’dalar va qarorsiz muhokamalar asabiylashtiradi. "
@@ -645,19 +635,25 @@ PERSONALITY_RESULTS_UZ: dict[str, ResultCopy] = {
         ),
     ),
     "ENTP": _entry(
-        title="Bahschi va yangi yechimlar generatori",
-        summary="Siz g‘oyalarni, aqliy o‘yinni va chegaralarni sinab ko‘rishni yaxshi ko‘rasiz.",
+        title="Yangi yo‘l izlashga moyil",
+        summary=(
+            "Ko‘pincha yangi g‘oyalar va munozara sizga qiziqarli. Bir xil kundalik ish tez zerikarli "
+            "tuyulishi mumkin, lekin qiziqarli masala topilsa chuqur kirish ham xos."
+        ),
         strengths=[
-            "Tez fikrlash",
-            "Innovatsion yondashuv",
-            "Muloqotdagi joziba",
+            "Yangi yechimlarni tez ko‘rib chiqish va solishtirish",
+            "Suhbatda fikr almashish va savol berish",
+            "Noaniq vaziyatda bir nechta variant ko‘rish",
         ],
         challenges=[
-            "Bir xil kundalik ishdan charchash",
-            "Tafsilotlarni keyinga surish",
+            "Boshlagan ishni yakunlash",
+            "Bahsdan oldin eshitish",
         ],
-        others="Sizni aqlli, hozirjavob va qiziqarli suhbatdosh deb bilishadi.",
-        advice="Eng yaxshi bitta g‘oyani tanlab, uni amalga oshirish rejasini yozing.",
+        others=(
+            "Bu uslubda odam aqlli, tez javob beradigan va suhbati qiziqarli inson deb "
+            "qabul qilinishi mumkin."
+        ),
+        advice="Bugun bitta ochiq ishning kichik qismini belgilab bajaring.",
         motivation=(
             "Sizni chaqiriq va «boshqacha ham bo‘ladi» ekanini isbotlash imkoni yoqadi. Vazifa boshda "
             "hal bo‘lishi bilan qiziqish tushadi — ijro zerikarli tuyuladi. Musobaqa elementi va "
@@ -668,30 +664,27 @@ PERSONALITY_RESULTS_UZ: dict[str, ResultCopy] = {
             "Reglament va bir xillik qaytimingizni hammasidan tez pasaytiradi."
         ),
         career=(
-            "Tadbirkorlik, mahsulot boshqaruvi, konsalting, reklama, huquqshunoslik, muzokaralar — "
-            "tez va nostandart yechim kerak bo‘lgan hamma soha mos."
+            "Tez o‘zgaradigan vazifalar, qisqa loyihalar va erkin muloqotli muhit ko‘pincha qulayroq. "
+            "Katta tashkilotning bitta bo‘limida bir hafta kichik vazifa bilan sinab ko‘ring — "
+            "kun tartibi va vazifalar sizga mos kelishini kuzating."
         ),
         friendship=(
-            "Siz oson tanishasiz va xafa bo‘lmasdan bahslasha oladigan odamlarni qadrlaysiz. "
-            "Do‘stlik siz uchun g‘oya va energiya almashinuvi."
+            "Oson tanishasiz va fikr almashishni yoqtirasiz. Do‘stlar siz bilan g‘oya va yangilik "
+            "mavzularida gaplashishni qadrlashi mumkin."
         ),
         relationship=(
-            "Sizga aqliy qiziqish, hazil va erkinlik kerak. Juftingiz bahs siz uchun hujum emas, "
-            "qiziqish shakli ekanini tushunishi muhim; sizga esa ba’zan shunchaki rozi bo‘lish foydali."
+            "Sizga aqliy qiziqish, hazil va erkinlik muhim. Yaqqol «ha-yo‘q» talab qilmasdan, "
+            "suhbat va kelishuv odatlari ochiq bo‘lgan munosabat sizga yengilroq tuyuladi."
         ),
         compatible=(
-            "G‘oyalaringizni tizimga aylantiradigan INFJ va INTJ bilan yaxshi, hamda o‘ziga ishonchi "
-            "mustahkam, hazilni tushunadigan odamlar bilan."
+            "G‘oyangizni tinglab, keyin aniq qadam taklif qiladigan odamlar. Bahsni shaxsiy "
+            "hujum deb emas, fikr almashinuv deb ko‘radiganlar."
         ),
         difficult=(
-            "Tushuntirishsiz taqiqlar, munozarada xafa bo‘lish va byurokratiya og‘ir. "
-            "Siz mavzu o‘zingizga muhim bo‘lmaganda ham prinsip uchun bahslasha boshlaysiz."
+            "Tushuntirishsiz taqiqlar va uzoq byurokratik kutish og‘ir tuyulishi mumkin. "
+            "Agar sizda ham shunday bo‘lsa, muhim mavzuda avval tinglash va keyin javob berish yordam beradi."
         ),
-        plan=(
-            "1-hafta: uchta yangi g‘oyadan voz kechib, bittasini oxiriga yetkazing. "
-            "2-hafta: bahsda kuniga bir marta avval suhbatdoshning fikrini o‘z so‘zingiz bilan "
-            "qaytaring, keyingina e’tiroz bildiring."
-        ),
+        plan="",
     ),
     "ESFP": _entry(
         title="Hozirgi lahzaning jonli odami",
@@ -729,8 +722,7 @@ PERSONALITY_RESULTS_UZ: dict[str, ResultCopy] = {
             "xafagarchilik sizga juda og‘ir botadi."
         ),
         compatible=(
-            "Suyanchiq va tartib qo‘shadigan ISFJ hamda ISTJ bilan yaxshi, va muammoni yig‘ib yurmay "
-            "darrov aytadigan odamlar bilan."
+            "Muammoni yig‘ib yurmasdan ochiq aytadigan odamlar. Ba’zan tartib va reja qo‘shadigan, lekin kayfiyatingizni bosmaydiganlar."
         ),
         difficult=(
             "Keskin tanqid, ayniqsa boshqalar oldida, sizni uzoq muvozanatdan chiqaradi. "
@@ -778,8 +770,7 @@ PERSONALITY_RESULTS_UZ: dict[str, ResultCopy] = {
             "Munosabatdagi noaniqlik sizni ochiq ziddiyatdan ko‘ra ko‘proq xavotirga soladi."
         ),
         compatible=(
-            "Siz muvozanatlab turadigan ISFP va ISTP bilan yaxshi, hamda g‘amxo‘rlikni o‘z-o‘zidan "
-            "bo‘ladigan narsa deb qabul qilmaydigan odamlar bilan."
+            "G‘amxo‘rlikni o‘z-o‘zidan kutmaydigan, minnat va aniq gapiradigan odamlar. O‘z ehtiyojingizni ham aytishingiz mumkin bo‘lgan yaqinlar."
         ),
         difficult=(
             "Begonalar oldidagi tanqid, sovuqlik va ortiqcha vasiylikda ayblash og‘ir. "
@@ -825,8 +816,7 @@ PERSONALITY_RESULTS_UZ: dict[str, ResultCopy] = {
             "Juftingiz sizdan faqat tanbeh emas, ma’qullash ham eshitishi muhim."
         ),
         compatible=(
-            "Sur’atni yumshatadigan ISFP va INFP bilan yaxshi, hamda tartibni qadrlaydigan va "
-            "to‘g‘ridan-to‘g‘ri gapiradigan odamlar bilan."
+            "Tartib va mas’uliyatni qadrlaydigan, to‘g‘ridan-to‘g‘ri muloqot qiladigan odamlar. Ohangni yumshatishga yordam beradigan hamkorlar."
         ),
         difficult=(
             "Mas’uliyatsizlik, bahonalar va dalilsiz qarorlar asabiylashtiradi. "
@@ -872,8 +862,7 @@ PERSONALITY_RESULTS_UZ: dict[str, ResultCopy] = {
             "e’tiboringiz faqat yorqin lahzalarda emas, oddiy kunlarda ham muhim."
         ),
         compatible=(
-            "Ishonchli orqa fon yaratadigan ISFJ va ISTJ bilan yaxshi, hamda sur’atingizni yoqtiradigan "
-            "va o‘z vaqtida sekinlata oladigan odamlar bilan."
+            "Ishonchli va barqaror hamkorlar. Sur’atingizni yoqtirmay, lekin ochiq gapiradigan va katta qarordan oldin to‘xtashni qo‘llab-quvvatlaydigan odamlar."
         ),
         difficult=(
             "Uzun nasihatlar, tushuntirishsiz xafagarchilik va ma’nosiz qoidalar og‘ir. Siz keskin javob "
@@ -888,5 +877,17 @@ PERSONALITY_RESULTS_UZ: dict[str, ResultCopy] = {
 
 
 def get_result_copy(personality_type: str) -> ResultCopy:
+    from app.seed.growth_guidance_schema import format_action_plan
+    from app.seed.personality_guidance_uz import PERSONALITY_GROWTH_UZ
+
     key = personality_type.upper()
-    return PERSONALITY_RESULTS_UZ.get(key, GENERIC_FALLBACK)
+    base = PERSONALITY_RESULTS_UZ.get(key, GENERIC_FALLBACK)
+    if key not in PERSONALITY_GROWTH_UZ:
+        return base
+    areas = PERSONALITY_GROWTH_UZ[key]
+    merged: ResultCopy = {
+        **base,
+        "challenges": [areas[0]["name"], areas[1]["name"]],
+        "action_plan": format_action_plan(areas[0]),
+    }
+    return merged

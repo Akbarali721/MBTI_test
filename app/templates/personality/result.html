@@ -16,7 +16,6 @@
   <article class="ref-card mbti-flow-card mbti-result-page">
     {% include "personality/partials/brand_logo.html" %}
 
-    <p class="mbti-result-eyebrow">{{ t('result.eyebrow_before') }} <strong>{{ session.result_type }}</strong>{{ t('result.eyebrow_after') }}</p>
     <h1 class="mbti-flow-title">{{ content.title }}</h1>
     <p class="mbti-result-type">{{ t('result.type_label') }} {{ session.result_type }}</p>
 
@@ -26,7 +25,6 @@
 
     <p class="mbti-flow-text mbti-flow-text--left">{{ content.short_description }}</p>
 
-    {% if not is_premium %}
     <h2 class="mbti-section-title">{{ t('result.strengths') }}</h2>
     <ul class="mbti-list">
       {% for item in strengths %}
@@ -34,13 +32,61 @@
       {% endfor %}
     </ul>
 
+    {% if growth_summaries %}
+    <h2 class="mbti-section-title">{{ t('result.challenges') }}</h2>
+    <p class="mbti-flow-text mbti-flow-text--left mbti-growth-intro">{{ t('result.growth_intro') }}</p>
+    <div class="mbti-growth-focus" id="growth-focus" role="group" aria-label="{{ t('result.focus_prompt') }}">
+      <p class="mbti-growth-focus__prompt">{{ t('result.focus_prompt') }}</p>
+      <div class="mbti-growth-focus__choices">
+        {% for area in growth_summaries %}
+        <button type="button"
+                class="mbti-growth-chip{% if area.id == growth_focus_id %} is-active{% endif %}"
+                data-growth-focus="{{ area.id }}">
+          {{ area.name }}
+        </button>
+        {% endfor %}
+        <button type="button" class="mbti-growth-chip mbti-growth-chip--muted" data-growth-dismiss>
+          {{ t('result.focus_not_now') }}
+        </button>
+      </div>
+      {% for area in growth_summaries %}
+      <div class="mbti-growth-area{% if area.id != growth_focus_id %} is-hidden{% endif %}"
+           data-growth-panel="{{ area.id }}">
+        <p class="mbti-flow-text mbti-flow-text--left">{{ area.situation }}</p>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% if today_card %}
+    <div class="mbti-today-card" id="today-card" data-growth-root>
+      <h2 class="mbti-section-title">{{ t('result.try_today') }}</h2>
+      <p class="mbti-today-card__area" data-field="area_name">{{ today_card.area_name }}</p>
+      <p class="mbti-flow-text mbti-flow-text--left" data-field="situation">{{ today_card.situation }}</p>
+      <p class="mbti-today-card__label">{{ t('result.method') }}</p>
+      <p class="mbti-flow-text mbti-flow-text--left" data-field="method">{{ today_card.method }}</p>
+      <p class="mbti-today-card__label">{{ t('result.steps') }}</p>
+      <ol class="mbti-today-steps" data-field="steps">
+        {% for step in today_card.steps %}
+        <li>{{ step }}</li>
+        {% endfor %}
+      </ol>
+      <p class="mbti-today-card__task"><strong>{{ today_card.today_task }}</strong></p>
+      <p class="mbti-today-card__meta">{{ t('result.success_criteria') }}: <span data-field="success_criteria">{{ today_card.success_criteria }}</span></p>
+      <p class="mbti-today-card__meta">{{ t('result.lighter_variant') }}: <span data-field="lighter_variant">{{ today_card.lighter_variant }}</span></p>
+      <p class="mbti-today-card__meta">{{ t('result.check_question') }}: <span data-field="check_question">{{ today_card.check_question }}</span></p>
+      <p class="mbti-today-card__note">{{ t('result.try_today_note') }}</p>
+    </div>
+    {% endif %}
+    {% else %}
     <h2 class="mbti-section-title">{{ t('result.challenges') }}</h2>
     <ul class="mbti-list">
       {% for item in challenges %}
       <li>{{ item }}</li>
       {% endfor %}
     </ul>
+    {% endif %}
 
+    {% if not is_premium %}
     <h2 class="mbti-section-title">{{ t('result.public_view') }}</h2>
     <p class="mbti-flow-text mbti-flow-text--left">{{ content.public_view }}</p>
     {% endif %}
@@ -53,6 +99,21 @@
     <hr class="mbti-flow-divider">
 
     <h2 class="mbti-flow-title mbti-flow-title--sm">{{ t('result.premium_headline') }}</h2>
+
+    {% if is_premium and week_plan %}
+    <div class="mbti-week-plan" id="week-plan">
+      <h3 class="mbti-section-title">{{ t('result.week_plan_title') }}</h3>
+      <ul class="mbti-week-plan__list">
+        {% for day in week_plan %}
+        <li class="mbti-week-plan__item">
+          <p class="mbti-week-plan__day">{{ t('result.week_plan_day', day=day.day) }}</p>
+          <p class="mbti-week-plan__task">{{ day.task }}</p>
+          <p class="mbti-week-plan__meta">{{ day.minutes }} · {{ t('result.success_criteria') }}: {{ day.success }}</p>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
 
     {% if payment_status == 'approved' %}
     <p class="mbti-premium-success-badge" role="status">{{ t('result.premium_opened') }}</p>
@@ -240,5 +301,12 @@
 {% endif %}
 {% endblock %}
 {% block scripts %}
+{% if growth_today_by_id %}
+<script type="application/json" id="growth-today-data">{{ growth_today_by_id|tojson }}</script>
+{% endif %}
+{% if is_premium and growth_week_by_id %}
+<script type="application/json" id="growth-week-data">{{ growth_week_by_id|tojson }}</script>
+{% endif %}
+<script src="{{ asset_url('js/result-focus.js') }}" defer></script>
 <script src="{{ asset_url('js/result-payment.js') }}" defer></script>
 {% endblock %}

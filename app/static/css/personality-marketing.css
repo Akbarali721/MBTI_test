@@ -1359,6 +1359,124 @@ body.personality-body.ref-page.theme-male {
   margin: 0;
 }
 
+.mbti-growth-intro {
+  margin-bottom: 10px;
+}
+
+.mbti-growth-focus__prompt {
+  font-size: 0.95rem;
+  margin: 0 0 10px;
+  color: var(--ref-muted, #5a6478);
+}
+
+.mbti-growth-focus__choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.mbti-growth-chip {
+  border: 1px solid rgba(11, 35, 72, 0.15);
+  background: #fff;
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-size: 0.92rem;
+  line-height: 1.3;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.mbti-growth-chip.is-active {
+  border-color: rgba(11, 35, 72, 0.45);
+  background: rgba(11, 35, 72, 0.06);
+  font-weight: 600;
+}
+
+.mbti-growth-chip--muted {
+  opacity: 0.85;
+}
+
+.mbti-growth-area.is-hidden {
+  display: none;
+}
+
+.mbti-today-card {
+  border: 1px solid rgba(11, 35, 72, 0.12);
+  border-radius: 16px;
+  padding: 16px 14px;
+  margin: 8px 0 20px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.mbti-today-card__area {
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+
+.mbti-today-card__label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 12px 0 4px;
+  color: var(--ref-muted, #5a6478);
+}
+
+.mbti-today-steps {
+  margin: 0 0 12px 18px;
+  padding: 0;
+}
+
+.mbti-today-card__task {
+  margin: 12px 0 8px;
+}
+
+.mbti-today-card__meta {
+  font-size: 0.9rem;
+  line-height: 1.45;
+  margin: 6px 0;
+}
+
+.mbti-today-card__note {
+  font-size: 0.85rem;
+  color: var(--ref-muted, #5a6478);
+  margin: 12px 0 0;
+}
+
+.mbti-week-plan {
+  margin: 0 0 18px;
+}
+
+.mbti-week-plan__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mbti-week-plan__item {
+  border: 1px solid rgba(11, 35, 72, 0.1);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.mbti-week-plan__day {
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+
+.mbti-week-plan__task {
+  margin: 0 0 4px;
+  line-height: 1.45;
+}
+
+.mbti-week-plan__meta {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ref-muted, #5a6478);
+}
+
 .mbti-result-page {
   overflow-x: hidden;
   max-width: 100%;

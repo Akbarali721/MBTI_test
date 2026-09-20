@@ -53,9 +53,9 @@ def test_cookie_can_be_overridden_by_a_new_query(client):
     assert client.cookies.get(LANG_COOKIE_KEY) == "uz"
 
 
-def test_accept_language_header_is_used_when_nothing_was_chosen(client):
+def test_accept_language_header_does_not_override_default(client):
     page = client.get("/personality", headers={"accept-language": "en;q=0.8, ru-RU;q=0.9"})
-    assert 'lang="ru"' in page.text
+    assert 'lang="uz"' in page.text
 
 
 def test_language_switcher_keeps_the_current_path_and_query(client):
@@ -116,7 +116,7 @@ def test_resolve_lang_prefers_query_over_cookie_over_header():
 
     assert resolve_lang(_request("lang=ru", "uz", "uz")) == "ru"
     assert resolve_lang(_request("", "ru", "uz")) == "ru"
-    assert resolve_lang(_request("", None, "ru-RU,ru;q=0.9")) == "ru"
+    assert resolve_lang(_request("", None, "ru-RU,ru;q=0.9")) == DEFAULT
     assert resolve_lang(_request("lang=xx", None, None)) == DEFAULT
 
 
