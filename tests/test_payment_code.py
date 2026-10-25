@@ -12,6 +12,7 @@ from app.personality.payment_code import (
     generate_payment_code,
     payment_code_for_session,
 )
+from app.services.premium_payment_service import premium_deeplink_url
 from tests.helpers import complete_session, db_session, session_by_token
 
 
@@ -72,6 +73,10 @@ def test_payment_code_lookup_falls_back_to_token_prefix(client):
 
 
 def test_result_support_bot_flow(client, monkeypatch):
+    # Haqiqiy qoida: premium deeplink avval BOT_USERNAME (chek qabul qiluvchi bot),
+    # keyin payment_support_bot_username. Lokal .env dagi BOT_USERNAME testni ifloslantirmasin.
+    monkeypatch.setattr(settings, "bot_username", "")
+    monkeypatch.setattr(settings, "telegram_bot_username", "")
     monkeypatch.setattr(settings, "payment_support_bot_username", "xarakter_test_support_bot")
     token = complete_session(client)
 
@@ -83,7 +88,9 @@ def test_result_support_bot_flow(client, monkeypatch):
     # GET faqat yoʻnaltiradi, hech qanday toʻlov yozuvi yaratmaydi.
     redirect = client.get(f"/personality/result/{token}/support-bot", follow_redirects=False)
     assert redirect.status_code == 303
-    assert redirect.headers["location"] == f"https://t.me/xarakter_test_support_bot?start=premium_{token}"
+    expected = premium_deeplink_url(token)
+    assert expected == f"https://t.me/xarakter_test_support_bot?start=premium_{token}"
+    assert redirect.headers["location"] == expected
 
     with db_session(client) as db:
         assert db.scalar(select(func.count()).select_from(PaymentRequest)) == 0
@@ -95,6 +102,8 @@ def test_result_support_bot_flow(client, monkeypatch):
 
 
 def test_legacy_payment_telegram_post_still_starts_the_flow(client, monkeypatch):
+    monkeypatch.setattr(settings, "bot_username", "")
+    monkeypatch.setattr(settings, "telegram_bot_username", "")
     monkeypatch.setattr(settings, "payment_support_bot_username", "xarakter_test_support_bot")
     token = complete_session(client)
 
@@ -107,6 +116,7 @@ def test_legacy_payment_telegram_post_still_starts_the_flow(client, monkeypatch)
 def test_support_bot_unconfigured(client, monkeypatch):
     monkeypatch.setattr(settings, "payment_support_bot_username", "")
     monkeypatch.setattr(settings, "bot_username", "")
+    monkeypatch.setattr(settings, "telegram_bot_username", "")
     token = complete_session(client)
 
     page = client.get(f"/personality/result/{token}")

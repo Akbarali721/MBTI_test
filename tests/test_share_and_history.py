@@ -4,6 +4,7 @@ import re
 
 from fastapi.testclient import TestClient
 
+from app.i18n import t
 from app.main import app
 from app.personality.share_code import generate_share_code, share_path, telegram_share_url
 from tests.helpers import complete_session, db_session, session_by_token, start_session
@@ -103,10 +104,15 @@ def test_shared_result_respects_language(client):
     uzbek = client.get(f"{share_path(code)}?lang=uz").text
     russian = client.get(f"{share_path(code)}?lang=ru").text
 
-    assert "Ekstravert (E)" in uzbek
-    # O'lchov yorliqlari ham tarjima qilinishi kerak — begona odam ko'radigan yagona sahifa.
-    assert "Экстраверт (E)" in russian
-    assert "Ekstravert (E)" not in russian
+    # Semantik: i18n katalogidagi o'lchov yorliqlari (qattiq HTML emas).
+    uz_e = t("dimension.e", "uz")
+    ru_e = t("dimension.e", "ru")
+    assert uz_e in uzbek
+    assert ru_e in russian
+    # Rus sahifada o'zbek yorliq qolmasligi kerak — til xatosini yashirmaymiz.
+    assert uz_e not in russian
+    assert t("result.type_label", "uz") in uzbek
+    assert t("result.type_label", "ru") in russian
 
 
 def test_shared_result_uses_russian_content_when_seeded(client):

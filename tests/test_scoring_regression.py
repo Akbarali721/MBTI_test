@@ -60,6 +60,9 @@ def test_result_page_shows_the_computed_type(client):
         result_type = session_by_token(db, token).result_type
     page = client.get(f"/personality/result/{token}")
     assert page.status_code == 200
-    # Tip endi eyebrow <strong> ichida emas — «Tip: ESTJ» qatori bilan chiqadi.
+    # Shaxsiylashtirilgan dizayn: tip «Tip: ESTJ» qatori — eski <strong> eyebrow emas.
+    assert "mbti-result-type" in page.text
     assert t("result.type_label", "uz") in page.text
     assert result_type in page.text
+    # Scoring hali ham hisoblangan tipni saqlashi kerak (HTML kosmetikasi emas).
+    assert result_type and len(result_type) == 4
