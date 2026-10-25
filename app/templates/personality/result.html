@@ -25,6 +25,27 @@
 
     <p class="mbti-flow-text mbti-flow-text--left">{{ content.short_description }}</p>
 
+    {% if answer_observations %}
+    <section class="mbti-answer-observations" aria-labelledby="answer-observations-heading">
+      <h2 id="answer-observations-heading" class="mbti-section-title">{{ t('result.answer_observations.title') }}</h2>
+      {% for obs in answer_observations %}
+      <article class="mbti-answer-observation">
+        {% for paragraph in obs.paragraphs %}
+        <p class="mbti-flow-text mbti-flow-text--left">{{ paragraph }}</p>
+        {% endfor %}
+        {% if obs.evidence %}
+        <p class="mbti-answer-observation__evidence-label">{{ t('result.answer_observations.based_on') }}:</p>
+        <ul class="mbti-list mbti-answer-observation__evidence">
+          {% for item in obs.evidence %}
+          <li>«{{ item.option_text }}»</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </article>
+      {% endfor %}
+    </section>
+    {% endif %}
+
     <h2 class="mbti-section-title">{{ t('result.strengths') }}</h2>
     <ul class="mbti-list">
       {% for item in strengths %}

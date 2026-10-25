@@ -62,6 +62,7 @@ from app.personality.result_guidance import (
     public_today_card,
     resolve_focus_area,
 )
+from app.services.answer_observations import observations_for_session, observations_for_template
 from app.services.premium_presentation import compose_premium_blocks
 from app.services.result_pdf import PdfFontsUnavailable, PdfNotPremium, build_pdf_bytes
 from app.templating import templates
@@ -571,6 +572,7 @@ def personality_result(
     action_plan_override: str | None = None
     growth_today_by_id: dict[str, dict[str, str | list[str]]] = {}
     growth_week_by_id: dict[str, list[dict[str, str | int]]] | None = None
+    answer_observations = observations_for_template(observations_for_session(db, session.id))
     if growth_pair:
         focus_area = resolve_focus_area(growth_pair, focus)
         growth_summaries = [
@@ -594,6 +596,7 @@ def personality_result(
             "result": result,
             "strengths": view["strengths"],
             "challenges": view["challenges"],
+            "answer_observations": answer_observations,
             # Premium bo'limlar TO'LOV yoki MUKOFOT bilan ochiladi; PDF esa faqat
             # to'lov bilan — yuklab olingan fayl sinov muddatidan keyin ham qoladi.
             "is_premium": has_premium_access(session),

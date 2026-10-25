@@ -1401,6 +1401,25 @@ body.personality-body.ref-page.theme-male {
   display: none;
 }
 
+.mbti-answer-observations {
+  margin: 8px 0 20px;
+}
+
+.mbti-answer-observation {
+  margin: 0 0 16px;
+}
+
+.mbti-answer-observation__evidence-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 8px 0 4px;
+  color: var(--ref-muted, #5a6478);
+}
+
+.mbti-answer-observation__evidence {
+  margin-bottom: 0;
+}
+
 .mbti-today-card {
   border: 1px solid rgba(11, 35, 72, 0.12);
   border-radius: 16px;

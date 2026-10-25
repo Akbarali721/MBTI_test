@@ -112,6 +112,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "Bu javoblaringizga asoslangan taxminiy tavsif, tibbiy yoki psixologik tashxis emas."
         ),
         "result.strengths": "Kuchli tomonlar",
+        "result.answer_observations.title": "Javoblaringizda e’tiborimizni tortgan jihatlar",
+        "result.answer_observations.based_on": "Asos bo‘lgan tanlovlaringiz",
+        "result.answer_observations.neutral": (
+            "Bu sessiyada alohida shaxsiy kuzatuv chiqarish uchun javoblar yetarli darajada "
+            "izchil emas — umumiy tip tavsifi bilan davom eting."
+        ),
         "result.challenges": "Rivojlanish yo‘nalishlari",
         "result.growth_intro": "Agar sizda ham shunday holat bo‘lsa, quyidagi yo‘nalishlardan biri mos kelishi mumkin.",
         "result.try_today": "Bugun sinab ko‘ring",
@@ -540,6 +546,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "Это не медицинский и не психологический диагноз."
         ),
         "result.strengths": "Сильные стороны",
+        "result.answer_observations.title": "Что особенно заметно в ваших ответах",
+        "result.answer_observations.based_on": "На каких выборах основано",
+        "result.answer_observations.neutral": (
+            "В этой сессии ответы недостаточно согласованы для отдельного личного наблюдения — "
+            "смотрите общее описание типа."
+        ),
         "result.challenges": "Сложные стороны",
         # Полюса шкал
         "dimension.i": "Интроверт (I)",
