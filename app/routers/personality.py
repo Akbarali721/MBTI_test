@@ -412,12 +412,14 @@ def personality_test(
     db.commit()
     db.refresh(session)
     view = service.get_test_view(token, question_index=q)
-    service.record_question_view(token, view["question_index"])
-    db.commit()
+    # Tugallangan sessiya / bo‘sh bank redirectida `question_index` yo‘q — avval shuni tekshiramiz.
     if view.get("redirect") == "result":
         return RedirectResponse(url=f"/personality/result/{token}", status_code=303)
     if view.get("redirect") == "questions_error":
         return templates.TemplateResponse(request, "personality/questions_error.html", {})
+
+    service.record_question_view(token, view["question_index"])
+    db.commit()
 
     session = view["session"]
     ctx = _themed_context(session)

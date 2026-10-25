@@ -53,7 +53,9 @@ def test_personality_full_flow_and_premium_grant(client):
 
     result = client.get(f"/personality/result/{token}")
     assert result.status_code == 200
-    assert t("result.eyebrow_after", "uz").strip() in result.text
+    # Natija sahifasi endi eyebrow o‘rniga tip yorlig‘ini ko‘rsatadi.
+    assert t("result.type_label", "uz") in result.text
+    assert t("result.disclaimer", "uz")[:40] in result.text
     assert result.text.count(BRAND_LOGO_MARKER) == 1
     assert LOCKED_PREMIUM_MARKER in result.text
 

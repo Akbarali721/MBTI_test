@@ -156,5 +156,6 @@ def test_mixed_session_hides_observation_block(client):
     if not obs:
         assert t("result.answer_observations.title", "uz") not in page.text
     else:
-        # Agar baribir 1 ta o‘lchov o‘tib ketsa — blok bor, lekin 2 tadan oshmasin.
-        assert page.text.count("mbti-answer-observation") <= MAX_OBSERVATIONS
+        # Faqat kuzatuv article’lari (CSS modifier classlarini sanama).
+        assert page.text.count('class="mbti-answer-observation"') <= MAX_OBSERVATIONS
+        assert len(obs) <= MAX_OBSERVATIONS

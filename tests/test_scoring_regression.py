@@ -3,6 +3,7 @@
 import pytest
 from sqlalchemy import select
 
+from app.i18n import t
 from app.models.personality import PersonalityQuestion
 from app.seed.personality_placeholders import DIMENSION_POLES
 from tests.helpers import complete_session, db_session, session_by_token
@@ -59,4 +60,6 @@ def test_result_page_shows_the_computed_type(client):
         result_type = session_by_token(db, token).result_type
     page = client.get(f"/personality/result/{token}")
     assert page.status_code == 200
-    assert f"<strong>{result_type}</strong>" in page.text
+    # Tip endi eyebrow <strong> ichida emas — «Tip: ESTJ» qatori bilan chiqadi.
+    assert t("result.type_label", "uz") in page.text
+    assert result_type in page.text

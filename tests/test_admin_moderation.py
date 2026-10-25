@@ -88,7 +88,8 @@ def test_admin_can_approve_a_payment_from_the_panel(client, payment):
 
     response = client.post(f"/admin/premium-requests/{payment_id}/approve", follow_redirects=False)
     assert response.status_code == 303
-    assert response.headers["location"] == "/admin/premium-requests"
+    # Telegram yetkazish muvaffaqiyatsiz bo‘lsa flash query qo‘shiladi — premium ochilishi asosiy tekshiruv.
+    assert response.headers["location"].startswith("/admin/premium-requests")
 
     with db_session(client) as db:
         assert session_by_token(db, token).is_premium is True
