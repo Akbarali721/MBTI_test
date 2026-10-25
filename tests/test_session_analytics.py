@@ -68,46 +68,24 @@ def test_test_started_at_set_on_first_question_page(client):
         assert after.started_at is not None
 
 
-def test_feedback_rating_and_interest_saved(client):
+def test_legacy_feedback_endpoint_still_accepts_rating(client):
+    """Eski sessiya maydonlari API hali mavjud (admin sessiyalar jadvali)."""
     token = complete_session(client, open_result=False)
-    result = client.get(f"/personality/result/{token}")
-    assert t("feedback.rating.title", "uz") in result.text
-
     rated = client.post(
         f"/personality/result/{token}/feedback",
         data={"rating": "very_accurate"},
         follow_redirects=False,
     )
     assert rated.status_code == 303
-    after_rating = client.get(f"/personality/result/{token}")
-    assert t("feedback.interest.title", "uz") in after_rating.text
-
-    interested = client.post(
-        f"/personality/result/{token}/feedback",
-        data={"interest": "career"},
-        follow_redirects=False,
-    )
-    assert interested.status_code == 303
-
     with db_session(client) as db:
         row = session_by_token(db, token)
         assert row.feedback_rating == "very_accurate"
-        assert row.feedback_interest == "career"
-
-    final = client.get(f"/personality/result/{token}")
-    assert t("feedback.rating.title", "uz") not in final.text
 
 
-def test_feedback_skip_hides_block(client):
+def test_result_page_shows_new_user_feedback_block(client):
     token = complete_session(client, open_result=False)
-    skipped = client.post(
-        f"/personality/result/{token}/feedback",
-        data={"skip": "1"},
-        follow_redirects=False,
-    )
-    assert skipped.status_code == 303
     result = client.get(f"/personality/result/{token}")
-    assert t("feedback.rating.title", "uz") not in result.text
+    assert t("feedback.user.title", "uz") in result.text
 
 
 def test_admin_sessions_show_intent_and_summary(client):

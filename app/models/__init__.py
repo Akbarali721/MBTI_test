@@ -8,6 +8,7 @@ from app.models.personality import (
     PersonalityOption,
     PersonalityQuestion,
     PersonalityResultContent,
+    PersonalityResultUserFeedback,
     PersonalitySessionQuestion,
     PersonalityTestSession,
 )
@@ -24,6 +25,7 @@ __all__ = [
     "PersonalityOption",
     "PersonalityQuestion",
     "PersonalityResultContent",
+    "PersonalityResultUserFeedback",
     "PersonalitySessionQuestion",
     "PersonalityTestSession",
     "ServiceHeartbeat",

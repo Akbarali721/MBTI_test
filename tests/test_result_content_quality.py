@@ -64,6 +64,13 @@ def test_premium_text_does_not_lean_on_the_type_code():
             assert ptype not in copy[field], f"uz/{ptype}/{field} tip kodiga tayanmoqda"
 
 
+def test_every_type_has_three_daily_tips():
+    provider = RESULT_COPY_PROVIDERS["uz"]
+    for ptype in ALL_TYPES:
+        tips = provider(ptype)["daily_tips"]
+        assert len(tips) == 3, f"uz/{ptype} daily_tips soni 3 emas"
+
+
 def test_uzbek_text_uses_the_project_apostrophes():
     """Loyihada oʻ/gʻ uchun U+2018, tutuq belgisi uchun U+2019 ishlatiladi."""
     provider = RESULT_COPY_PROVIDERS["uz"]

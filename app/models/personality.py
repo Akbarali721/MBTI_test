@@ -148,6 +148,11 @@ class PersonalityTestSession(Base):
         cascade="all, delete-orphan",
         order_by="PersonalitySessionQuestion.display_order",
     )
+    user_feedback: Mapped["PersonalityResultUserFeedback | None"] = relationship(
+        back_populates="session",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
     payment_requests: Mapped[list["PaymentRequest"]] = relationship(
         back_populates="session", cascade="all, delete-orphan"
     )
@@ -237,6 +242,40 @@ class PersonalityAnswer(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     session: Mapped["PersonalityTestSession"] = relationship(back_populates="answers")
+
+
+class PersonalityResultUserFeedback(Base):
+    """Bitta test sessiyasi uchun bitta fikr (qayta yuborilsa yangilanadi)."""
+
+    __tablename__ = "personality_result_user_feedback"
+    __table_args__ = (UniqueConstraint("session_id", name="uq_result_user_feedback_session"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    session_id: Mapped[int] = mapped_column(
+        ForeignKey("personality_test_sessions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    telegram_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("telegram_users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    rating: Mapped[str] = mapped_column(String(16), nullable=False)
+    comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        default=lambda: datetime.now(timezone.utc),
+        index=True,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    session: Mapped["PersonalityTestSession"] = relationship(back_populates="user_feedback")
 
 
 class PersonalityResultContent(Base):

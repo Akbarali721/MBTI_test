@@ -15,6 +15,8 @@ FEEDBACK_INTEREST_VALUES: frozenset[str] = frozenset(
 )
 
 DEFAULT_SOURCE = "direct"
+# PyCharm / localhost DEV_MODE: analitikada telegram-webapp bilan aralashmasin.
+DEV_BROWSER_SOURCE = "dev-browser"
 
 INTENT_ADMIN_LABELS: dict[str, str] = {
     "strengths": "Kuchli tomonlar",

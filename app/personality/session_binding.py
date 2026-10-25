@@ -15,6 +15,19 @@ from app.repositories.personality_repository import PersonalityRepository
 from app.services import referral_service
 from app.services.personality_service import PersonalityService
 
+
+def attach_dev_browser_if_enabled(request: Request, db, session) -> None:
+    from app.personality.webapp_access import attach_dev_browser_user, mark_dev_browser
+    from app.personality.webapp_access import dev_mode_bypasses_webapp_gate
+
+    if dev_mode_bypasses_webapp_gate(request):
+        attach_dev_browser_user(db, session)
+        mark_dev_browser(request)
+
+
+def _attach_dev_browser_if_enabled(request: Request, db, session) -> None:
+    attach_dev_browser_if_enabled(request, db, session)
+
 COMPLETED_TOKENS_KEY = "personality_completed_tokens"
 PENDING_REFERRAL_KEY = "personality_pending_ref"
 PENDING_SOURCE_KEY = "personality_pending_source"
@@ -249,10 +262,12 @@ def ensure_visitor_session(
     existing = get_bound_session(request, db)
     if existing:
         # Tugallangan sessiya cookie'si bu yerda almashtirilmaydi: aks holda premium natija yo'qoladi.
+        _attach_dev_browser_if_enabled(request, db, existing)
         sync_source_attribution(request, db, existing, source)
         sync_referral_attribution(request, db, existing, ref)
         return existing
     session = repo.create_session(source=resolved_source, status=PersonalitySessionStatus.VISITED)
+    _attach_dev_browser_if_enabled(request, db, session)
     assign_session_cookie(request, session)
     sync_source_attribution(request, db, session, source)
     sync_referral_attribution(request, db, session, ref)
@@ -282,6 +297,7 @@ def create_fresh_session(
             if theme is not None:
                 service.set_appearance(session.token, theme)
                 session = service.get_session_or_404(session.token)
+    _attach_dev_browser_if_enabled(request, db, session)
     assign_session_cookie(request, session)
     sync_source_attribution(request, db, session, source)
     sync_referral_attribution(request, db, session, ref)
@@ -308,6 +324,7 @@ def bind_personality_session(
     if existing:
         sync_source_attribution(request, db, existing, source)
         sync_referral_attribution(request, db, existing, ref)
+        _attach_dev_browser_if_enabled(request, db, existing)
         return existing
     return create_fresh_session(
         request,

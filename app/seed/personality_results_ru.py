@@ -22,6 +22,11 @@ GENERIC_FALLBACK_RU: ResultCopy = {
         "Движение сразу в нескольких направлениях",
         "Сложность прямо обозначить свои границы",
     ],
+    "daily_tips": [
+        "Сегодня примените одну сильную сторону в одной конкретной задаче.",
+        "Когда устанете, сделайте 10-минутную паузу и продолжите.",
+        "Вечером запишите одно предложение: «Что сегодня получилось?»",
+    ],
     "public_view": "Со стороны вы кажетесь спокойным человеком, открытым к общению и ищущим свой собственный путь.",
     "advice": "Используйте сильные стороны в маленьких ежедневных шагах — не пытайтесь изменить всё сразу.",
     "motivation_analysis": "Мотивация держится устойчивее, когда есть осмысленная цель и заметные небольшие победы по пути.",
@@ -60,6 +65,7 @@ def _entry(
         "short_description": summary,
         "strengths": strengths,
         "challenges": challenges,
+        "daily_tips": [],
         "public_view": others,
         "advice": advice,
         "motivation_analysis": motivation,
@@ -856,6 +862,15 @@ PERSONALITY_RESULTS_RU: dict[str, ResultCopy] = {
 }
 
 
+def _daily_tips_ru(copy: ResultCopy) -> list[str]:
+    preset = copy.get("daily_tips") or []
+    if len(preset) >= 3:
+        return preset[:3]
+    tips = [copy["advice"], *copy["challenges"][:2]]
+    return [t for t in tips if t][:3]
+
+
 def get_result_copy_ru(personality_type: str) -> ResultCopy:
     key = personality_type.upper()
-    return PERSONALITY_RESULTS_RU.get(key, GENERIC_FALLBACK_RU)
+    base = PERSONALITY_RESULTS_RU.get(key, GENERIC_FALLBACK_RU)
+    return {**base, "daily_tips": _daily_tips_ru(base)}

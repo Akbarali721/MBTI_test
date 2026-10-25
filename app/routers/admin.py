@@ -61,6 +61,8 @@ from app.services.admin_telegram_user_service import (
     FILTERS as TELEGRAM_USER_FILTERS,
     AdminTelegramUserService,
 )
+from app.personality.user_feedback_constants import user_feedback_admin_label
+from app.services.result_user_feedback_service import ResultUserFeedbackService
 from app.services.test_funnel_analytics_service import SessionTestFunnelAnalyticsService
 from app.services.premium_payment_service import PremiumPaymentService, format_price_uzs
 from app.services.premium_telegram_delivery import try_deliver_premium_approved_message
@@ -264,6 +266,25 @@ def admin_telegram_users_list(
             "current_filter": chosen,
             "filter_options": TELEGRAM_USER_FILTERS,
             "funnel": service.funnel_stats(),
+        },
+    )
+
+
+@router.get("/feedback", response_class=HTMLResponse, response_model=None)
+@requires(VIEW_PII)
+def admin_user_feedback(
+    request: Request,
+    db: Session = Depends(get_db_session),
+) -> Response:
+    service = ResultUserFeedbackService(db)
+    stats = service.stats()
+    return templates.TemplateResponse(
+        request,
+        "admin/feedback.html",
+        {
+            "stats": stats,
+            "rows": service.list_recent(limit=300),
+            "rating_label": user_feedback_admin_label,
         },
     )
 

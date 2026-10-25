@@ -8,11 +8,11 @@ from dataclasses import dataclass
 from app.i18n import t
 from app.models.personality import PersonalityResultContent
 
-MAX_WORDS_BODY = 60
-MAX_WORDS_PARAGRAPH = 45
+MAX_WORDS_BODY = 90
+MAX_WORDS_PARAGRAPH = 55
 STRENGTH_COUNT = 3
 DRAIN_COUNT = 3
-ACTION_COUNT = 3
+ACTION_COUNT = 7
 MAX_CAREER_EXAMPLES = 6
 
 
@@ -45,23 +45,35 @@ def first_sentences(text: str, count: int = 2) -> str:
     return " ".join(chosen)
 
 
+def _lines(text: str) -> list[str]:
+    return [line.strip() for line in (text or "").splitlines() if line.strip()]
+
+
 def _brief_summary(content: PersonalityResultContent) -> str:
-    parts = [first_sentences(content.short_description or "", 2)]
-    extra = first_sentences(content.motivation_analysis or "", 1)
-    if extra and extra not in parts[0]:
-        parts.append(extra)
-    combined = " ".join(p for p in parts if p).strip()
-    return trim_words(combined, 55)
+    """Premium qisqa tavsif bepul «Siz qanday odamsiz?» matnini qaytarmaydi."""
+    source = (content.motivation_analysis or "").strip()
+    if len(_words(source)) < 20:
+        extra = first_sentences(content.public_view or "", 1)
+        source = " ".join(part for part in (source, extra) if part)
+    return trim_words(source, MAX_WORDS_BODY)
+
+
+def _strength_bullets(content: PersonalityResultContent, strengths: list[str]) -> tuple[str, ...]:
+    """Uch qatorli public_view — kuchli tomonni qayerda ishlatish. Aks holda bepul ro‘yxat."""
+    lines = _lines(content.public_view or "")
+    if len(lines) >= STRENGTH_COUNT:
+        return tuple(trim_words(line, 32) for line in lines[:STRENGTH_COUNT])
+    return tuple(trim_words(item, 22) for item in strengths[:STRENGTH_COUNT])
 
 
 def _drain_bullets(content: PersonalityResultContent, challenges: list[str]) -> tuple[str, ...]:
-    items: list[str] = []
-    for item in challenges[:DRAIN_COUNT]:
-        items.append(trim_words(item, 22))
+    """Uch qatorli difficult_communication — vaziyat va yechim. Aks holda qiyinchiliklar."""
+    lines = _lines(content.difficult_communication or "")
+    if len(lines) >= DRAIN_COUNT:
+        return tuple(trim_words(line, 40) for line in lines[:DRAIN_COUNT])
+    items = [trim_words(item, 28) for item in challenges[:DRAIN_COUNT]]
     if len(items) < 2 and content.difficult_communication:
-        items.append(trim_words(first_sentences(content.difficult_communication, 1), 22))
-    if len(items) < 2 and content.motivation_analysis:
-        items.append(trim_words(first_sentences(content.motivation_analysis, 1), 22))
+        items.append(trim_words(first_sentences(content.difficult_communication, 1), 28))
     return tuple(items[:DRAIN_COUNT])
 
 
@@ -79,15 +91,10 @@ def _career_example_bullets(career: str) -> tuple[str, ...]:
 
 def _relationship_body(content: PersonalityResultContent) -> str:
     chunks = [
-        trim_words(first_sentences(content.friendship_style or "", 1), MAX_WORDS_PARAGRAPH),
-        trim_words(first_sentences(content.compatible_people or "", 1), MAX_WORDS_PARAGRAPH),
-        trim_words(first_sentences(content.difficult_communication or "", 1), MAX_WORDS_PARAGRAPH),
+        trim_words(first_sentences(content.friendship_style or "", 2), MAX_WORDS_PARAGRAPH),
+        trim_words(first_sentences(content.relationship_needs or "", 2), MAX_WORDS_PARAGRAPH),
+        trim_words(first_sentences(content.compatible_people or "", 2), MAX_WORDS_PARAGRAPH),
     ]
-    if content.relationship_needs:
-        chunks.insert(
-            1,
-            trim_words(first_sentences(content.relationship_needs, 1), MAX_WORDS_PARAGRAPH),
-        )
     unique: list[str] = []
     for chunk in chunks:
         if chunk and chunk not in unique:
@@ -124,20 +131,7 @@ def compose_premium_blocks(
 ) -> tuple[PremiumBlock, ...]:
     lang = language
     career_examples = _career_example_bullets(content.career_environment or "")
-    work_intro = trim_words(
-        " ".join(
-            filter(
-                None,
-                [
-                    first_sentences(content.work_style or "", 1),
-                    first_sentences(content.career_environment or "", 1).split(":")[0]
-                    if ":" in (content.career_environment or "")
-                    else "",
-                ],
-            )
-        ),
-        MAX_WORDS_BODY,
-    )
+    work_intro = trim_words(first_sentences(content.work_style or "", 3), MAX_WORDS_BODY)
 
     return (
         PremiumBlock(
@@ -148,7 +142,7 @@ def compose_premium_blocks(
         PremiumBlock(
             title_key="result.premium.strengths",
             title=t("result.premium.strengths", lang),
-            bullets=tuple(trim_words(s, 14) for s in strengths[:STRENGTH_COUNT]),
+            bullets=_strength_bullets(content, strengths),
         ),
         PremiumBlock(
             title_key="result.premium.drains",

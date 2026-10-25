@@ -85,6 +85,20 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "feedback.interest.stress": "Stress paytida qanday o‘zgaraman",
         "feedback.interest.confidence": "O‘zimga ishonch",
         "feedback.skip": "O‘tkazib yuborish",
+        "feedback.user.title": "Natija sizga qanchalik mos tushdi?",
+        "feedback.user.positive": "Juda mos",
+        "feedback.user.partial": "Qisman mos",
+        "feedback.user.negative": "Mos kelmadi",
+        "feedback.user.comment_title": "Natijaning qaysi joyida o‘zingizni ko‘rdingiz?",
+        "feedback.user.comment_placeholder": (
+            "Masalan: Odamlar orasida tez charchashim haqidagi qismi juda mos tushdi."
+        ),
+        "feedback.user.submit": "Fikrimni yuborish",
+        "feedback.user.success_title": "Rahmat! 💜",
+        "feedback.user.success_body": (
+            "Sizning fikringiz Xarakterim testini yanada foydaliroq qilishimizga yordam beradi."
+        ),
+        "feedback.user.error": "Yuborib bo‘lmadi. Birozdan keyin qayta urinib ko‘ring.",
         # Savol
         "question.title": "Savol {current} / {total}",
         "question.back": "Orqaga",
@@ -109,10 +123,14 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "result.eyebrow_after": " tipiga eng yaqin.",
         "result.type_label": "Tip:",
         "result.disclaimer": (
-            "Bu javoblaringizga asoslangan taxminiy tavsif, tibbiy yoki psixologik tashxis emas."
+            "Bu javoblaringizga asoslangan umumiy taxmin. Mutlaq haqiqat yoki tashxis emas — "
+            "o‘zingizni yaxshiroq tushunish uchun yo‘l-yo‘riq sifatida qabul qiling."
         ),
-        "result.strengths": "Kuchli tomonlar",
-        "result.challenges": "Rivojlanish yo‘nalishlari",
+        "result.section.who": "Siz qanday odamsiz?",
+        "result.section.example": "Hayotiy misol",
+        "result.strengths": "Sizning 3 ta kuchli tomoningiz",
+        "result.challenges": "Sizga qiyinchilik tug‘dirishi mumkin bo‘lgan 2 ta holat",
+        "result.daily_tips": "O‘zingizni rivojlantirish uchun 3 ta amaliy tavsiya",
         "result.growth_intro": "Agar sizda ham shunday holat bo‘lsa, quyidagi yo‘nalishlardan biri mos kelishi mumkin.",
         "result.try_today": "Bugun sinab ko‘ring",
         "result.try_today_note": "Bu shartli tavsiya — mos kelmasa boshqa yo‘nalishni tanlang yoki «Hozir menga mos emas» deb belgilang.",
@@ -126,14 +144,14 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "result.lighter_variant": "Vaqt yoki kuch kam bo‘lsa",
         "result.check_question": "Tekshiruv savoli",
         # O'lchov qutblari (scoring moduli sof qoladi, nomlar shu yerda tarjima qilinadi)
-        "dimension.i": "Introvert (I)",
-        "dimension.e": "Ekstravert (E)",
-        "dimension.s": "Sensor (S)",
-        "dimension.n": "Intuitiv (N)",
-        "dimension.t": "Mantiqiy (T)",
-        "dimension.f": "Hisliy (F)",
-        "dimension.j": "Rejalovchi (J)",
-        "dimension.p": "Improvisatsiya (P)",
+        "dimension.i": "Yolg‘iz vaqt",
+        "dimension.e": "Odamlar bilan",
+        "dimension.s": "Aniq tafsilotlar",
+        "dimension.n": "Umumiy manzara",
+        "dimension.t": "Mantiq va tahlil",
+        "dimension.f": "His va munosabat",
+        "dimension.j": "Reja va tartib",
+        "dimension.p": "Moslashuv va erkinlik",
         # Ulashish
         "share.box_title": "Natijani ulashing",
         "share.box_desc": (
@@ -216,7 +234,13 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         ),
         "result.premium.relationships": "Odamlar bilan munosabat",
         "result.premium.actions": "7 kunlik amaliy tavsiya",
-        "result.locked_note": "Premium tahlil — ochish uchun to‘lov tasdiqlanishi kerak.",
+        "result.premium.brief.teaser": "Kundalik hayotda bu xususiyat qayerda chiqishi mumkin.",
+        "result.premium.strengths.teaser": "Har bir kuchli tomondan qayerda foydalanish mumkin.",
+        "result.premium.drains.teaser": "Sizni charchatishi mumkin bo‘lgan 3 holat va har biriga bitta qadam.",
+        "result.premium.work.teaser": "Qanday ish muhiti, vazifa va jamoa uslubi yengilroq kelishi mumkin.",
+        "result.premium.relationships.teaser": "Do‘stlik, yaqinlik va kelishmovchilikda nima qilish mumkin.",
+        "result.premium.actions.teaser": "7 kun davomida har kuni 5–15 daqiqalik bitta kichik vazifa.",
+        "result.locked_note": "Premium tahlil to‘lov tasdiqlangach ochiladi.",
         "result.status_pending_title": "So‘rovingiz qabul qilindi ✅",
         "result.status_pending_text": (
             "To‘lov tasdiqlangach, batafsil natijangiz tayyorlanadi.\n"
@@ -430,6 +454,10 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "errors.message_403": "Bu sahifani ko‘rish uchun huquqingiz yo‘q.",
         "errors.title_404": "Sahifa topilmadi",
         "errors.message_404": "So‘ralgan sahifa mavjud emas yoki ko‘chirilgan.",
+        "errors.message_webapp_only": (
+            "So‘ralgan sahifa mavjud emas yoki ko‘chirilgan. "
+            "Iltimos, ilovani Telegram bot orqali oching."
+        ),
         "errors.title_429": "Juda ko‘p urinish",
         "errors.message_429": "Juda ko‘p urinish bo‘ldi. Bir daqiqadan so‘ng qayta urinib ko‘ring.",
         "errors.title_500": "Serverda xatolik",
@@ -514,6 +542,20 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "feedback.interest.stress": "Как я меняюсь в стрессе",
         "feedback.interest.confidence": "Уверенность в себе",
         "feedback.skip": "Пропустить",
+        "feedback.user.title": "Насколько результат вам подошёл?",
+        "feedback.user.positive": "Очень подошёл",
+        "feedback.user.partial": "Частично подошёл",
+        "feedback.user.negative": "Не подошёл",
+        "feedback.user.comment_title": "В какой части результата вы узнали себя?",
+        "feedback.user.comment_placeholder": (
+            "Например: про то, что быстро устаю среди людей, — очень похоже на меня."
+        ),
+        "feedback.user.submit": "Отправить отзыв",
+        "feedback.user.success_title": "Спасибо! 💜",
+        "feedback.user.success_body": (
+            "Ваш отзыв помогает сделать тест Xarakterim полезнее."
+        ),
+        "feedback.user.error": "Не удалось отправить. Попробуйте чуть позже.",
         # Вопрос
         "question.title": "Вопрос {current} / {total}",
         "question.back": "Назад",
@@ -539,6 +581,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "Результат показывает наиболее близкое вам направление характера. "
             "Это не медицинский и не психологический диагноз."
         ),
+        "result.section.who": "Какой вы человек?",
+        "result.section.example": "Жизненный пример",
         "result.strengths": "Сильные стороны",
         "result.challenges": "Сложные стороны",
         # Полюса шкал
@@ -629,7 +673,13 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         ),
         "result.premium.relationships": "Отношения с людьми",
         "result.premium.actions": "Практичный план на 7 дней",
-        "result.locked_note": "Премиум-анализ — откроется после подтверждения оплаты.",
+        "result.premium.brief.teaser": "Как это может проявляться в обычных днях.",
+        "result.premium.strengths.teaser": "Где можно опереться на каждую сильную сторону.",
+        "result.premium.drains.teaser": "Три ситуации, которые могут утомлять, и по одному шагу.",
+        "result.premium.work.teaser": "Какая среда, задачи и стиль команды могут быть удобнее.",
+        "result.premium.relationships.teaser": "Что можно сделать в дружбе, близости и споре.",
+        "result.premium.actions.teaser": "Семь дней: каждый день одно дело на 5–15 минут.",
+        "result.locked_note": "Премиум-анализ откроется после подтверждения оплаты.",
         "result.status_pending_title": "Оплата проверяется",
         "result.status_pending_text": (
             "Ваш чек отправлен администратору. После подтверждения откроется премиум-результат."

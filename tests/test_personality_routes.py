@@ -4,6 +4,8 @@ Assertionlar barqaror belgilarga (id / class / marshrut) va i18n katalogiga taya
 qattiq yozilgan marketing jumlalariga emas.
 """
 
+import re
+
 from app.i18n import t
 from app.models.enums import AppearanceTheme
 from app.personality.session_binding import make_result_access_token
@@ -53,7 +55,9 @@ def test_personality_full_flow_and_premium_grant(client):
 
     result = client.get(f"/personality/result/{token}")
     assert result.status_code == 200
-    assert t("result.eyebrow_after", "uz").strip() in result.text
+    assert t("result.section.who", "uz") in result.text
+    assert t("result.daily_tips", "uz") in result.text
+    assert "Introvert" not in result.text
     assert result.text.count(BRAND_LOGO_MARKER) == 1
     assert LOCKED_PREMIUM_MARKER in result.text
 
@@ -85,7 +89,8 @@ def test_personality_full_flow_and_premium_grant(client):
     )
     assert result_premium.status_code == 200
     assert LOCKED_PREMIUM_MARKER not in result_premium.text
-    assert "placeholder" not in result_premium.text.lower()
+    visible = re.sub(r"\splaceholder=\"[^\"]*\"", "", result_premium.text, flags=re.IGNORECASE)
+    assert "placeholder" not in visible.lower()
     assert t("result.premium.brief", "uz") in result_premium.text
 
     retest = client.get(f"/personality/test/{token}", follow_redirects=False)

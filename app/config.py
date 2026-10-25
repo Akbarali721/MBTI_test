@@ -24,7 +24,7 @@ PLACEHOLDER_SECRET_KEYS = frozenset(
         "your-secret-key",
     }
 )
-LOCAL_URL_HOSTS = ("localhost", "127.0.0.1", "0.0.0.0")
+LOCAL_URL_HOSTS = ("localhost", "127.0.0.1", "0.0.0.0", "::1")
 
 # Shablonlar faqat /static dan foydalanadi (bootstrap va shriftlar self-host qilingan),
 # shuning uchun tashqi manbalarga ruxsat yo'q. 'unsafe-inline' faqat style uchun kerak:
@@ -113,6 +113,12 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./mbti_dev.db"
     secret_key: str = ""
     debug: bool = True
+    # Lokal brauzerda test (faqat DEBUG=true + lokal PUBLIC_BASE_URL). Production/Railway da taqiqlangan.
+    dev_mode: bool = False
+    # DEV_MODE sessiyalariga biriktiriladigan maxsus ID (haqiqiy Telegram foydalanuvchilari bilan aralashmaydi).
+    dev_browser_telegram_id: int = 9_000_000_001
+    # true: test/natija faqat Telegram WebApp bog‘langan sessiyalar uchun (DEV_MODE faol bo‘lsa chetlab o‘tiladi).
+    telegram_webapp_only: bool = False
 
     admin_username: str = "admin"
     admin_password: str = ""
@@ -356,9 +362,31 @@ class Settings(BaseSettings):
         value = self.public_base_url.strip().lower()
         return any(host in value for host in LOCAL_URL_HOSTS)
 
+    @property
+    def dev_mode_active(self) -> bool:
+        """Brauzer orqali to‘liq test oqimi — faqat xavfsiz lokal kombinatsiyada."""
+        return self.dev_mode and self.debug and self.public_base_url_is_local
+
+    @staticmethod
+    def _railway_environment() -> bool:
+        import os
+
+        return bool(os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_SERVICE_NAME"))
+
     @model_validator(mode="after")
     def _enforce_security(self) -> Settings:
         problems: list[str] = []
+
+        if self.dev_mode and self._railway_environment():
+            raise RuntimeError("DEV_MODE Railway production muhitida taqiqlangan")
+
+        if self.dev_mode:
+            if not self.debug:
+                problems.append("DEV_MODE=true faqat DEBUG=true bilan ishlashi mumkin (production taqiqlangan)")
+            elif not self.public_base_url_is_local:
+                problems.append(
+                    "DEV_MODE=true faqat lokal PUBLIC_BASE_URL bilan (masalan http://127.0.0.1:8000)"
+                )
 
         if self.secret_key_is_weak:
             problems.append(
