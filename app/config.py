@@ -115,9 +115,11 @@ class Settings(BaseSettings):
     debug: bool = True
     # Lokal brauzerda test (faqat DEBUG=true + lokal PUBLIC_BASE_URL). Production/Railway da taqiqlangan.
     dev_mode: bool = False
-    # DEV_MODE sessiyalariga biriktiriladigan maxsus ID (haqiqiy Telegram foydalanuvchilari bilan aralashmaydi).
+    # DEV_MODE sessiyalariga biriktiriladigan maxsus ID
+    # (haqiqiy Telegram foydalanuvchilari bilan aralashmaydi).
     dev_browser_telegram_id: int = 9_000_000_001
-    # true: test/natija faqat Telegram WebApp bog‘langan sessiyalar uchun (DEV_MODE faol bo‘lsa chetlab o‘tiladi).
+    # true: test/natija faqat Telegram WebApp bog‘langan sessiyalar uchun
+    # (DEV_MODE faol bo‘lsa chetlab o‘tiladi).
     telegram_webapp_only: bool = False
 
     admin_username: str = "admin"
@@ -382,7 +384,9 @@ class Settings(BaseSettings):
 
         if self.dev_mode:
             if not self.debug:
-                problems.append("DEV_MODE=true faqat DEBUG=true bilan ishlashi mumkin (production taqiqlangan)")
+                problems.append(
+                    "DEV_MODE=true faqat DEBUG=true bilan ishlashi mumkin (production taqiqlangan)"
+                )
             elif not self.public_base_url_is_local:
                 problems.append(
                     "DEV_MODE=true faqat lokal PUBLIC_BASE_URL bilan (masalan http://127.0.0.1:8000)"

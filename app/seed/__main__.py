@@ -110,8 +110,7 @@ def _guard_production_database_url() -> int | None:
         return None
     if os.environ.get("DATABASE_URL"):
         print(
-            "DATABASE_URL is set but settings still use default SQLite; "
-            "check env naming and restart.",
+            "DATABASE_URL is set but settings still use default SQLite; check env naming and restart.",
             file=sys.stderr,
         )
         return 1

@@ -17,18 +17,18 @@ from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from app.config import settings
 from app.database import engine
-from app.personality.webapp_access import (
-    LocalDevBrowserMiddleware,
-    allows_personality_path,
-    local_dev_entry_redirect,
-    telegram_webapp_gate_enabled,
-)
 from app.observability import (
     RequestLoggingMiddleware,
     configure_logging,
     init_sentry,
 )
 from app.paths import STATIC_DIR
+from app.personality.webapp_access import (
+    LocalDevBrowserMiddleware,
+    allows_personality_path,
+    local_dev_entry_redirect,
+    telegram_webapp_gate_enabled,
+)
 from app.routers import admin, personality, relationship, share, team
 from app.templating import render_template_or_none
 

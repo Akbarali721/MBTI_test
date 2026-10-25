@@ -8,7 +8,8 @@ import logging
 
 from aiogram import Bot, Dispatcher
 
-from app.bot.handlers import check_bot_configuration, on_unhandled_error, router as legacy_router
+from app.bot.handlers import check_bot_configuration, on_unhandled_error
+from app.bot.handlers import router as legacy_router
 from app.bot.outbox_worker import run_worker
 from app.config import settings
 from app.observability import configure_logging, init_sentry

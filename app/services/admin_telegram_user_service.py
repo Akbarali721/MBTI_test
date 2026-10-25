@@ -11,7 +11,12 @@ from sqlalchemy.orm import Session
 from app.models.enums import PersonalitySessionStatus
 from app.models.personality import PersonalityTestSession
 from app.models.telegram_user import TelegramReferral, TelegramUser
-from app.personality.test_progress import progress_percent, progress_reached, progress_status_label, progress_total
+from app.personality.test_progress import (
+    progress_percent,
+    progress_reached,
+    progress_status_label,
+    progress_total,
+)
 from app.services.admin_analytics_service import Page, normalize_page, normalize_page_size
 from app.services.premium_access import has_premium_access
 from app.services.telegram_user_service import list_referrals_for_referrer, primary_session_for_telegram_user
@@ -100,9 +105,7 @@ class TelegramUserDetail:
 def _session_started(session: PersonalityTestSession | None) -> bool:
     if session is None:
         return False
-    return session.started_at is not None or session.status not in (
-        PersonalitySessionStatus.VISITED,
-    )
+    return session.started_at is not None or session.status not in (PersonalitySessionStatus.VISITED,)
 
 
 def _resolve_premium_source(
@@ -338,9 +341,7 @@ class AdminTelegramUserService:
                 )
             ]
         if filter_key == FILTER_REFERRED:
-            return [
-                exists().where(TelegramReferral.referred_telegram_user_id == TelegramUser.id)
-            ]
+            return [exists().where(TelegramReferral.referred_telegram_user_id == TelegramUser.id)]
         return []
 
     def _count(self, stmt) -> int:

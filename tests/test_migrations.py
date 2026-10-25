@@ -224,11 +224,14 @@ def test_012_variant_unique_idempotent_on_sqlite(tmp_path):
             ("variant", "order_number"),
         )
         assert variant_order
-        assert m012.find_unique_names_for_columns(
-            insp.get_unique_constraints("personality_questions"),
-            insp.get_indexes("personality_questions"),
-            ("order_number",),
-        ) == []
+        assert (
+            m012.find_unique_names_for_columns(
+                insp.get_unique_constraints("personality_questions"),
+                insp.get_indexes("personality_questions"),
+                ("order_number",),
+            )
+            == []
+        )
     finally:
         engine.dispose()
 

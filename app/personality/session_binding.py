@@ -17,8 +17,11 @@ from app.services.personality_service import PersonalityService
 
 
 def attach_dev_browser_if_enabled(request: Request, db, session) -> None:
-    from app.personality.webapp_access import attach_dev_browser_user, mark_dev_browser
-    from app.personality.webapp_access import dev_mode_bypasses_webapp_gate
+    from app.personality.webapp_access import (
+        attach_dev_browser_user,
+        dev_mode_bypasses_webapp_gate,
+        mark_dev_browser,
+    )
 
     if dev_mode_bypasses_webapp_gate(request):
         attach_dev_browser_user(db, session)
@@ -27,6 +30,7 @@ def attach_dev_browser_if_enabled(request: Request, db, session) -> None:
 
 def _attach_dev_browser_if_enabled(request: Request, db, session) -> None:
     attach_dev_browser_if_enabled(request, db, session)
+
 
 COMPLETED_TOKENS_KEY = "personality_completed_tokens"
 PENDING_REFERRAL_KEY = "personality_pending_ref"
@@ -169,9 +173,7 @@ def session_needs_intent(session: PersonalityTestSession) -> bool:
         return False
     if session.status == PersonalitySessionStatus.COMPLETED:
         return False
-    if (session.answered_questions or 0) > 0:
-        return False
-    return True
+    return (session.answered_questions or 0) <= 0
 
 
 def redirect_for_intent_or_none(session: PersonalityTestSession) -> RedirectResponse | None:

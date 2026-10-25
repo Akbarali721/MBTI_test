@@ -11,11 +11,18 @@ from app.dependencies import get_db_session
 from app.i18n import resolve_lang
 from app.models.enums import AppearanceTheme, PersonalitySessionStatus
 from app.pdf import pdf_filename
-from app.personality.payment_code import payment_code_for_session
 from app.personality.analytics_constants import (
     FEEDBACK_INTEREST_VALUES,
     FEEDBACK_RATING_VALUES,
     INTENT_VALUES,
+)
+from app.personality.payment_code import payment_code_for_session
+from app.personality.result_free_content import free_result_sections
+from app.personality.result_guidance import (
+    action_plan_text,
+    get_growth_areas,
+    premium_week_plan,
+    resolve_focus_area,
 )
 from app.personality.session_binding import (
     attach_dev_browser_if_enabled,
@@ -23,7 +30,6 @@ from app.personality.session_binding import (
     clear_pending_referral,
     completed_tokens,
     ensure_visitor_session,
-    feedback_skipped_for,
     get_bound_session,
     may_access_session,
     redirect_for_incomplete_result,
@@ -43,30 +49,23 @@ from app.personality.themes import (
     has_appearance_choice,
     theme_template_context,
 )
+from app.personality.webapp_access import mark_webapp_bound
 from app.ratelimit import limiter as advice_limiter
 from app.repositories.personality_repository import PersonalityRepository
 from app.services import ai_advice_service, referral_service
-from app.services.telegram_referral_service import telegram_referral_url
 from app.services.personality_scoring import calculate_personality_result
 from app.services.personality_service import PersonalityService
 from app.services.premium_access import has_premium_access, trial_days_left
-from app.services.result_user_feedback_service import ResultUserFeedbackService
 from app.services.premium_payment_service import (
     PremiumPaymentService,
     format_price_uzs,
     premium_deeplink_url,
     support_bot_public_url,
 )
-from app.personality.webapp_access import mark_webapp_bound
-from app.personality.result_free_content import free_result_sections
-from app.personality.result_guidance import (
-    action_plan_text,
-    get_growth_areas,
-    premium_week_plan,
-    resolve_focus_area,
-)
 from app.services.premium_presentation import compose_premium_blocks
 from app.services.result_pdf import PdfFontsUnavailable, PdfNotPremium, build_pdf_bytes
+from app.services.result_user_feedback_service import ResultUserFeedbackService
+from app.services.telegram_referral_service import telegram_referral_url
 from app.templating import templates
 
 router = APIRouter(prefix="/personality", tags=["personality"])
@@ -633,8 +632,7 @@ def personality_result(
                 language=lang,
                 action_plan_override=action_plan_override,
             ),
-            "user_feedback_submitted": ResultUserFeedbackService(db).get_for_session(session.id)
-            is not None,
+            "user_feedback_submitted": ResultUserFeedbackService(db).get_for_session(session.id) is not None,
         }
     )
     return templates.TemplateResponse(request, "personality/result.html", ctx)
@@ -661,9 +659,15 @@ async def personality_result_user_feedback(
     rating = body.get("rating")
     comment = body.get("comment")
     if not isinstance(rating, str):
-        return JSONResponse({"ok": False, "detail": "rating required"}, status_code=status.HTTP_400_BAD_REQUEST)
+        return JSONResponse(
+            {"ok": False, "detail": "rating required"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
     if comment is not None and not isinstance(comment, str):
-        return JSONResponse({"ok": False, "detail": "invalid comment"}, status_code=status.HTTP_400_BAD_REQUEST)
+        return JSONResponse(
+            {"ok": False, "detail": "invalid comment"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
     service = ResultUserFeedbackService(db)
     try:
         service.upsert(session, rating=rating, comment=comment)

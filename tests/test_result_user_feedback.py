@@ -4,7 +4,6 @@ import json
 
 from app.i18n import t
 from app.models.personality import PersonalityResultUserFeedback
-from app.services.result_user_feedback_service import ResultUserFeedbackService
 from tests.helpers import complete_session, db_session, session_by_token
 
 

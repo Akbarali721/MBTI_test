@@ -131,9 +131,14 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "result.strengths": "Sizning 3 ta kuchli tomoningiz",
         "result.challenges": "Sizga qiyinchilik tug‘dirishi mumkin bo‘lgan 2 ta holat",
         "result.daily_tips": "O‘zingizni rivojlantirish uchun 3 ta amaliy tavsiya",
-        "result.growth_intro": "Agar sizda ham shunday holat bo‘lsa, quyidagi yo‘nalishlardan biri mos kelishi mumkin.",
+        "result.growth_intro": (
+            "Agar sizda ham shunday holat bo‘lsa, quyidagi yo‘nalishlardan biri mos kelishi mumkin."
+        ),
         "result.try_today": "Bugun sinab ko‘ring",
-        "result.try_today_note": "Bu shartli tavsiya — mos kelmasa boshqa yo‘nalishni tanlang yoki «Hozir menga mos emas» deb belgilang.",
+        "result.try_today_note": (
+            "Bu shartli tavsiya — mos kelmasa boshqa yo‘nalishni tanlang "
+            "yoki «Hozir menga mos emas» deb belgilang."
+        ),
         "result.focus_prompt": "Hozir qaysi biri sizga dolzarbroq?",
         "result.focus_not_now": "Hozir menga mos emas",
         "result.week_plan_title": "7 kunlik reja",
@@ -169,8 +174,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         # Referal
         "referral.title": "Premium natijani bepul oching",
         "referral.desc": (
-            "{required} ta do‘stingiz testni oxirigacha ishlasa, "
-            "premium natijangiz bepul ochiladi."
+            "{required} ta do‘stingiz testni oxirigacha ishlasa, premium natijangiz bepul ochiladi."
         ),
         "referral.progress": "{completed} / {required}",
         "referral.remaining": "Yana {count} ta qoldi",
@@ -236,7 +240,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "result.premium.actions": "7 kunlik amaliy tavsiya",
         "result.premium.brief.teaser": "Kundalik hayotda bu xususiyat qayerda chiqishi mumkin.",
         "result.premium.strengths.teaser": "Har bir kuchli tomondan qayerda foydalanish mumkin.",
-        "result.premium.drains.teaser": "Sizni charchatishi mumkin bo‘lgan 3 holat va har biriga bitta qadam.",
+        "result.premium.drains.teaser": (
+            "Sizni charchatishi mumkin bo‘lgan 3 holat va har biriga bitta qadam."
+        ),
         "result.premium.work.teaser": "Qanday ish muhiti, vazifa va jamoa uslubi yengilroq kelishi mumkin.",
         "result.premium.relationships.teaser": "Do‘stlik, yaqinlik va kelishmovchilikda nima qilish mumkin.",
         "result.premium.actions.teaser": "7 kun davomida har kuni 5–15 daqiqalik bitta kichik vazifa.",
@@ -257,7 +263,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "Kuchli va zaif tomonlaringiz, sizga mos kasblar, ish uslubingiz va "
             "shaxsiy rivojlanish yo‘nalishlarini ko‘ring."
         ),
-        "result.cta_note": "Tasdiqlangach natija Telegram orqali yuboriladi — sahifada kutishingiz shart emas.",
+        "result.cta_note": (
+            "Tasdiqlangach natija Telegram orqali yuboriladi — sahifada kutishingiz shart emas."
+        ),
         "result.open_premium": "Premium olish",
         "result.restart": "Testni qayta ishlash",
         "result.currency": "so‘m",
@@ -455,8 +463,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "errors.title_404": "Sahifa topilmadi",
         "errors.message_404": "So‘ralgan sahifa mavjud emas yoki ko‘chirilgan.",
         "errors.message_webapp_only": (
-            "So‘ralgan sahifa mavjud emas yoki ko‘chirilgan. "
-            "Iltimos, ilovani Telegram bot orqali oching."
+            "So‘ralgan sahifa mavjud emas yoki ko‘chirilgan. Iltimos, ilovani Telegram bot orqali oching."
         ),
         "errors.title_429": "Juda ko‘p urinish",
         "errors.message_429": "Juda ko‘p urinish bo‘ldi. Bir daqiqadan so‘ng qayta urinib ko‘ring.",
@@ -552,9 +559,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         ),
         "feedback.user.submit": "Отправить отзыв",
         "feedback.user.success_title": "Спасибо! 💜",
-        "feedback.user.success_body": (
-            "Ваш отзыв помогает сделать тест Xarakterim полезнее."
-        ),
+        "feedback.user.success_body": ("Ваш отзыв помогает сделать тест Xarakterim полезнее."),
         "feedback.user.error": "Не удалось отправить. Попробуйте чуть позже.",
         # Вопрос
         "question.title": "Вопрос {current} / {total}",

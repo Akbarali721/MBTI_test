@@ -1,4 +1,5 @@
 """Haqiqiy HTTP: lokal DEV to‘liq test oqimi (24 savol + natija)."""
+
 from __future__ import annotations
 
 import re

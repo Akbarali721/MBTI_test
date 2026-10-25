@@ -12,7 +12,7 @@ from aiogram.types import Message
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
-from app.services.telegram_user_service import save_phone_number, upsert_from_bot_start, TelegramProfileInput
+from app.services.telegram_user_service import TelegramProfileInput, save_phone_number, upsert_from_bot_start
 from bot.keyboards.main import main_menu_keyboard
 
 logger = logging.getLogger(__name__)

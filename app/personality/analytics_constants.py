@@ -2,13 +2,9 @@
 
 from __future__ import annotations
 
-INTENT_VALUES: frozenset[str] = frozenset(
-    {"strengths", "career", "self_understanding", "curiosity"}
-)
+INTENT_VALUES: frozenset[str] = frozenset({"strengths", "career", "self_understanding", "curiosity"})
 
-FEEDBACK_RATING_VALUES: frozenset[str] = frozenset(
-    {"very_accurate", "partly_accurate", "not_accurate"}
-)
+FEEDBACK_RATING_VALUES: frozenset[str] = frozenset({"very_accurate", "partly_accurate", "not_accurate"})
 
 FEEDBACK_INTEREST_VALUES: frozenset[str] = frozenset(
     {"career", "strengths", "relationships", "stress", "confidence"}

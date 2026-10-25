@@ -25,7 +25,9 @@ def test_exact_total_tie_uses_strong_votes_not_first_pole():
 def test_exact_tie_without_strong_bias_uses_hash_not_always_e():
     """Two salts can flip E/I; neither path uses left_score > right_score shortcut."""
     salts = [f"tie-salt-{n}" for n in range(32)]
-    letters = {calculate_personality_result(6, 6, 12, 6, 12, 6, 12, 6, tie_salt=s).result_type[0] for s in salts}
+    letters = {
+        calculate_personality_result(6, 6, 12, 6, 12, 6, 12, 6, tie_salt=s).result_type[0] for s in salts
+    }
     assert "E" in letters and "I" in letters
 
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import or_, select, and_
+from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.enums import PersonalitySessionStatus
@@ -76,9 +76,7 @@ def day_end(day_start: datetime) -> datetime:
 
 def _session_status_label(session: PersonalityTestSession) -> str:
     anonymous = (
-        session.telegram_user_id is None
-        and not session.telegram_username
-        and not session.telegram_first_name
+        session.telegram_user_id is None and not session.telegram_username and not session.telegram_first_name
     )
     if has_premium_access(session):
         return "Premium"
@@ -167,7 +165,9 @@ class AdminDailyDrilldownService:
                     session_id=session.id,
                     telegram_id=session.telegram_user_id,
                     username=(tg_user.telegram_username if tg_user else None) or session.telegram_username,
-                    first_name=(tg_user.telegram_first_name if tg_user else None) or session.telegram_first_name,
+                    first_name=(
+                        (tg_user.telegram_first_name if tg_user else None) or session.telegram_first_name
+                    ),
                     last_name=(tg_user.telegram_last_name if tg_user else None) or session.telegram_last_name,
                     display_name=_display_name(session, tg_user),
                     visit_at=session.created_at,
@@ -233,14 +233,14 @@ class AdminDailyDrilldownService:
         if variant:
             stmt = stmt.where(model.variant == variant)
         stmt = stmt.order_by(
-            model.created_at.desc() if metric == METRIC_VISITED else model.last_activity_at.desc().nullslast(),
+            model.created_at.desc()
+            if metric == METRIC_VISITED
+            else model.last_activity_at.desc().nullslast(),
             model.id.desc(),
         )
         return list(self.db.scalars(stmt).all())
 
-    def _telegram_users_for_sessions(
-        self, sessions: list[PersonalityTestSession]
-    ) -> dict[int, TelegramUser]:
+    def _telegram_users_for_sessions(self, sessions: list[PersonalityTestSession]) -> dict[int, TelegramUser]:
         ids = {session.telegram_user_id for session in sessions if session.telegram_user_id is not None}
         if not ids:
             return {}

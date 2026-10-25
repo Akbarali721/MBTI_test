@@ -59,9 +59,7 @@ def dev_mode_bypasses_webapp_gate(request: Request | None) -> bool:
 def telegram_webapp_gate_enabled(request: Request | None = None) -> bool:
     if not settings.telegram_webapp_only:
         return False
-    if dev_mode_bypasses_webapp_gate(request):
-        return False
-    return True
+    return not dev_mode_bypasses_webapp_gate(request)
 
 
 def is_dev_browser_session(session: PersonalityTestSession | None) -> bool:
@@ -78,7 +76,11 @@ def ensure_dev_browser_telegram_user(db: Session) -> None:
         return
     if not settings.database_url.startswith("sqlite"):
         return
-    from app.services.telegram_user_service import TelegramProfileInput, get_by_telegram_id, upsert_from_webapp
+    from app.services.telegram_user_service import (
+        TelegramProfileInput,
+        get_by_telegram_id,
+        upsert_from_webapp,
+    )
 
     tid = settings.dev_browser_telegram_id
     if get_by_telegram_id(db, tid) is not None:
@@ -114,11 +116,9 @@ def mark_dev_browser(request: Request) -> None:
 
 
 def _browser_access_ok(request: Request) -> bool:
-    if request.session.get("telegram_webapp_bound"):
-        return True
-    if request.session.get("personality_dev_browser") and dev_mode_bypasses_webapp_gate(request):
-        return True
-    return False
+    return bool(request.session.get("telegram_webapp_bound")) or (
+        bool(request.session.get("personality_dev_browser")) and dev_mode_bypasses_webapp_gate(request)
+    )
 
 
 def _session_allows_protected_route(

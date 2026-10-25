@@ -40,6 +40,18 @@ def latest_user_approved_outbox_row(db: Session, session_id: int) -> Notificatio
     return None
 
 
+def _session_factory_for(db: Session, session_factory: sessionmaker | None) -> sessionmaker:
+    """Worker ham request sessiyasi bilan BIR XIL engine/bazadan ochilsin.
+
+    Testlar in-memory StaticPool ishlatadi; global SessionLocal esa boshqa
+    (bo'sh) sqlite:// ulanishiga bog'langan — shunda notification_outbox
+    'no such table' chiqardi. Request `db` bindidan factory olish buni oldini oladi.
+    """
+    if session_factory is not None:
+        return session_factory
+    return sessionmaker(bind=db.get_bind(), autocommit=False, autoflush=False)
+
+
 def try_deliver_premium_approved_message(
     db: Session,
     *,
@@ -62,9 +74,7 @@ def try_deliver_premium_approved_message(
 
     from aiogram import Bot
 
-    from app.database import SessionLocal
-
-    factory = session_factory or SessionLocal
+    factory = _session_factory_for(db, session_factory)
     bot = Bot(token=settings.bot_token)
 
     async def _run() -> str:

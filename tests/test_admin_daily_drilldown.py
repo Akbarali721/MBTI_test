@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-from sqlalchemy import select
-
 from app.models.enums import PersonalitySessionStatus
 from app.models.personality import PersonalityTestSession
 from app.repositories.personality_repository import PersonalityRepository
 from app.services.admin_daily_drilldown_service import (
-    METRIC_COMPLETED,
     METRIC_VISITED,
     AdminDailyDrilldownService,
 )

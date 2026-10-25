@@ -168,11 +168,8 @@ def list_referrals_for_referrer(db: Session, referrer_telegram_user_id: int) -> 
 
 
 def completed_telegram_referral_count(db: Session, referrer_telegram_user_id: int) -> int:
-    stmt = (
-        select(TelegramReferral)
-        .where(
-            TelegramReferral.referrer_telegram_user_id == referrer_telegram_user_id,
-            TelegramReferral.completed_at.is_not(None),
-        )
+    stmt = select(TelegramReferral).where(
+        TelegramReferral.referrer_telegram_user_id == referrer_telegram_user_id,
+        TelegramReferral.completed_at.is_not(None),
     )
     return len(list(db.scalars(stmt).all()))

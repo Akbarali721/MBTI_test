@@ -4,16 +4,15 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable
 from typing import TypeVar
 
-from aiogram import F, Router
+from aiogram import Router
 from aiogram.filters import CommandObject, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from sqlalchemy.orm import Session
 
-from app.config import settings
 from app.database import SessionLocal
 from app.services.premium_payment_service import (
     PremiumPaymentService,
@@ -89,7 +88,7 @@ async def _handle_premium_deeplink(
     token: str,
     state: FSMContext,
 ) -> None:
-    from app.bot.handlers import _PaymentView, _payment_instructions, _reply_for_session_view
+    from app.bot.handlers import _PaymentView, _reply_for_session_view
 
     def _work(db: Session) -> _PaymentView:
         outcome = PremiumPaymentService(db).start_premium_from_deeplink(

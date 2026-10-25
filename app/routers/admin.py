@@ -34,15 +34,16 @@ from app.dependencies import (
 )
 from app.models.enums import AdminRole
 from app.models.notification import OUTBOX_WORKER_HEARTBEAT, RETENTION_HEARTBEAT
-from app.personality.payment_code import find_sessions_by_payment_code, payment_code_for_session
-from app.ratelimit import limiter
-from app.repositories.admin_repository import AdminRepository
-from app.repositories.payment_repository import PaymentRepository
 from app.personality.analytics_constants import (
     feedback_interest_admin_label,
     feedback_rating_admin_label,
     intent_admin_label,
 )
+from app.personality.payment_code import find_sessions_by_payment_code, payment_code_for_session
+from app.personality.user_feedback_constants import user_feedback_admin_label
+from app.ratelimit import limiter
+from app.repositories.admin_repository import AdminRepository
+from app.repositories.payment_repository import PaymentRepository
 from app.services import admin_service, audit_service, csv_export, notification_outbox, retention_service
 from app.services.admin_analytics_service import (
     DEFAULT_PAGE_SIZE,
@@ -59,13 +60,14 @@ from app.services.admin_daily_drilldown_service import (
 )
 from app.services.admin_telegram_user_service import (
     FILTERS as TELEGRAM_USER_FILTERS,
+)
+from app.services.admin_telegram_user_service import (
     AdminTelegramUserService,
 )
-from app.personality.user_feedback_constants import user_feedback_admin_label
-from app.services.result_user_feedback_service import ResultUserFeedbackService
-from app.services.test_funnel_analytics_service import SessionTestFunnelAnalyticsService
 from app.services.premium_payment_service import PremiumPaymentService, format_price_uzs
 from app.services.premium_telegram_delivery import try_deliver_premium_approved_message
+from app.services.result_user_feedback_service import ResultUserFeedbackService
+from app.services.test_funnel_analytics_service import SessionTestFunnelAnalyticsService
 from app.templating import templates
 from app.timeutils import utcnow
 
@@ -360,9 +362,7 @@ def _admin_grant_premium_session(
     *,
     return_to: str,
 ) -> RedirectResponse:
-    outcome = PremiumPaymentService(db).grant_manual_premium(
-        session_id, approved_by=admin.audit_actor
-    )
+    outcome = PremiumPaymentService(db).grant_manual_premium(session_id, approved_by=admin.audit_actor)
     redirect_url = _grant_premium_redirect_target(return_to, session_id)
     if outcome.code == "not_found":
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sessiya topilmadi")
@@ -434,9 +434,7 @@ def admin_premium_requests(
         page_size=DEFAULT_PAGE_SIZE,
     )
     session_codes = {
-        p.session_id: payment_code_for_session(db, p.session)
-        for p in payments
-        if p.session is not None
+        p.session_id: payment_code_for_session(db, p.session) for p in payments if p.session is not None
     }
     return templates.TemplateResponse(
         request,

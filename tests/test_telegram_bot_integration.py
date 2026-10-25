@@ -83,7 +83,7 @@ def test_sync_referral_to_session(client):
     with db_session(client) as db:
         referrer_session = session_by_token(db, referrer_token)
         referrer_session.telegram_user_id = 300
-        referrer = upsert_from_bot_start(db, TelegramProfileInput(telegram_id=300))
+        upsert_from_bot_start(db, TelegramProfileInput(telegram_id=300))
         referred = upsert_from_bot_start(db, TelegramProfileInput(telegram_id=301))
         db.flush()
         attribute_bot_referral(db, referred=referred, referrer_telegram_id=300)

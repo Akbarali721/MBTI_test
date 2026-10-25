@@ -327,4 +327,3 @@ def test_manual_grant_is_idempotent(client):
     again = client.post(f"/admin/sessions/{session_id}/grant-premium", follow_redirects=False)
     assert again.status_code == 303
     assert "flash=premium_ok" not in (again.headers.get("location") or "")
-

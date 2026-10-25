@@ -1,6 +1,6 @@
 """Session analytics: intent, source, feedback, admin ko'rinishi."""
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 
 from app.i18n import t
 from app.models.enums import PersonalitySessionStatus

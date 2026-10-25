@@ -62,11 +62,10 @@ class ResultUserFeedbackService:
     ) -> PersonalityResultUserFeedback:
         if rating not in USER_FEEDBACK_RATING_VALUES:
             raise ValueError("invalid rating")
-        text = (comment or "").strip()
-        if len(text) > USER_FEEDBACK_MAX_COMMENT_LEN:
+        cleaned = (comment or "").strip()
+        if len(cleaned) > USER_FEEDBACK_MAX_COMMENT_LEN:
             raise ValueError("comment too long")
-        if not text:
-            text = None
+        text: str | None = cleaned or None
 
         telegram_pk: int | None = None
         if session.telegram_user_id:
@@ -97,8 +96,9 @@ class ResultUserFeedbackService:
 
     def stats(self) -> UserFeedbackStats:
         rows = self.db.execute(
-            select(PersonalityResultUserFeedback.rating, func.count())
-            .group_by(PersonalityResultUserFeedback.rating)
+            select(PersonalityResultUserFeedback.rating, func.count()).group_by(
+                PersonalityResultUserFeedback.rating
+            )
         ).all()
         counts = {rating: int(n) for rating, n in rows}
         positive = counts.get("positive", 0)

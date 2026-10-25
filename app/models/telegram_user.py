@@ -41,11 +41,11 @@ class TelegramUser(Base):
         nullable=False,
     )
 
-    referrals_made: Mapped[list["TelegramReferral"]] = relationship(
+    referrals_made: Mapped[list[TelegramReferral]] = relationship(
         back_populates="referrer",
         foreign_keys="TelegramReferral.referrer_telegram_user_id",
     )
-    referral_received: Mapped["TelegramReferral | None"] = relationship(
+    referral_received: Mapped[TelegramReferral | None] = relationship(
         back_populates="referred",
         foreign_keys="TelegramReferral.referred_telegram_user_id",
         uselist=False,
@@ -81,11 +81,11 @@ class TelegramReferral(Base):
     )
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    referrer: Mapped["TelegramUser"] = relationship(
+    referrer: Mapped[TelegramUser] = relationship(
         back_populates="referrals_made",
         foreign_keys=[referrer_telegram_user_id],
     )
-    referred: Mapped["TelegramUser"] = relationship(
+    referred: Mapped[TelegramUser] = relationship(
         back_populates="referral_received",
         foreign_keys=[referred_telegram_user_id],
     )

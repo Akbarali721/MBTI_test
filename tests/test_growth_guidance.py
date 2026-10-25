@@ -39,7 +39,7 @@ def test_unknown_type_uses_neutral_fallback_without_growth_names():
 
 def test_result_page_shows_daily_tips_for_free_user(client):
     from app.i18n import t
-    from tests.helpers import complete_session, session_by_token, db_session
+    from tests.helpers import complete_session, db_session, session_by_token
 
     token = complete_session(client)
     html = client.get(f"/personality/result/{token}").text
@@ -52,7 +52,7 @@ def test_result_page_shows_daily_tips_for_free_user(client):
 
 
 def test_focus_query_does_not_break_free_result_page(client):
-    from tests.helpers import complete_session, session_by_token, db_session
+    from tests.helpers import complete_session, db_session, session_by_token
 
     token = complete_session(client)
     with db_session(client) as db:

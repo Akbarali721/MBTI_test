@@ -28,10 +28,7 @@ def format_action_plan(area: GrowthArea) -> str:
     parts: list[str] = []
     for day in area["week_plan"]:
         success = day["success"].rstrip(".")
-        parts.append(
-            f"{day['day']}-kun: {day['task']} ({day['minutes']}). "
-            f"{success}."
-        )
+        parts.append(f"{day['day']}-kun: {day['task']} ({day['minutes']}). {success}.")
     return " ".join(parts)
 
 

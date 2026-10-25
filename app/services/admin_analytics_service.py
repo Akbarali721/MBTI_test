@@ -29,8 +29,8 @@ __all__ = [
     "FunnelReport",
     "FunnelStage",
     "GrowthStats",
-    "SessionFunnelSummary",
     "Page",
+    "SessionFunnelSummary",
     "VariantStats",
     "normalize_page",
     "normalize_page_size",
@@ -674,9 +674,7 @@ class AdminAnalyticsService:
             if tg_user:
                 share_code = session.share_code or ""
                 ref_progress = (
-                    referral_service.progress(self.db, session, code=share_code)
-                    if share_code
-                    else None
+                    referral_service.progress(self.db, session, code=share_code) if share_code else None
                 )
                 telegram_info = {
                     "telegram_id": tg_user.telegram_id,
@@ -692,7 +690,9 @@ class AdminAnalyticsService:
                     "is_premium": has_premium_access(session),
                     "premium_source": tg_user.premium_source or session.premium_source,
                     "referral_completed": ref_progress.completed if ref_progress else 0,
-                    "referral_required": ref_progress.required if ref_progress else settings.referral_required_completions,
+                    "referral_required": (
+                        ref_progress.required if ref_progress else settings.referral_required_completions
+                    ),
                 }
                 for idx, ref in enumerate(list_referrals_for_referrer(self.db, tg_user.id), start=1):
                     referred = ref.referred

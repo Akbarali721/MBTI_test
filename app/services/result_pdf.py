@@ -68,9 +68,7 @@ def _blocks_to_pdf_sections(blocks: tuple[PremiumBlock, ...], lang: str) -> list
         if block.sub_bullets:
             note = escape(t("result.premium.work_disclaimer", lang))
             items = "".join(f"<li>{escape(item)}</li>" for item in block.sub_bullets)
-            parts.append(
-                f"<p><i>{note}</i></p><ul>{items}</ul>"
-            )
+            parts.append(f"<p><i>{note}</i></p><ul>{items}</ul>")
         if parts:
             sections.append(PdfSection(title=block.title, body="".join(parts)))
     return sections
