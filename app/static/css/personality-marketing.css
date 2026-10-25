@@ -1406,18 +1406,84 @@ body.personality-body.ref-page.theme-male {
 }
 
 .mbti-answer-observation {
-  margin: 0 0 16px;
+  margin: 0 0 14px;
+  padding: 12px 12px 10px;
+  border: 1px solid rgba(11, 35, 72, 0.1);
+  border-radius: 14px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.mbti-answer-observation__title {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+.mbti-answer-observation__text {
+  margin: 0 0 6px;
+}
+
+.mbti-answer-observation__tip {
+  margin: 10px 0 8px;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.mbti-answer-observation__tip-label {
+  font-weight: 650;
 }
 
 .mbti-answer-observation__evidence-label {
-  font-size: 0.9rem;
-  font-weight: 600;
-  margin: 8px 0 4px;
+  font-size: 0.82rem;
+  font-weight: 650;
+  margin: 10px 0 6px;
   color: var(--ref-muted, #5a6478);
 }
 
 .mbti-answer-observation__evidence {
-  margin-bottom: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mbti-answer-observation__evidence li {
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(11, 35, 72, 0.04);
+}
+
+.mbti-answer-observation__q {
+  display: block;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--ref-muted, #5a6478);
+  margin-bottom: 3px;
+}
+
+.mbti-answer-observation__a {
+  display: block;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+@media (max-width: 600px) {
+  .mbti-answer-observation {
+    padding: 12px 10px 8px;
+    margin-bottom: 12px;
+  }
+
+  .mbti-answer-observation__title {
+    font-size: 1rem;
+  }
+
+  .mbti-answer-observation__text,
+  .mbti-answer-observation__tip,
+  .mbti-answer-observation__a {
+    font-size: 0.94rem;
+  }
 }
 
 .mbti-today-card {

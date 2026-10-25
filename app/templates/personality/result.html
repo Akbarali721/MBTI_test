@@ -30,14 +30,26 @@
       <h2 id="answer-observations-heading" class="mbti-section-title">{{ t('result.answer_observations.title') }}</h2>
       {% for obs in answer_observations %}
       <article class="mbti-answer-observation">
+        <h3 class="mbti-answer-observation__title">{{ obs.title }}</h3>
         {% for paragraph in obs.paragraphs %}
-        <p class="mbti-flow-text mbti-flow-text--left">{{ paragraph }}</p>
+        <p class="mbti-flow-text mbti-flow-text--left mbti-answer-observation__text">{{ paragraph }}</p>
         {% endfor %}
+        {% if obs.tip %}
+        <p class="mbti-answer-observation__tip">
+          <span class="mbti-answer-observation__tip-label">{{ t('result.answer_observations.tip') }}:</span>
+          {{ obs.tip }}
+        </p>
+        {% endif %}
         {% if obs.evidence %}
-        <p class="mbti-answer-observation__evidence-label">{{ t('result.answer_observations.based_on') }}:</p>
-        <ul class="mbti-list mbti-answer-observation__evidence">
+        <p class="mbti-answer-observation__evidence-label">{{ t('result.answer_observations.based_on') }}</p>
+        <ul class="mbti-answer-observation__evidence">
           {% for item in obs.evidence %}
-          <li>«{{ item.option_text }}»</li>
+          <li>
+            {% if item.question_text %}
+            <span class="mbti-answer-observation__q">{{ item.question_text }}</span>
+            {% endif %}
+            <span class="mbti-answer-observation__a">{{ item.option_text }}</span>
+          </li>
           {% endfor %}
         </ul>
         {% endif %}

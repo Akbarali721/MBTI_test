@@ -36,49 +36,89 @@ DIMENSION_POLES: dict[PersonalityDimension, tuple[str, str]] = {
     PersonalityDimension.JP: ("j", "p"),
 }
 
-# Hayotiy, yumshoq kuzatuvlar — tip matnidan mustaqil, faqat o‘lchov+qutb bo‘yicha.
-_OBSERVATION_COPY: dict[tuple[str, str], tuple[str, str, str]] = {
-    ("ei", "i"): (
-        "Siz bo‘sh vaqt yoki yangi guruhda ko‘pincha avval o‘zingizga joy qoldirasiz.",
-        "Bu yolg‘izlik istagi emas — fikrni tartibga solib, keyin odamlarga ochilish usuli.",
-        "Shuning uchun tinch muhitda ish va suhbat sizga odatda osonroq ketadi.",
+@dataclass(frozen=True)
+class ObservationCopy:
+    title: str
+    paragraphs: tuple[str, ...]
+    tip: str
+
+
+# Hayotiy matn — tip katalogidan mustaqil. EI = muloqot/energiya, JP = reja/moslashuv.
+# Maslahatlar free natijadagi «chegara aytish / ziddiyat / qadriyat qadami»ni takrorlamaydi.
+_OBSERVATION_COPY: dict[tuple[str, str], ObservationCopy] = {
+    ("ei", "i"): ObservationCopy(
+        title="Avval o‘zingizga joy qoldirasiz",
+        paragraphs=(
+            "Yangi davra yoki bo‘sh vaqtda siz odatda avval jimroq turasiz.",
+            "Bu yolg‘izlik emas: avval o‘ylaysiz, keyin odamlarga ochilasiz.",
+            "Tinch joyda gaplashish va ishlash sizga osonroq ketadi.",
+        ),
+        tip="Keyingi uchrashuvda 5 daqiqa jim o‘tirib oling, keyin bitta odamga gap oching.",
     ),
-    ("ei", "e"): (
-        "Siz yangi odamlar yoki guruh bilan bo‘lganda tezroq jonlanasiz.",
-        "Fikrni ovoz chiqarib aytsangiz, u sizda tezroq shakllanadi.",
-        "Uzoq yolg‘iz qolganda esa energiya sezilarli pasayishi mumkin.",
+    ("ei", "e"): ObservationCopy(
+        title="Odamlar orasida tezroq jonlanasiz",
+        paragraphs=(
+            "Siz guruhda yoki yangi tanishlar bilan bo‘lganda odatda tezroq kuch topasiz.",
+            "Fikrni ovoz chiqarib aytganingizda u sizda tezroq shakllanadi.",
+            "Uzoq yolg‘iz qolsangiz, charchoq tezroq sezilishi mumkin.",
+        ),
+        tip="Bugun bitta fikrni avval do‘stingizga aytib ko‘ring, keyin yolg‘iz qayta o‘ylang.",
     ),
-    ("sn", "s"): (
-        "Siz yangi ishni tushunishda aniq misol, tartib va «hozir qanday ishlaydi»ni qidirasiz.",
-        "Umumiy g‘oya yaxshi, lekin qo‘lga ilinadigan detal bo‘lmasa ishonchingiz sekinroq o‘sadi.",
-        "Shuning uchun amaliy qadamlar sizga tezroq yo‘l ochadi.",
+    ("sn", "s"): ObservationCopy(
+        title="Avval aniq misol kerak bo‘ladi",
+        paragraphs=(
+            "Yangi ishni tushunishda siz «hozir qanday ishlaydi?» ni qidirasiz.",
+            "Umumiy g‘oya yaxshi, lekin qo‘lga ilinadigan detal bo‘lmasa ishonch sekinroq o‘sadi.",
+        ),
+        tip="Yangi vazifada avval bitta real misol yoki namuna so‘rang.",
     ),
-    ("sn", "n"): (
-        "Siz avval umumiy manzarani va «nega»sini ko‘rishni xohlaysiz.",
-        "Faqat qoidalar ro‘yxati berilsa, ichingizda hali yo‘nalish yetishmayotgandek tuyulishi mumkin.",
-        "Ma’no va bog‘lanishlar ochilganda esa tezroq chuqurlashasiz.",
+    ("sn", "n"): ObservationCopy(
+        title="Avval katta rasmni ko‘rasiz",
+        paragraphs=(
+            "Siz avval ishning ma’nosini va «nega»sini tushunishni xohlaysiz.",
+            "Faqat qoidalar ro‘yxati berilsa, yo‘nalish yetishmayotgandek tuyulishi mumkin.",
+        ),
+        tip="Qoidalarni o‘qishdan oldin «bu nima uchun kerak?» ni bir jumlada yozing.",
     ),
-    ("tf", "t"): (
-        "Qaror qabul qilganda siz uchun mezon, natija va mantiqiy izchillik muhim.",
-        "His-tuyg‘uni e’tiborsiz qoldirmaysiz, lekin tanlovni asosan «nima ishlaydi» bilan o‘lchaysiz.",
-        "Shuning uchun noaniq bahs sizni tezroq charchatishi mumkin.",
+    ("tf", "t"): ObservationCopy(
+        title="Qarorda natija ustun turadi",
+        paragraphs=(
+            "Tanlovda siz uchun mezon va «nima ishlaydi» muhim.",
+            "His-tuyg‘uni e’tiborsiz qoldirmaysiz, lekin yakuniy o‘lchov odatda natija bo‘ladi.",
+        ),
+        tip="Qaror oldidan ikkita qator yozing: nima ishlaydi va nima ishlamaydi.",
     ),
-    ("tf", "f"): (
-        "Tanlovda siz odamlarga ta’sir va o‘z qadriyatingizni hisobga olasiz.",
-        "Faqat «eng samarali» yo‘l ba’zan siz uchun to‘liq javob bo‘lmaydi.",
-        "Yaqinlarning holati e’tiborga olinganda qaror sizga to‘g‘riroq tuyuladi.",
+    ("tf", "f"): ObservationCopy(
+        title="Qarorda odamlar ham hisobga olinadi",
+        paragraphs=(
+            "Tanlovda siz yaqinlarning holati va o‘z qadriyatingizni ham o‘ylaysiz.",
+            "Faqat «eng tez natija» ba’zan siz uchun to‘liq javob bo‘lmaydi.",
+        ),
+        tip="Qaror oldidan «bu kimga qanday ta’sir qiladi?» ni bir jumlada yozing.",
     ),
-    ("jp", "j"): (
-        "Siz ishni oldindan bosqichlarga bo‘lib olganingizda xotirjamroq harakat qilasiz.",
-        "Reja o‘zgarganda moslashasiz, lekin avval yangi tartibni belgilab olishni xohlaysiz.",
-        "Aniq muddat va tayyorlik mezoni sizga kuch beradi.",
+    ("jp", "j"): ObservationCopy(
+        title="Avval tartib, keyin harakat",
+        paragraphs=(
+            "Siz ishni oldindan qadamlarga bo‘lib olganingizda xotirjamroq ishlaysiz.",
+            "Reja o‘zgarsa, avval yangi tartibni belgilab, keyin davom etasiz.",
+            "Aniq muddat sizga yo‘l-yo‘riq beradi.",
+        ),
+        tip="Reja o‘zgarsa, yangi tartibni uch qatorda yozib oling, keyin ishni davom ettiring.",
     ),
-    ("jp", "p"): (
-        "Sizga qattiq jadvaldan ko‘ra o‘z ritmingizda ishlash qulayroq.",
-        "Asosiy yo‘nalishni bilib, keyingi qadamlarni jarayonda tanlash sizga tabiiyroq.",
-        "Hamma narsa oldindan mahkam belgilansa, energiya pasayishi mumkin.",
+    ("jp", "p"): ObservationCopy(
+        title="Rejani ish davomida tuzasiz",
+        paragraphs=(
+            "Sizga qattiq jadvaldan ko‘ra yo‘lni borib turib tanlash qulayroq.",
+            "Yo‘nalishni bilib, keyingi qadamni jarayonda belgilash sizga tabiiy.",
+            "Hamma narsa oldindan mahkam qilinsa, ishning o‘zi og‘irlashishi mumkin.",
+        ),
+        tip="Bugun ishning faqat birinchi qismini belgilang. Qolganini kechqurun qaroring.",
     ),
 }
+
+# Muloqot (EI) va rejalashtirish (JP) birga chiqsa — tartib aniq farqlansin.
+_PREFERRED_DIMENSION_ORDER = ("ei", "jp", "sn", "tf")
+QUESTION_PREVIEW_MAX = 90
 
 
 @dataclass(frozen=True)
@@ -97,9 +137,32 @@ class PersonalObservation:
     id: str
     dimension: str
     pole: str
+    title: str
     paragraphs: tuple[str, ...]
+    tip: str
     evidence: tuple[AnswerEvidenceItem, ...]
     strength: int
+
+
+def question_preview(text: str, *, max_len: int = QUESTION_PREVIEW_MAX) -> str:
+    """Savolni qisqartirish: to‘liq gap yoki birinchi jumla. Uch nuqta qo‘yilmaydi."""
+    cleaned = " ".join((text or "").split())
+    if not cleaned:
+        return ""
+    for sep in (". ", "? ", "! "):
+        if sep in cleaned:
+            first = cleaned.split(sep, 1)[0].strip()
+            if len(first) >= 18:
+                end = sep[0]
+                if not first.endswith((".", "?", "!")):
+                    first = f"{first}{end}"
+                return first
+    if len(cleaned) <= max_len:
+        return cleaned
+    cut = cleaned.rfind(" ", 0, max_len)
+    if cut < 24:
+        return cleaned
+    return cleaned[:cut].rstrip(".,;:")
 
 
 def _active_pole_and_weight(option: PersonalityOption) -> tuple[str, int] | None:
@@ -190,14 +253,37 @@ def _dimension_candidates(
                 id=f"{dim_norm}_{dominant}",
                 dimension=dim_norm,
                 pole=dominant,
-                paragraphs=copy,
+                title=copy.title,
+                paragraphs=copy.paragraphs,
+                tip=copy.tip,
                 evidence=evidence,
                 strength=net,
             )
         )
 
-    candidates.sort(key=lambda o: (-o.strength, o.id))
     return candidates
+
+
+def _select_observations(
+    candidates: list[PersonalObservation],
+    limit: int,
+) -> list[PersonalObservation]:
+    """Kuchli dalilni saqlab, mumkin bo‘lsa avval EI (muloqot), keyin JP (reja)."""
+    if limit <= 0 or not candidates:
+        return []
+    by_dim = {item.dimension: item for item in candidates}
+    chosen: list[PersonalObservation] = []
+    for dim in _PREFERRED_DIMENSION_ORDER:
+        if len(chosen) >= limit:
+            break
+        item = by_dim.get(dim)
+        if item is not None:
+            chosen.append(item)
+    if len(chosen) < limit:
+        rest = [item for item in candidates if item not in chosen]
+        rest.sort(key=lambda o: (-o.strength, o.id))
+        chosen.extend(rest[: limit - len(chosen)])
+    return chosen[:limit]
 
 
 def build_personal_observations(
@@ -211,7 +297,7 @@ def build_personal_observations(
     items = list(answers)
     if not items:
         return []
-    return _dimension_candidates(items)[:limit]
+    return _select_observations(_dimension_candidates(items), limit)
 
 
 def observations_for_session(db: Session, session_id: int) -> list[PersonalObservation]:
@@ -227,10 +313,12 @@ def observations_for_template(observations: list[PersonalObservation]) -> list[d
                 "id": obs.id,
                 "dimension": obs.dimension,
                 "pole": obs.pole,
+                "title": obs.title,
                 "paragraphs": list(obs.paragraphs),
+                "tip": obs.tip,
                 "evidence": [
                     {
-                        "question_text": e.question_text,
+                        "question_text": question_preview(e.question_text),
                         "option_text": e.option_text,
                     }
                     for e in obs.evidence
@@ -243,7 +331,9 @@ def observations_for_template(observations: list[PersonalObservation]) -> list[d
 # Testlar uchun eksport (og‘irliklar o‘zgarmaganini tekshirish osonlashadi).
 __all__ = [
     "AnswerEvidenceItem",
+    "ObservationCopy",
     "PersonalObservation",
+    "question_preview",
     "MIN_SUPPORTING_ANSWERS",
     "MAX_OPPOSING_STRONG",
     "MIN_NET_WEIGHT",

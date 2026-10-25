@@ -113,7 +113,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         ),
         "result.strengths": "Kuchli tomonlar",
         "result.answer_observations.title": "Javoblaringizda e’tiborimizni tortgan jihatlar",
-        "result.answer_observations.based_on": "Asos bo‘lgan tanlovlaringiz",
+        "result.answer_observations.based_on": "Siz tanlagan javoblar",
+        "result.answer_observations.tip": "Sinab ko‘ring",
         "result.answer_observations.neutral": (
             "Bu sessiyada alohida shaxsiy kuzatuv chiqarish uchun javoblar yetarli darajada "
             "izchil emas — umumiy tip tavsifi bilan davom eting."
@@ -547,7 +548,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         ),
         "result.strengths": "Сильные стороны",
         "result.answer_observations.title": "Что особенно заметно в ваших ответах",
-        "result.answer_observations.based_on": "На каких выборах основано",
+        "result.answer_observations.based_on": "Ваши выбранные ответы",
+        "result.answer_observations.tip": "Попробуйте",
         "result.answer_observations.neutral": (
             "В этой сессии ответы недостаточно согласованы для отдельного личного наблюдения — "
             "смотрите общее описание типа."

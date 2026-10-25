@@ -9,6 +9,7 @@ from app.services.answer_observations import (
     AnswerEvidenceItem,
     build_personal_observations,
     observations_for_session,
+    question_preview,
 )
 from app.services.personality_scoring import STRONG_OPTION_WEIGHT, WEAK_OPTION_WEIGHT
 from tests.helpers import (
@@ -58,10 +59,17 @@ def test_consistent_answers_yield_one_or_two_observations():
     ]
     obs = build_personal_observations([*jp, *ei, *sn])
     assert 1 <= len(obs) <= MAX_OBSERVATIONS
-    assert obs[0].id == "jp_p"
-    assert len(obs[0].paragraphs) == 3
+    # EI (muloqot) va JP (reja) ikkalasi ham izchil — tartib shu.
+    assert [o.id for o in obs] == ["ei_i", "jp_p"]
+    assert 2 <= len(obs[0].paragraphs) <= 3
+    assert obs[0].title
+    assert obs[1].title
+    assert obs[0].title != obs[1].title
+    assert obs[0].tip and obs[1].tip
+    assert obs[0].tip != obs[1].tip
     assert len(obs[0].evidence) >= MIN_SUPPORTING_ANSWERS - 0
-    assert all(e.pole == "p" for e in obs[0].evidence)
+    assert all(e.pole == "i" for e in obs[0].evidence)
+    assert all(e.pole == "p" for e in obs[1].evidence)
     ids = {o.id for o in obs}
     assert "sn_s" not in ids and "sn_n" not in ids
 
@@ -112,6 +120,17 @@ def test_two_sessions_produce_different_observation_sets(client):
     assert any(o.pole in ("e", "s", "t", "j") for o in obs_e)
 
 
+def test_question_preview_keeps_a_full_sentence_without_ellipsis():
+    long_q = (
+        "Majburiy ishlaringiz tugadi, bir soat bo‘sh vaqtingiz bor. "
+        "Uni qanday o‘tkazishni xohlaysiz?"
+    )
+    preview = question_preview(long_q)
+    assert "…" not in preview and "..." not in preview
+    assert preview.endswith(".")
+    assert "bo‘sh vaqtingiz bor" in preview
+
+
 def test_free_result_renders_observations_with_evidence(client):
     token = complete_session(client, option_picker=favor_right_option_index)
     page = client.get(f"/personality/result/{token}")
@@ -119,8 +138,18 @@ def test_free_result_renders_observations_with_evidence(client):
     title = t("result.answer_observations.title", "uz")
     assert title in page.text
     assert t("result.answer_observations.based_on", "uz") in page.text
-    assert "mbti-answer-observation" in page.text
-    # Tip matni hali ham joyida.
+    assert t("result.answer_observations.tip", "uz") in page.text
+    assert "mbti-answer-observation__title" in page.text
+    assert "mbti-answer-observation__a" in page.text
+    assert "Avval o‘zingizga joy qoldirasiz" in page.text
+    assert "Rejani ish davomida tuzasiz" in page.text
+    # Tanlangan javob to‘liq, uch nuqtasiz.
+    assert "Butun vaqtni yolg‘iz, yoqtirgan mashg‘ulotim bilan" in page.text
+    start = page.text.find("answer-observations-heading")
+    end = page.text.find(t("result.strengths", "uz"), start)
+    block = page.text[start:end] if start >= 0 and end > start else ""
+    assert block
+    assert "…" not in block
     assert t("result.strengths", "uz") in page.text
 
 
