@@ -11,7 +11,13 @@ _test_pwd_context = CryptContext(schemes=["bcrypt"], bcrypt__rounds=4)
 os.environ.setdefault("DATABASE_URL", "sqlite://")
 os.environ.setdefault("SECRET_KEY", "test-secret-key-not-a-placeholder")
 os.environ.setdefault("DEBUG", "true")
-os.environ.setdefault("DEV_MODE", "false")
+# Lokal .env (DEV_MODE / WebApp-only / bot username) testlarni ifloslantirmasin —
+# setdefault yetarli emas: shell/IDE dagi qiymatlar Settings() dan oldin majburan tozalanadi.
+os.environ["DEV_MODE"] = "false"
+os.environ["TELEGRAM_WEBAPP_ONLY"] = "false"
+os.environ["BOT_USERNAME"] = ""
+os.environ["TELEGRAM_BOT_USERNAME"] = ""
+os.environ["PAYMENT_SUPPORT_BOT_USERNAME"] = ""
 os.environ["REFERRAL_REQUIRED_COMPLETIONS"] = "2"
 os.environ.setdefault("ADMIN_USERNAME", ADMIN_USERNAME)
 os.environ.setdefault("ADMIN_PASSWORD", ADMIN_PASSWORD)
