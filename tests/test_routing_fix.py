@@ -51,7 +51,10 @@ def test_legacy_start_redirects_to_root(client):
     assert response.headers["location"] == "/"
 
 
-def test_root_redirects_to_personality(client):
+def test_root_redirects_to_personality(client, monkeypatch):
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "dev_mode", False, raising=False)
     response = client.get("/", follow_redirects=False)
     assert response.status_code == 303
     assert response.headers["location"] == "/personality"

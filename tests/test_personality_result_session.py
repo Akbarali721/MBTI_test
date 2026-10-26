@@ -1,5 +1,7 @@
 """Natija kontenti, testni qayta boshlash va natija sahifasidagi harakatlar."""
 
+import re
+
 from sqlalchemy import func, select
 
 from app.i18n import t
@@ -58,14 +60,18 @@ def test_result_page_has_actions_and_no_placeholder_word(client):
     assert t("common.back_home", "uz") in result.text
     assert 'href="/personality"' in result.text
     assert 'action="/personality/restart"' in result.text
-    assert "placeholder" not in result.text.lower()
+    visible = re.sub(r"\splaceholder=\"[^\"]*\"", "", result.text, flags=re.IGNORECASE)
+    assert "placeholder" not in visible.lower()
 
 
 def test_home_route_works(client):
     assert client.get("/personality").status_code == 200
 
 
-def test_root_redirects_to_personality(client):
+def test_root_redirects_to_personality(client, monkeypatch):
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "dev_mode", False, raising=False)
     root = client.get("/", follow_redirects=False)
     assert root.status_code == 303
     assert root.headers["location"] == "/personality"

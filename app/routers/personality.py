@@ -1,7 +1,7 @@
 import logging
 
-from fastapi import APIRouter, Depends, Form, Query, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Depends, Form, Query, Request, status
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import Response
@@ -11,18 +11,25 @@ from app.dependencies import get_db_session
 from app.i18n import resolve_lang
 from app.models.enums import AppearanceTheme, PersonalitySessionStatus
 from app.pdf import pdf_filename
-from app.personality.payment_code import payment_code_for_session
 from app.personality.analytics_constants import (
     FEEDBACK_INTEREST_VALUES,
     FEEDBACK_RATING_VALUES,
     INTENT_VALUES,
 )
+from app.personality.payment_code import payment_code_for_session
+from app.personality.result_free_content import free_result_sections
+from app.personality.result_guidance import (
+    action_plan_text,
+    get_growth_areas,
+    premium_week_plan,
+    resolve_focus_area,
+)
 from app.personality.session_binding import (
+    attach_dev_browser_if_enabled,
     bind_personality_session,
     clear_pending_referral,
     completed_tokens,
     ensure_visitor_session,
-    feedback_skipped_for,
     get_bound_session,
     may_access_session,
     redirect_for_incomplete_result,
@@ -42,10 +49,10 @@ from app.personality.themes import (
     has_appearance_choice,
     theme_template_context,
 )
+from app.personality.webapp_access import mark_webapp_bound
 from app.ratelimit import limiter as advice_limiter
 from app.repositories.personality_repository import PersonalityRepository
 from app.services import ai_advice_service, referral_service
-from app.services.telegram_referral_service import telegram_referral_url
 from app.services.personality_scoring import calculate_personality_result
 from app.services.personality_service import PersonalityService
 from app.services.premium_access import has_premium_access, trial_days_left
@@ -55,15 +62,10 @@ from app.services.premium_payment_service import (
     premium_deeplink_url,
     support_bot_public_url,
 )
-from app.personality.result_guidance import (
-    action_plan_text,
-    get_growth_areas,
-    premium_week_plan,
-    public_today_card,
-    resolve_focus_area,
-)
 from app.services.premium_presentation import compose_premium_blocks
 from app.services.result_pdf import PdfFontsUnavailable, PdfNotPremium, build_pdf_bytes
+from app.services.result_user_feedback_service import ResultUserFeedbackService
+from app.services.telegram_referral_service import telegram_referral_url
 from app.templating import templates
 
 router = APIRouter(prefix="/personality", tags=["personality"])
@@ -203,6 +205,7 @@ def personality_telegram_bind(
     if updated is None:
         return JSONResponse({"ok": False, "reason": "invalid_init_data"}, status_code=400)
     db.commit()
+    mark_webapp_bound(request)
     logger.info(
         "telegram webapp bind session_id=%s telegram_user_id=%s",
         updated.id,
@@ -279,6 +282,8 @@ def personality_instructions(
     else:
         sync_referral_attribution(request, db, session, ref)
         sync_source_attribution(request, db, session, source)
+        attach_dev_browser_if_enabled(request, db, session)
+        db.commit()
 
     advanced = redirect_for_session_progress(session)
     if advanced:
@@ -411,12 +416,13 @@ def personality_test(
     db.commit()
     db.refresh(session)
     view = service.get_test_view(token, question_index=q)
-    service.record_question_view(token, view["question_index"])
-    db.commit()
     if view.get("redirect") == "result":
         return RedirectResponse(url=f"/personality/result/{token}", status_code=303)
     if view.get("redirect") == "questions_error":
         return templates.TemplateResponse(request, "personality/questions_error.html", {})
+
+    service.record_question_view(token, view["question_index"])
+    db.commit()
 
     session = view["session"]
     ctx = _themed_context(session)
@@ -566,18 +572,15 @@ def personality_result(
     growth_pair = get_growth_areas(session.result_type or "", language=lang)
     focus_area = None
     growth_summaries: list[dict[str, str]] = []
-    today_card: dict[str, str | list[str]] | None = None
     week_plan: list[dict[str, str | int]] | None = None
     action_plan_override: str | None = None
-    growth_today_by_id: dict[str, dict[str, str | list[str]]] = {}
     growth_week_by_id: dict[str, list[dict[str, str | int]]] | None = None
+    free_challenges, daily_tips = free_result_sections(session.result_type or "", language=lang)
     if growth_pair:
         focus_area = resolve_focus_area(growth_pair, focus)
         growth_summaries = [
             {"id": a["id"], "name": a["name"], "situation": a["situation"]} for a in growth_pair
         ]
-        growth_today_by_id = {a["id"]: public_today_card(a) for a in growth_pair}
-        today_card = growth_today_by_id[focus_area["id"]]
         if has_premium_access(session):
             growth_week_by_id = {a["id"]: premium_week_plan(a) for a in growth_pair}
             week_plan = growth_week_by_id[focus_area["id"]]
@@ -594,6 +597,8 @@ def personality_result(
             "result": result,
             "strengths": view["strengths"],
             "challenges": view["challenges"],
+            "free_challenges": free_challenges,
+            "daily_tips": daily_tips,
             # Premium bo'limlar TO'LOV yoki MUKOFOT bilan ochiladi; PDF esa faqat
             # to'lov bilan — yuklab olingan fayl sinov muddatidan keyin ham qoladi.
             "is_premium": has_premium_access(session),
@@ -618,9 +623,7 @@ def personality_result(
             "support_bot_open_url": f"/personality/result/{token}/support-bot",
             "growth_summaries": growth_summaries,
             "growth_focus_id": focus_area["id"] if focus_area else None,
-            "today_card": today_card,
             "week_plan": week_plan,
-            "growth_today_by_id": growth_today_by_id,
             "growth_week_by_id": growth_week_by_id,
             "premium_blocks": compose_premium_blocks(
                 content,
@@ -629,30 +632,58 @@ def personality_result(
                 language=lang,
                 action_plan_override=action_plan_override,
             ),
-            "feedback_skipped": feedback_skipped_for(request, token),
-            "show_feedback_rating": (
-                not feedback_skipped_for(request, token) and not session.feedback_rating
-            ),
-            "show_feedback_interest": (
-                not feedback_skipped_for(request, token)
-                and bool(session.feedback_rating)
-                and not session.feedback_interest
-            ),
-            "feedback_rating_options": [
-                ("very_accurate", "feedback.rating.very_accurate"),
-                ("partly_accurate", "feedback.rating.partly_accurate"),
-                ("not_accurate", "feedback.rating.not_accurate"),
-            ],
-            "feedback_interest_options": [
-                ("career", "feedback.interest.career"),
-                ("strengths", "feedback.interest.strengths"),
-                ("relationships", "feedback.interest.relationships"),
-                ("stress", "feedback.interest.stress"),
-                ("confidence", "feedback.interest.confidence"),
-            ],
+            "user_feedback_submitted": ResultUserFeedbackService(db).get_for_session(session.id) is not None,
         }
     )
     return templates.TemplateResponse(request, "personality/result.html", ctx)
+
+
+@router.post("/result/{token}/user-feedback", response_model=None)
+async def personality_result_user_feedback(
+    request: Request,
+    token: str,
+    db: Session = Depends(get_db_session),
+) -> JSONResponse:
+    denied = _require_session_owner(request, token, db)
+    if denied:
+        return JSONResponse({"ok": False, "detail": "forbidden"}, status_code=status.HTTP_403_FORBIDDEN)
+    session = PersonalityService(db).get_session_or_404(token)
+    if session.status != PersonalitySessionStatus.COMPLETED:
+        return JSONResponse({"ok": False, "detail": "not completed"}, status_code=status.HTTP_400_BAD_REQUEST)
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"ok": False, "detail": "invalid json"}, status_code=status.HTTP_400_BAD_REQUEST)
+    if not isinstance(body, dict):
+        return JSONResponse({"ok": False, "detail": "invalid body"}, status_code=status.HTTP_400_BAD_REQUEST)
+    rating = body.get("rating")
+    comment = body.get("comment")
+    if not isinstance(rating, str):
+        return JSONResponse(
+            {"ok": False, "detail": "rating required"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    if comment is not None and not isinstance(comment, str):
+        return JSONResponse(
+            {"ok": False, "detail": "invalid comment"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    service = ResultUserFeedbackService(db)
+    try:
+        service.upsert(session, rating=rating, comment=comment)
+    except ValueError as exc:
+        return JSONResponse({"ok": False, "detail": str(exc)}, status_code=status.HTTP_400_BAD_REQUEST)
+    db.commit()
+    lang = resolve_lang(request)
+    from app.i18n import t
+
+    return JSONResponse(
+        {
+            "ok": True,
+            "success_title": t("feedback.user.success_title", lang),
+            "success_body": t("feedback.user.success_body", lang),
+        }
+    )
 
 
 @router.post("/result/{token}/feedback", response_model=None)

@@ -93,12 +93,8 @@ def test_admin_telegram_users_filters(client):
 
 def test_admin_telegram_users_referred_filter_and_detail_invites(client):
     with db_session(client) as db:
-        referrer = upsert_from_bot_start(
-            db, TelegramProfileInput(telegram_id=880020, username="referrer")
-        )
-        referred = upsert_from_bot_start(
-            db, TelegramProfileInput(telegram_id=880021, username="referred")
-        )
+        referrer = upsert_from_bot_start(db, TelegramProfileInput(telegram_id=880020, username="referrer"))
+        referred = upsert_from_bot_start(db, TelegramProfileInput(telegram_id=880021, username="referred"))
         db.flush()
         attribute_bot_referral(db, referred=referred, referrer_telegram_id=880020)
         db.commit()

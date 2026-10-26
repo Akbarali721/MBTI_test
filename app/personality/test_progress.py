@@ -49,6 +49,7 @@ def progress_status_label(session: PersonalityTestSession | None) -> str:
     if session.status == PersonalitySessionStatus.COMPLETED:
         return "Tugatgan"
     last = session.last_activity_at or session.last_answered_at or session.started_at
-    if last is not None and utcnow() - as_utc(last) > ABANDONED_AFTER:
+    last_utc = as_utc(last)
+    if last_utc is not None and utcnow() - last_utc > ABANDONED_AFTER:
         return "Tashlab ketgan"
     return "Davom etmoqda"

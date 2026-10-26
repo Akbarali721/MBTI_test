@@ -222,9 +222,7 @@ def test_database_rejects_duplicate_session_question_link(client):
     with db_session(client) as db:
         session = session_by_token(db, token)
         link = db.scalar(
-            select(PersonalitySessionQuestion).where(
-                PersonalitySessionQuestion.session_id == session.id
-            )
+            select(PersonalitySessionQuestion).where(PersonalitySessionQuestion.session_id == session.id)
         )
         assert link is not None
         db.add(

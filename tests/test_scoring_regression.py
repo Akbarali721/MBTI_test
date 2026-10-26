@@ -3,6 +3,7 @@
 import pytest
 from sqlalchemy import select
 
+from app.i18n import t
 from app.models.personality import PersonalityQuestion
 from app.seed.personality_placeholders import DIMENSION_POLES
 from tests.helpers import complete_session, db_session, session_by_token
@@ -56,7 +57,16 @@ def test_left_favoring_path_is_opposite_of_right_favoring_path(client):
 def test_result_page_shows_the_computed_type(client):
     token = complete_session(client, option_picker=_favor_left_option_index)
     with db_session(client) as db:
-        result_type = session_by_token(db, token).result_type
+        session = session_by_token(db, token)
+        result_type = session.result_type
+        from app.repositories.personality_repository import PersonalityRepository
+
+        content_title = PersonalityRepository(db).get_result_content(result_type, "uz").title
     page = client.get(f"/personality/result/{token}")
     assert page.status_code == 200
-    assert f"<strong>{result_type}</strong>" in page.text
+    # Scoring 4-harfli tipni saqlaydi; sahifa shu tipning kontent title'ini ko'rsatadi
+    # (eski <strong>ESTJ</strong> eyebrow bu branchda yo'q).
+    assert result_type and len(result_type) == 4
+    assert "mbti-result-page" in page.text
+    assert content_title in page.text
+    assert t("result.disclaimer", "uz") in page.text

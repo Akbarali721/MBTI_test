@@ -2,19 +2,17 @@
 
 from __future__ import annotations
 
-INTENT_VALUES: frozenset[str] = frozenset(
-    {"strengths", "career", "self_understanding", "curiosity"}
-)
+INTENT_VALUES: frozenset[str] = frozenset({"strengths", "career", "self_understanding", "curiosity"})
 
-FEEDBACK_RATING_VALUES: frozenset[str] = frozenset(
-    {"very_accurate", "partly_accurate", "not_accurate"}
-)
+FEEDBACK_RATING_VALUES: frozenset[str] = frozenset({"very_accurate", "partly_accurate", "not_accurate"})
 
 FEEDBACK_INTEREST_VALUES: frozenset[str] = frozenset(
     {"career", "strengths", "relationships", "stress", "confidence"}
 )
 
 DEFAULT_SOURCE = "direct"
+# PyCharm / localhost DEV_MODE: analitikada telegram-webapp bilan aralashmasin.
+DEV_BROWSER_SOURCE = "dev-browser"
 
 INTENT_ADMIN_LABELS: dict[str, str] = {
     "strengths": "Kuchli tomonlar",

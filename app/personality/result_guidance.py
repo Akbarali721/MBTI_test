@@ -28,7 +28,7 @@ def resolve_focus_area(
     return areas[0]
 
 
-def public_today_card(area: GrowthArea) -> dict[str, str]:
+def public_today_card(area: GrowthArea) -> dict[str, str | list[str]]:
     """Bepul foydalanuvchiga faqat bugungi vazifa kartasi."""
     return {
         "area_id": area["id"],

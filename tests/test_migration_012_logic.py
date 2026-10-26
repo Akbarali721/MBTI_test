@@ -23,7 +23,9 @@ def test_find_unique_detects_differently_named_order_number_constraint():
 
 
 def test_find_unique_detects_unique_index_only_on_order_number():
-    indexes = [{"name": "personality_questions_order_number_key", "unique": True, "column_names": ["order_number"]}]
+    indexes = [
+        {"name": "personality_questions_order_number_key", "unique": True, "column_names": ["order_number"]}
+    ]
     found = m012.find_unique_names_for_columns([], indexes, ("order_number",))
     assert found == [("index", "personality_questions_order_number_key")]
 
@@ -36,5 +38,7 @@ def test_find_unique_skips_when_no_order_number_singleton():
 def test_find_unique_does_not_match_by_substring_in_name():
     """Regression: old code dropped anything with 'order_number' in the constraint name."""
     constraints = [{"name": "uq_question_variant_order", "column_names": ["variant", "order_number"]}]
-    indexes = [{"name": "ix_personality_questions_order_number", "unique": False, "column_names": ["order_number"]}]
+    indexes = [
+        {"name": "ix_personality_questions_order_number", "unique": False, "column_names": ["order_number"]}
+    ]
     assert m012.find_unique_names_for_columns(constraints, indexes, ("order_number",)) == []

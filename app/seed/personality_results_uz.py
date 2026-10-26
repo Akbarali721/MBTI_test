@@ -1,8 +1,11 @@
-"""16 MBTI turi uchun o‘zbekcha natija matnlari (placeholder yo‘q).
+"""16 MBTI turi uchun o‘zbekcha natija matnlari.
 
-Premium bo‘limlar (motivatsiya, ish uslubi, kasb, do‘stlik, munosabat, mos odamlar,
-qiyin muloqot, 7 kunlik reja) har tur uchun alohida yozilgan — ruscha modul bilan
-bir xil tuzilma va bir xil ma’no.
+Asosiy auditoriya 18–25 yosh. Matn javoblarga qarab berilgan taxmin, ilmiy tashxis emas.
+Kalitlar va tuzilma saqlangan. Har bir tur alohida yozilgan.
+Bepul qism: sarlavha, kimligingiz, hayotiy misol, 3 kuch, 2 qiyinchilik.
+Premium qism shu matnni takrorlamaydi: kundalik vaziyat, kuchni qayerda ishlatish,
+charchatadigan holat va yechim, ish muhiti, munosabat.
+`get_result_copy` 3 ta amaliy tavsiya va 7 kunlik rejani `personality_guidance_uz` dan qo‘shadi.
 """
 
 from typing import TypedDict
@@ -13,6 +16,7 @@ class ResultCopy(TypedDict):
     short_description: str
     strengths: list[str]
     challenges: list[str]
+    daily_tips: list[str]
     public_view: str
     advice: str
     motivation_analysis: str
@@ -32,33 +36,35 @@ GENERIC_FALLBACK: ResultCopy = {
         "qayta urinib ko‘rishingiz yoki natijani do‘stingiz bilan muhokama qilishingiz mumkin."
     ),
     "strengths": [
-        "Vaziyatga moslashish va o‘rganishga tayyorlik",
-        "O‘z kuchli tomonlaringizni amalda sinab ko‘rish",
-        "Muloqotda ochiq va samimiy bo‘lish",
+        "Moslashish. Yangi vaziyatda ham o‘rganishga tayyor turishingiz mumkin.",
+        "Sinash. Kuchli tomoningizni avval kichik ishda ko‘rib chiqishingiz mumkin.",
+        "Ochiqlik. Muloqotda sodda va samimiy gapirish sizga yengilroq kelishi mumkin.",
     ],
     "challenges": [
-        "Juda ko‘p yo‘nalishda bir vaqtda harakat qilish",
-        "O‘z chegaralaringizni aniq aytmaslik",
+        "Juda ko‘p yo‘nalishni bir vaqtda ochib yuborish",
+        "O‘z chegarangizni aniq aytmaslik",
+    ],
+    "daily_tips": [
+        "Bugun bitta kuchli tomoningizni aniq bir vazifada sinab ko‘ring.",
+        "Charchagan paytingizda 10 daqiqa tanaffus qiling, keyin davom eting.",
+        "Kechqurun «nima yaxshi ketdi?» deb bitta jumla yozing.",
     ],
     "public_view": (
         "Bu uslubda odam atrofda xotirjam, muloqotga ochiq va o‘z yo‘lini qidirayotgan inson "
         "deb qabul qilinishi mumkin — bu haqiqiy fikr emas, ehtimoliy tasvir."
     ),
-    "advice": (
-        "Kuchli tomonlaringizni kundalik kichik qadamlarda ishlating; bir vaqtning o‘zida "
-        "hamma narsani o‘zgartirmang."
-    ),
+    "advice": "Kuchli tomoningizni bugun bitta kichik ishda sinab ko‘ring.",
     "motivation_analysis": (
         "Motivatsiya sizda ma’noli maqsad va ko‘zga ko‘rinadigan kichik yutuqlar bo‘lganda barqarorroq bo‘ladi."
     ),
-    "work_style": "Reja va moslashuv muvozanatda bo‘lgan ish sizga yaxshi keladi.",
-    "career_environment": "Hurmat, aniq vazifalar va o‘sish imkoniyati bor muhit sizga qulay.",
-    "friendship_style": "Siz uchun sodda, to‘g‘ridan-to‘g‘ri muloqot va o‘zaro ishonch muhim.",
-    "relationship_needs": "Tushunish, hurmat va bir-biringizga ataylab ajratilgan vaqt.",
+    "work_style": "Reja va moslashuv muvozanatda bo‘lgan ish sizga yaxshi kelishi mumkin.",
+    "career_environment": "Hurmat, aniq vazifalar va o‘sish imkoniyati bor muhit sizga qulay kelishi mumkin.",
+    "friendship_style": "Siz uchun sodda, to‘g‘ridan-to‘g‘ri muloqot va o‘zaro ishonch muhim bo‘lishi mumkin.",
+    "relationship_needs": "Tushunish, hurmat va bir-biringizga ataylab ajratilgan vaqt kerak bo‘lishi mumkin.",
     "compatible_people": (
         "Murakkab mavzuni tinch muhokama qila oladigan va baho bermay qo‘llab-quvvatlaydigan odamlar."
     ),
-    "difficult_communication": "Bosim va hurmatsiz ohang sizni tez charchatadi.",
+    "difficult_communication": "Bosim va hurmatsiz ohang sizni tez charchatishi mumkin.",
     "action_plan": (
         "1-kun: bitta kuchli tomoningizni aniq bir vazifada qo‘llang. "
         "7-kungacha har kuni bitta kichik qadam qo‘shib boring."
@@ -88,6 +94,7 @@ def _entry(
         "short_description": summary,
         "strengths": strengths,
         "challenges": challenges,
+        "daily_tips": [],
         "public_view": others,
         "advice": advice,
         "motivation_analysis": motivation,
@@ -101,777 +108,938 @@ def _entry(
     }
 
 
+def _use(*lines: str) -> str:
+    return "\n".join(lines)
+
+
 PERSONALITY_RESULTS_UZ: dict[str, ResultCopy] = {
     "INFP": _entry(
-        title="Ma’no izlovchi va qadriyatiga sodiq inson",
+        title="Siz — ichki mezoniga qarab qaror qiladigan odamsiz.",
         summary=(
-            "Siz ichki qadriyatlar, ma’no va shaxsiy o‘sishga yo‘naltirilgansiz. "
-            "G‘oyalarga ham, odamlarga ham chuqur va jiddiy munosabatda bo‘lasiz."
+            "Sizda ishni avval o‘zingizga muhim yoki muhim emasligiga qarab tekshirish odat bo‘lishi mumkin. "
+            "Tashqaridan ko‘p gapirmasangiz ham, ichingizda javob allaqachon shakllanayotgan bo‘lishi mumkin. "
+            "Yaqin odamning holatini sezasiz, lekin o‘z noqulayligingizni keyinroq aytishingiz mumkin. "
+            "Shuning uchun «mayli» degan javob ba’zan sizni emas, boshqani tinchlantiradi.\n\n"
+            "Masalan, do‘stlar kechqurun chiqishni reja qiladi. Siz uyda qolishni xohlaysiz, lekin «mayli» deb qo‘yasiz. "
+            "Kechasi charchab qaytasiz va ertasiga topshiriqqa kuchingiz yetmaydi."
         ),
         strengths=[
-            "Empatiya va chinakam tinglay olish",
-            "Ijodiy, obrazli fikrlash",
-            "Munosabatlarda sodiqlik va samimiylik",
+            "Tinglash. Yaqin odam gapirganda shoshilmay oxirigacha eshitishingiz mumkin.",
+            "Ma’no. Sizga muhim ishni chala tashlab yuborish qiyinroq kelishi mumkin.",
+            "Ohang. Yozma yoki ijodiy ishda o‘z ovozingizni topishingiz mumkin.",
         ],
         challenges=[
-            "O‘z ehtiyojingiz haqidagi suhbatni keyinga surish",
-            "Ziddiyatni oydinlashtirish o‘rniga undan chetlanish",
+            "«Mayli» deb qo‘yib, keyin ichingizda qolish",
+            "Noqulay gapni keyinga surib, jim yurish",
         ],
-        others="Boshqalar sizni muloyim, xayolparast va ichki dunyosi boy inson deb ko‘rishadi.",
-        advice="Qadriyatlaringizga mos keladigan kichik kundalik qadamlarni rejalashtiring.",
+        others=_use(
+            "Guruh suhbatida oxirida bir jumla bilan xulosa qiling: eshitganingiz qarorga aylanadi.",
+            "Yozma topshiriqda o‘z ohangingizni saqlang va oxiriga bitta aniq xulosa qo‘ying.",
+            "Muhim ishni bitta odam bilan yakunlang, har paragrafni umumiy chatda kelishtirmang.",
+        ),
+        advice="Bugun bitta kichik iltimosga «hozir qiyin, keyinroq yozaman» deb javob bering.",
         motivation=(
-            "Sizni bosim yoki raqobat emas, ishning ma’noli ekani harakatga keltiradi. "
-            "Vazifa qadriyatingizga zid bo‘lsa, tashqi muvaffaqiyat bo‘lsa ham kuch ketadi. "
-            "Kundalik ishni o‘zingiz uchun muhim narsaga bog‘laganingizda motivatsiya qaytadi."
+            "Kurs ishi faqat baho uchun bo‘lsa, qo‘lingiz sekinlashishi mumkin. "
+            "Daftar chetiga «buni kim uchun qilyapman» deb bir qator yozsangiz, davom ettirish osonlashadi. "
+            "Do‘stning xabari kechqurun kelib, o‘qish vaqtingizni olsa, avval 20 daqiqa o‘qib, keyin javob yozish sizni yengilroq tutishi mumkin."
         ),
         work=(
-            "Vazifaga chuqur kirishish uchun sizga tinchlik va bo‘sh joy kerak. Siz to‘lqin bilan "
-            "ishlaysiz: uzoq ichki o‘ylash, so‘ng jamlangan ijodiy siljish. "
-            "Har qadamni nazorat qilib turish esa qaytimingizni so‘ndiradi."
+            "Avval yolg‘iz qoralama yozib, keyin odamga ko‘rsatish sizga qulayroq kelishi mumkin. "
+            "Vazifa aniq bo‘lsa va muddat siqib turmasa, matn yaxshiroq chiqishi mumkin. "
+            "Har qadamni guruhda ovozga qo‘yish sizni to‘xtatib qo‘yishi mumkin."
         ),
         career=(
-            "Sizga faqat ko‘rsatkich emas, insonning o‘zi qadrlanadigan muhit mos: odamlarga yordam, "
-            "ta’lim, matn, dizayn, psixologiya, gumanitar loyihalar. O‘z sur’atingizda ishlash imkoni muhim."
+            "Aniq kasb va’dasi emas. Sizga yengilroq kelishi mumkin bo‘lgan sharoit: "
+            "yozma ish, kichik guruh, o‘z sur’ati, odamga foydasi ko‘rinadigan topshiriq."
         ),
         friendship=(
-            "Do‘stlaringiz ko‘p emas, lekin aloqalar chuqur. Shovqinli davradan ko‘ra yakkama-yakka "
-            "uzoq samimiy suhbat sizga yaqin, og‘ir damda yoningizda bo‘lganlarni esa uzoq eslab qolasiz."
+            "Sizga shovqinli davradan ko‘ra bitta odam bilan uzoqroq suhbat yaqinroq kelishi mumkin. "
+            "Ko‘p chaqiruvdan keyin ertasiga yozma xabar orqali ochilishingiz ham mumkin. Shu xabarni oldindan ayting."
         ),
         relationship=(
-            "Sizga sezgirligingizni qabul qiladigan va uni arzimas narsaga aylantirmaydigan juft kerak. "
-            "Halollik, hissiy xavfsizlik va ba’zan yolg‘iz qolish huquqi muhim."
+            "Har kecha uzun hisobot shart emas. «Bugun shu narsa og‘ir bo‘ldi» degan bir jumla ham sizni ochishi mumkin. "
+            "Yolg‘iz qolishni so‘rasangiz, buni uzoqlashish deb o‘qimaslikni oldindan ayting."
         ),
         compatible=(
-            "Tinch tinglaydigan, baho bermay qo‘llab-quvvatlaydigan va chegarangizni hurmat qiladigan odamlar. "
-            "Ishda g‘oyani kichik qadamlarga bo‘lib beradigan hamkorlar foydali bo‘lishi mumkin."
+            "Kelishmovchilik chiqsa, avval nima bo‘lganini bir jumlada yozing, keyin hisni qo‘shing. "
+            "«Hozir gaplasha olmayman, ertaga 15 daqiqa bor» desangiz, jimlik adashishga aylanmasligi mumkin."
         ),
-        difficult=(
-            "Keskin tanqid, baland ohang va darhol javob berish talab qilinadigan vaziyatlar qiyin kechadi. "
-            "Bunday paytda siz jim bo‘lib qolasiz, ichkarida esa reaksiya juda kuchli bo‘ladi."
+        difficult=_use(
+            "Chiqishga ichingiz yo‘q bo‘lsa ham «mayli» deb qo‘yasiz. Yechim: «bugun kela olmayman, ertaga yozaman» deb bir jumla yuboring.",
+            "Noqulay gapni bir necha kun ichingizda yurasiz. Yechim: xabarni qoralab, 10 daqiqadan keyin yuboring.",
+            "Bitta tanqidni uzoq o‘ylab, ishni to‘xtatasiz. Yechim: tanqidning bitta aniq joyini belgilab, faqat shu joyni tuzating.",
         ),
-        plan=(
-            "1-hafta: har kuni bitta istagingizni yoki bitta chegarangizni ovoz chiqarib ayting. "
-            "2-hafta: bitta kichik ijodiy g‘oyani tayyor natijagacha yetkazing. "
-            "Har oqshom nima kuch berganini va nima kuch olganini belgilab boring."
-        ),
+        plan="1-kun: bitta iltimosga aniq chegara yozing. 7-kun: qaysi chegara oson bo‘lganini ikki qator qilib yozing.",
     ),
     "INFJ": _entry(
-        title="Ma’no izlaydigan strateg",
+        title="Siz — oldindan o‘ylab, odamni eshitadigan odamsiz.",
         summary=(
-            "Siz uchun uzoq muddatli maqsad va odamlarga foyda muhim. Intuitsiya va tizimli fikrlash "
-            "sizda birga ishlaydi."
+            "Sizda gapni aytishdan oldin uning oqibatini ko‘rib chiqish odat bo‘lishi mumkin. "
+            "Yaqin odamning holatini sezasiz va yordamni o‘zingiz taklif qilishingiz mumkin. "
+            "Reja ichingizda tayyor bo‘lsa ham, uni hammaga darrov ochmasligingiz mumkin. "
+            "Boshqalar tinchigida siz charchab qolishingiz ham mumkin.\n\n"
+            "Masalan, guruh loyihasida hamma chalg‘igan. Siz muddatni, kim nima qilishini va kim noqulay bo‘lishini oldindan o‘ylaysiz. "
+            "Kechasi esa o‘zingiz dam olmasdan ro‘yxat tuzasiz."
         ),
         strengths=[
-            "Manzarani yillar oldinga ko‘ra olish",
-            "Bosimsiz, empatiya bilan maslahat berish",
-            "Qilayotgan ishingizda ma’no izlash",
+            "Oldindan ko‘rish. Muhim ishning keyingi qadamini erta sezishingiz mumkin.",
+            "Eshitish. Odamning so‘zini tuzatishdan oldin tinglashingiz mumkin.",
+            "Tartib. Chalg‘igan ishni bitta ro‘yxatga yig‘ishingiz mumkin.",
         ],
         challenges=[
-            "O‘z ehtiyojini orqaga surish odati",
-            "O‘ziga nisbatan haddan tashqari yuqori talab",
+            "Boshqaning kayfini o‘z damingizdan oldinga qo‘yish",
+            "Ichki rejangizni aytmasdan, odam sizni tushunmayapti deb qolish",
         ],
-        others="Sizni dono, muloyim va maqsadli inson sifatida qabul qilishadi.",
-        advice="Yolg‘iz o‘zingiz bilan qoladigan vaqt ajrating — bu erkalik emas, tiklanish usuli.",
+        others=_use(
+            "Guruhda keyingi qadamni bitta xabarda yozing, hammasini o‘zingiz qilmang.",
+            "Maslahatdan oldin «hozir eshitaymi yoki yo‘l aytaymi?» deb so‘rang.",
+            "Kechki damni kalendarga qo‘ying va uni boshqa ish bilan almashtirmang.",
+        ),
+        advice="Bugun kechki 20 daqiqani o‘zingiz uchun band qiling va bu vaqtni boshqaga bermang.",
         motivation=(
-            "Sizni joriy vazifadan kattaroq narsaning bir qismi ekanligingiz hissi ko‘taradi. "
-            "Maqsadsiz yugurish sizning ko‘zingizda tez qadrsizlanadi. Ma’no ko‘rinib, o‘z hissangiz "
-            "aniq bo‘lganda esa uzoq va qat’iy ishlaysiz."
+            "Do‘st kechqurun yordam so‘rasa, o‘qishni to‘xtatib, ertalab charchab turishingiz mumkin. "
+            "Oila yig‘inida hamma kayfini siz ushlab, o‘z rejangiz qolib ketishi mumkin. "
+            "Bitta aniq «men shu soatdan keyin javob yozaman» qoidasi sizni yengilroq tutishi mumkin."
         ),
         work=(
-            "Siz avval hammasini o‘ylab olib, keyin harakat qilishni afzal ko‘rasiz. Murakkab loyihani "
-            "boshingizda butun holda ushlaysiz, ammo doimiy kutilmagan almashinuvlarni yomon ko‘tarasiz."
+            "Oldindan tuzilgan, odamga foydasi ko‘rinadigan ish sizga qulayroq kelishi mumkin. "
+            "Jamoa kichik bo‘lsa va rol aniq bo‘lsa, ortiqcha yuk kamayishi mumkin. "
+            "Har kuni reja o‘zgarib tursa, kuch tez ketishi mumkin."
         ),
         career=(
-            "Chuqurlik va odamlar bilan ishlash talab qiladigan rollar mos: maslahat berish, o‘qitish, "
-            "tadqiqot, HR, ijtimoiy va madaniy loyihalar. Qattiq raqobatsiz muhit muhim."
+            "Aniq kasb va’dasi emas. Sizga yengilroq kelishi mumkin bo‘lgan sharoit: "
+            "aniq rol, kichik jamoa, oldindan ko‘rinadigan muddat, odamga yordami bor ish."
         ),
         friendship=(
-            "Do‘stni ehtiyotkorlik bilan tanlaysiz, lekin uzoq yillar yonida qolasiz. Ko‘pincha "
-            "eng shaxsiy gaplarni aynan sizga aytishadi — shu yerda o‘z resursingizni ham unutmang."
+            "Do‘stga yordam berishni yaxshi ko‘rasiz, lekin har safar o‘zingiz yetib borishingiz shart emas. "
+            "«Bugun eshitaman, yechimni ertaga birga qaraymiz» desangiz, do‘stlik ham, damingiz ham saqlanishi mumkin."
         ),
         relationship=(
-            "Sizga chuqurlik, halollik va uzoq tushuntirmasdan tushunilish hissi kerak. "
-            "Keskin o‘zgarishlar va munosabatdagi noaniqlik sizni hammasidan ko‘proq holdan toydiradi."
+            "Yaqin odam nima o‘ylayotganingizni taxmin qilavermasin. Bitta rejangizni o‘zingiz ayting. "
+            "Tinch vaqtni oldindan belgilasangiz, yaqinlik faqat muammo chiqqanda gaplashishga aylanmasligi mumkin."
         ),
         compatible=(
-            "Chuqur suhbat va ishonchga tayyor odamlar. Yengillik qo‘shadigan, lekin sizning vaqt chegarangizni buzmaydigan do‘stlar ham qulay."
+            "Kelishmovchilikda avval eshitganingizni bir jumlada qaytaring, keyin o‘z xavotiringizni ayting. "
+            "«Men shuni nazarda tutgan edim» deb rejangizni ochsangiz, jimlik adashishga aylanmasligi mumkin."
         ),
-        difficult=(
-            "Yuzaki janjal, manipulyatsiya va o‘zini boshqacha ko‘rsatish kerak bo‘lgan muloqot og‘ir. "
-            "Siz munosabatni oydinlashtirgandan ko‘ra jimgina uzoqlashishni tanlaysiz."
+        difficult=_use(
+            "Hamma sizdan maslahat kutadi, siz esa charchagansiz. Yechim: «hozir eshitaman, yechimni ertaga aytaman» deng.",
+            "Ichki rejangizni aytmaysiz, keyin xafa bo‘lasiz. Yechim: rejaning bitta qadamini xabarda yozing.",
+            "Boshqaning kayfini tuzatishga kechasi ketadi. Yechim: kechki 20 daqiqani oldindan band qiling.",
         ),
-        plan=(
-            "1-hafta: har kuni 20 daqiqa faqat o‘zingizga — telefonsiz va begona vazifalarsiz. "
-            "2-hafta: bitta katta maqsadni yettita aniq qadamga bo‘ling va bajarilganini belgilab boring."
-        ),
+        plan="1-kun: kechki 20 daqiqani o‘zingizga qo‘ying. 7-kun: qaysi yordamni kechiktirganingizni yozing.",
     ),
     "INTJ": _entry(
-        title="Mustaqil strateg va tizim quruvchi",
-        summary="Siz samaradorlik, aniq maqsad va uzoq muddatda ishlaydigan yechimlarni qadrlaysiz.",
+        title="Siz — uzoq reja tuzib, o‘zingiz yuradigan odamsiz.",
+        summary=(
+            "Sizda maqsadni oldindan qo‘yib, keraksiz qadamni tashlab yuborish odat bo‘lishi mumkin. "
+            "Yolg‘iz ishlaganda tezroq natija chiqishi mumkin. "
+            "Gapni qisqa aytasiz, shuning uchun odam sizni sovuq deb o‘qishi mumkin. "
+            "Reja buzilsa, avval jahlingiz chiqib, keyin yangi yo‘l qidirishingiz mumkin.\n\n"
+            "Masalan, semestr boshida fanlarni haftalarga bo‘lib qo‘yasiz. "
+            "Guruh esa har kuni rejani o‘zgartiradi. Siz jim ishlaysiz, oxirida esa «nega oldin aytmadingiz» deysiz."
+        ),
         strengths=[
-            "Strategik rejalashtirish",
-            "Qarorlarda mustaqillik",
-            "Murakkab vazifani qismlarga ajratib tahlil qilish",
+            "Reja. Uzoq ishni bosqichlarga bo‘lib, muddatni ushlashingiz mumkin.",
+            "Tanlash. Keraksiz ishni erta tashlab, asosiy narsaga kuch sarflashingiz mumkin.",
+            "Mustaqil yurish. Yo‘l aniq bo‘lsa, nazoratsiz ham oxiriga yetishingiz mumkin.",
         ],
         challenges=[
-            "Boshqalarning sekinligiga sabrsizlik",
-            "His-tuyg‘uni ikkinchi o‘ringa surish odati",
+            "Qarorni ichingizda qilib, boshqaga kech ayting",
+            "Reja buzilganda butun ish yiqildi deb his qilish",
         ],
-        others="Atrofdagilar sizni jiddiy, aqlli va maqsadli deb bilishadi.",
-        advice="Maqsadni jamoaga so‘z bilan aytib bering — shunda hammasini yolg‘iz tortmaysiz.",
+        others=_use(
+            "Rejaning sababini bitta jumlada yozing, odam nima uchun shunday qilayotganingizni ko‘radi.",
+            "Mustaqil qismni o‘zingiz yoping, umumiy qarorni esa bir marta guruhga ko‘rsating.",
+            "Buzilgan kunga bitta zaxira soat qo‘ying, butun rejani o‘chirmang.",
+        ),
+        advice="Bugun bitta qaroringizning sababini guruhga bir jumla qilib yozing.",
         motivation=(
-            "Sizni ishlaydigan biror narsani qurish va uni doimiy yaxshilash imkoni harakatga keltiradi. "
-            "«Shunday qabul qilingan» ruhidagi marosimlar motivatsiyani bir zumda o‘ldiradi. Eng yaxshi "
-            "turtki — mantiqingiz natijani qanday o‘zgartirayotgani ko‘rinib turadigan vazifa."
+            "Guruh har kuni yo‘nalishni o‘zgartirsa, siz ishni to‘xtatib, yolg‘iz qismni qilishingiz mumkin. "
+            "Imtihon oldidan boshqalar kechasi o‘qisa, siz eski rejangizni ushlab, moslasha olmasligingiz mumkin. "
+            "Bitta zaxira soat rejani butunlay tashlashdan saqlashi mumkin."
         ),
         work=(
-            "Avval tizim, keyin harakat. Siz mustaqillikni va o‘z jadvalingizni yaxshi ko‘rasiz, tashqi "
-            "nazoratni hamda qarorsiz tugaydigan yig‘ilishlarni og‘ir ko‘tarasiz."
+            "Uzoq muddatli, aniq natijali va ortiqcha yig‘ilishi kam ish sizga qulayroq kelishi mumkin. "
+            "Jamoa qarorni qisqa yozsa, siz ham o‘z qismingizni o‘z vaqtida yopishingiz mumkin. "
+            "Har soatda yo‘nalish o‘zgarsa, sifat tushishi mumkin."
         ),
         career=(
-            "Analitika, IT, muhandislik, moliya, strategiya, ilm-fan, jarayonlarni loyihalash mos keladi. "
-            "Kompetentlik rasmiy ierarxiyadan yuqori turishi muhim."
+            "Aniq kasb va’dasi emas. Sizga yengilroq kelishi mumkin bo‘lgan sharoit: "
+            "uzoq loyiha, aniq natija, kam yig‘ilish, mustaqil qism."
         ),
         friendship=(
-            "Do‘st kam, lekin bu ortiqcha rasmiyatchiliksiz munosabat. G‘oyalarni muhokama qila oladigan "
-            "va noqulaylik his qilmay birga jim o‘tira oladigan odamlarni qadrlaysiz."
+            "Do‘stga har kuni uzun suhbat shart emas. Haftada bitta aniq uchrashuv yaqinlikni ushlab turishi mumkin. "
+            "Javobingiz qisqa bo‘lsa, «hozir bandman, kechqurun yozaman» deb vaqtni ayting."
         ),
         relationship=(
-            "Sizga shaxsiy makon ehtiyojingizni qabul qiladigan va to‘g‘ridan-to‘g‘ri gapiradigan juft kerak. "
-            "Ishora va hissiy taxminlar sizni ochiq suhbatdan ko‘ra ko‘proq charchatadi."
+            "Yaqin odam hisni eshitishni xohlasa, yechimdan oldin bir jumla qo‘shing: «bu og‘ir ekan». "
+            "Rejangizni yashirsangiz, u nazorat deb o‘qilishi mumkin. Bitta sababni oching."
         ),
         compatible=(
-            "Aniq maqsad va mantiqiy muloqotni qadrlaydiganlar. G‘oyani amalga oshirishda kichik qadamlarni ham hurmat qiladigan hamkorlar."
+            "Bahsda avval raqibning bitta kuchli jihatini ayting, keyin o‘z rejangizni qo‘ying. "
+            "«Men shu muddatni nazarda tutgan edim» desangiz, qisqa ohang adashishga aylanmasligi mumkin."
         ),
-        difficult=(
-            "To‘g‘ri gapdan xafa bo‘ladigan odamlar va aylanma muhokamalar qiyin. "
-            "Bunday holatda siz yopilib, hammasini o‘zingiz hal qilasiz."
+        difficult=_use(
+            "Qaror ichingizda qoladi, guruh kech biladi. Yechim: qaror va sababini bugun bitta xabarda yozing.",
+            "Reja buzilsa, butun kun to‘xtaydi. Yechim: buzilgan qismga 30 daqiqalik zaxira qo‘ying.",
+            "Qisqa javobingizni sovuqlik deb olishadi. Yechim: javob oxiriga «kechqurun davom ettiramiz» qo‘shing.",
         ),
-        plan=(
-            "1-hafta: har bir ish suhbatida avval maqsadni ayting, keyin dalillarni. "
-            "2-hafta: kuniga bir marta bitta odamga uning ishida nimani qadrlashingizni ayting — bu "
-            "munosabatni keyinroq tuzatishdan arzonroq."
-        ),
+        plan="1-kun: bitta qarorning sababini yozing. 7-kun: qaysi reja zaxira soat bilan omon qolganini belgilang.",
     ),
     "INTP": _entry(
-        title="Tahlilchi va g‘oyalar tadqiqotchisi",
-        summary="Siz narsalar qanday ishlashini tushunishni va mantiqiy modellar qurishni yoqtirasiz.",
+        title="Siz — avval sababini tushunib oladigan odamsiz.",
+        summary=(
+            "Sizda yangi narsani qilishdan oldin «nima uchun» deb so‘rash odat bo‘lishi mumkin. "
+            "Tushunarsiz qoidani ko‘r-ko‘rona bajarish qiyin kelishi mumkin. "
+            "G‘oya ko‘p chiqadi, lekin oxirgi rasmiylashtirish cho‘zilishi mumkin. "
+            "Hisni ichingizda tahlil qilib, kech aytishingiz mumkin.\n\n"
+            "Masalan, guruh topshirig‘ida hamma dizayn tanlaydi. Siz esa «bu talab nima demoqchi?» deb savol berasiz. "
+            "Savol to‘g‘ri, lekin muddat yaqinlashganda hujjat hali ochiq qoladi."
+        ),
         strengths=[
-            "Mantiqiy tahlil",
-            "Yangi g‘oyalar ishlab chiqish",
-            "Mustaqil o‘rganish",
+            "Savol. Chalkash topshiriqning zaif joyini erta topishingiz mumkin.",
+            "Tahlil. Bir nechta yo‘lni solishtirib, sababini ayta olasiz.",
+            "O‘rganish. Qiziq mavzuga chuqur kirib, boshqaga tushuntira olasiz.",
         ],
         challenges=[
-            "Amalga o‘tishni cho‘zib yuborish",
-            "Hissiy mavzulardan chetlanish",
+            "Tushunishni tugatmay, ishni rasmiylashtirmaslik",
+            "Hisni tahlil qilib, odamga kech yoki quruq aytish",
         ],
-        others="Sizni o‘ychan, qiziquvchan va mustaqil inson deb ko‘rishadi.",
-        advice="G‘oyani faqat o‘ylash emas, kichik tajribaga aylantiring.",
+        others=_use(
+            "Savolni bering, lekin javobdan keyin bugungi bitta qadamni ham yozing.",
+            "Tushuntirishni do‘stga 5 daqiqada aytib, keyin yozuvni yakunlang.",
+            "Hisni tahlildan ajrating: avval «og‘ir», keyin sabab.",
+        ),
+        advice="Bugun ochiq ishning «tugadi» degan holatini bir jumla qilib yozing.",
         motivation=(
-            "Sizni intizom emas, qiziqish yoqadi. Vazifa yangi savol tug‘dirib turgan ekan, juda chuqur "
-            "sho‘ng‘iy olasiz; u takrorlanadigan bo‘lib qolgach, qiziqish pasayadi. "
-            "Kundalik ishga ataylab tadqiqot elementini qo‘shish yordam beradi."
+            "Ma’ruza qiziq bo‘lsa, kechgacha o‘qishingiz mumkin. "
+            "Oddiy hisobot esa bir necha kun ochiq yotishi mumkin, chunki u savol bermaydi. "
+            "Hisobotga ham bitta «nima uchun kerak» jumlasini qo‘ssangiz, yakunlash osonlashishi mumkin."
         ),
         work=(
-            "Siz to‘lqin bilan ishlaysiz, o‘ylash bosqichida esa yolg‘izlik va bosimsizlik eng yaxshisi. "
-            "Boshlash sizga tugatishdan osonroq, shuning uchun tashqi topshirish nuqtalari foydali."
+            "Murakkab savolni yechadigan, lekin oxirida qisqa xulosa so‘raladigan ish sizga qulayroq kelishi mumkin. "
+            "Jamoa sizdan faqat g‘oya emas, bitta yozma xulosa ham kutsa, ish yopilishi mumkin. "
+            "Cheksiz muhokama muddatni yeb qo‘yishi mumkin."
         ),
         career=(
-            "Tadqiqot, dasturlash, ma’lumot tahlili, ilm-fan, texnik loyihalash — nostandart yechim "
-            "qadrlanadigan hamma soha mos. Usulni tanlash erkinligi muhim."
+            "Aniq kasb va’dasi emas. Sizga yengilroq kelishi mumkin bo‘lgan sharoit: "
+            "murakkab savol, tinch o‘qish, qisqa xulosa, aniq muddat."
         ),
         friendship=(
-            "Do‘st kam, lekin ular bilan istalgan mavzuni soatlab tahlil qila olasiz. Rasmiyatchilik "
-            "uchun aloqa saqlamaysiz va uzoq tanaffusdan keyin ham xotirjam qaytasiz."
+            "Do‘st bilan mavzuni chuqur so‘rash sizni yaqinlashtirishi mumkin. "
+            "Lekin har suhbat tahlil bo‘lmasin: haftada bir marta oddiy «qalaysan» xabari ham yetadi."
         ),
         relationship=(
-            "Sizga doimiy hissiy tasdiq talab qilmaydigan va o‘zingizga chekinish ehtiyojingizni tushunadigan "
-            "juft kerak. Shu bilan birga his-tuyg‘uni so‘z bilan aytish kerak — tashqaridan ular umuman "
-            "ko‘rinib turmaydi."
+            "Yaqin odam yechim emas, yonida turishni so‘rasa, avval 10 daqiqa tinglang. "
+            "Sababni keyin so‘rang. Aks holda g‘amxo‘rlik imtihondek tuyulishi mumkin."
         ),
         compatible=(
-            "G‘oyani amalga oshirishda yordam beradigan, lekin bosim qilmaydigan odamlar. Tayyor javob talab qilmaydigan ochiq suhbatdoshlar."
+            "Bahsda o‘z fikringizni aytishdan oldin suhbatdoshning jumlasini qaytaring. "
+            "«Tushundim, siz shuni deyapsiz» desangiz, savol hujumdek eshitilmasligi mumkin."
         ),
-        difficult=(
-            "Hissiy bosim, darhol javob talab qilish va mantiqni sovuqlik deb qabul qiladigan "
-            "suhbatlar og‘ir."
+        difficult=_use(
+            "Savol ko‘p, hujjat ochiq qoladi. Yechim: savoldan keyin bugungi 15 daqiqalik qadamni yozing.",
+            "Hisobot zerikarli bo‘lib, suriladi. Yechim: unga «kim o‘qiydi» deb bir qator yozing.",
+            "Do‘st xafa bo‘lsa, siz sabab so‘raysiz. Yechim: avval «og‘ir ekan» deng, 10 daqiqadan keyin savol bering.",
         ),
-        plan=(
-            "1-hafta: bitta g‘oyani tanlab, uni eng sodda ishlaydigan holatgacha yetkazing. "
-            "2-hafta: kuniga bir marta bitta his-tuyg‘uingizni yoki fikringizni asoslamasdan ayting."
-        ),
+        plan="1-kun: ochiq ishning tugash jumlasini yozing. 7-kun: qaysi savol ishni surganini belgilang.",
     ),
     "ISFP": _entry(
-        title="Hissiyotli estet va o‘z qadriyatiga ega inson",
-        summary="Siz hozirgi lahzani, chiroyli tafsilotlarni va shaxsiy erkinlikni qadrlaysiz.",
+        title="Siz — o‘z ritmingizda ish qiladigan odamsiz.",
+        summary=(
+            "Sizda ishni o‘z uslubingiz va o‘z vaqtingiz bilan qilish odat bo‘lishi mumkin. "
+            "Majburan tezlashtirish sifatni tushirishi mumkin. "
+            "E’tirozni ichingizda saqlab, jim davom etishingiz mumkin. "
+            "Qo‘l bilan yoki ko‘z bilan ko‘rinadigan ishda ochilishingiz osonroq bo‘lishi mumkin.\n\n"
+            "Masalan, guruh slaydni kechasi qayta yasashni so‘raydi. Siz charchagansiz, lekin rad eta olmaysiz. "
+            "Slayd chiqadi, ertalab esa darsda jim o‘tirasiz."
+        ),
         strengths=[
-            "Badiiy did va amaliylik",
-            "Empatiya",
-            "Moslashuvchanlik",
+            "Did. Ko‘rinadigan ishda ortiqcha narsani olib tashlashingiz mumkin.",
+            "Sabr. O‘z ritmingizda sifatli yakun topishingiz mumkin.",
+            "Sezuv. Yaqin odamning holatini so‘zdan oldin payqashingiz mumkin.",
         ],
         challenges=[
-            "Uzoq muddatli rejalashtirishdagi qiyinchilik",
-            "Keskin tanqidga sezgirlik",
+            "Noqulay ishga jim rozi bo‘lib, keyin charchash",
+            "Fikringizni baland aytmaslik",
         ],
-        others="Sizni yumshoq, samimiy va yonida bo‘lish xotirjam inson deb bilishadi.",
-        advice="Jadvalingizda ijod yoki tabiat uchun vaqt qoldiring.",
+        others=_use(
+            "Ko‘rinadigan ishda bitta namunani erta ko‘rsating, oxirida katta o‘zgarish kamayadi.",
+            "Ritmni himoya qiling: «bu qismga 30 daqiqa kerak» deb yozing.",
+            "Fikringizni avval bitta odamga ayting, keyin guruhga chiqing.",
+        ),
+        advice="Bugun noqulay iltimosga «bugun sig‘maydi, ertaga 30 daqiqa bor» deb yozing.",
         motivation=(
-            "Ish sizni shaxsan to‘lqinlantirsa va o‘zingizcha qilish erkinligi bo‘lsa, siz to‘liq kirishasiz. "
-            "Uzoqdagi mavhum maqsadlar kuchsiz, bugun ko‘rinadigan natija esa kuchli turtki beradi."
+            "Slayd yoki rasm o‘z qo‘lingizdan chiqsa, vaqt tez o‘tishi mumkin. "
+            "Lekin kimdir har besh daqiqada tuzatish yuborsa, ishni yopib qo‘yishingiz mumkin. "
+            "Bitta ko‘rsatish vaqti belgilansa, ritm saqlanishi mumkin."
         ),
         work=(
-            "Sizga uzoq muhokamalardan ko‘ra qo‘lga ilinadigan natijali aniq ish yaqin. O‘zgarishlarga "
-            "moslashasiz, ammo qattiq nazorat va shovqinli raqobatni yomon ko‘tarasiz."
+            "Qo‘l yoki ko‘z bilan ko‘rinadigan, o‘z sur’atida bajariladigan ish sizga qulayroq kelishi mumkin. "
+            "Jamoa namuna ko‘rsatish vaqtini oldindan qo‘ysa, siz ham muddatga ulgurishingiz mumkin. "
+            "Doimiy nazorat ostida sifat tushishi mumkin."
         ),
         career=(
-            "Dizayn, hunarmandchilik, oshpazlik, parvarish va tibbiyot, bolalar hamda hayvonlar bilan ishlash — "
-            "amaliy va estetikaga bog‘liq hamma soha mos. Tinch muhit muhim."
+            "Aniq kasb va’dasi emas. Sizga yengilroq kelishi mumkin bo‘lgan sharoit: "
+            "ko‘rinadigan natija, o‘z sur’ati, kam nazorat, aniq namunaviy ko‘rsatish."
         ),
         friendship=(
-            "Siz o‘zingizni zo‘rlab taqdim etmaysiz, ammo yaqinlaringizga juda e’tiborlisiz. Do‘stlikni "
-            "baland so‘z bilan emas, ish bilan — yordam, sovg‘a, yonida bo‘lish bilan ifodalaysiz."
+            "Do‘st bilan yonma-yon ish qilish sizga uzun maslahatdan yaqinroq kelishi mumkin. "
+            "Chaqiruv ko‘p bo‘lsa, bittasini tanlab, qolganiga aniq vaqt ayting."
         ),
         relationship=(
-            "Sizga muloyimlik, qabul qilinish va bosimsizlik kerak. Juftingiz faqat so‘zni eshitibgina "
-            "qolmay, qilgan ishlaringizni ham sezishi siz uchun muhim."
+            "Yaqin odam sizdan tez javob kutsa, jimlikni tushuntiring: «o‘ylayapman, kechqurun aytaman». "
+            "Hisni she’rdek yashirish shart emas. Bitta oddiy jumla ham yetadi."
         ),
         compatible=(
-            "Muammoni yumshoq va o‘z vaqtida aytadigan, xafagarchilikni uzoq yuritmaydigan odamlar. Sizning shaxsiy makoningizni hurmat qiladiganlar."
+            "Norozi bo‘lsangiz, avval nima og‘irligini ayting, keyin nima xohlayotganingizni qo‘shing. "
+            "«Bu usul menga siqiladi, shu variantni sinaylik» desangiz, jimlik rad etishdek o‘qilmasligi mumkin."
         ),
-        difficult=(
-            "Begonalar oldidagi tanqid sizni qattiq va uzoq yaralaydi. Bahsda himoyalanishdan ko‘ra "
-            "chiqib ketishni afzal ko‘rasiz."
+        difficult=_use(
+            "Kechasi qayta ishlashni so‘rashadi, siz jim rozi bo‘lasiz. Yechim: «ertaga 30 daqiqa» deb yozing.",
+            "Fikringiz bor, lekin guruhda demaysiz. Yechim: avval bitta odamga ovozli xabar yuboring.",
+            "Har besh daqiqada tuzatish kelsa, ishni yopasiz. Yechim: ko‘rsatish vaqtini oldindan belgilang.",
         ),
-        plan=(
-            "1-hafta: har kuni 30 daqiqa ko‘zga va qo‘lga quvonch beradigan ishga ajrating. "
-            "2-hafta: yaqiningizga sizni nima ranjitganini bir marta xotirjam ayting — qisqa va ayblovsiz."
-        ),
+        plan="1-kun: bitta iltimosga aniq vaqt yozing. 7-kun: qaysi ish o‘z ritmingizda yaxshi chiqqanini belgilang.",
     ),
     "ISFJ": _entry(
-        title="G‘amxo‘r va ishonchli suyanchiq",
+        title="Siz — yaqinlaringizni eslab, yonida turadigan odamsiz.",
         summary=(
-            "Sizning qo‘llab-quvvatlashingiz yaqinlaringiz va jamoa hayotini sezilarli o‘zgartiradi; "
-            "siz barqarorlik va sinovdan o‘tgan tartibni qadrlaysiz."
+            "Sizda yaqin odamning mayda ehtiyojini eslab qolish odat bo‘lishi mumkin. "
+            "Vazifa aniq bo‘lsa, uni oxirigacha olib borishingiz mumkin. "
+            "O‘zingizga vaqt ajratishni unutib, boshqaning ishini olishingiz mumkin. "
+            "O‘zgarish birdan kelsa, avval xavotir, keyin moslashish kelishi mumkin.\n\n"
+            "Masalan, kursdosh kasal bo‘lib, konspekt so‘raydi. Siz yuborasiz, keyin uning topshirig‘iga ham yordamlashasiz. "
+            "O‘z muddatingiz esa tungi soatga qoladi."
         ),
         strengths=[
-            "E’tiborlilik va sodiqlik",
-            "Muhim tafsilotlarni eslab qolish",
-            "Amaliy yordam",
+            "Eslab qolish. Yaqin odam aytgan mayda narsani yodda tutishingiz mumkin.",
+            "Mas’uliyat. Aniq vazifani oxirigacha yetkazishingiz mumkin.",
+            "Tinch yordam. Shovqinsiz, o‘z vaqtida yonida turishingiz mumkin.",
         ],
         challenges=[
-            "O‘zini ikkinchi o‘ringa qo‘yish odati",
-            "O‘zgarishlar oldidan xavotir",
+            "O‘z ishingizdan oldin boshqaning ishini olish",
+            "O‘zgarishni oldindan bilmasangiz, qotib qolish",
         ],
-        others="Sizni ishonchli, mehribon va mas’uliyatli inson deb bilishadi.",
-        advice="Hammaga yordam berishdan oldin o‘zingizga vaqt qoldirishni odat qiling.",
+        others=_use(
+            "Yordamni cheklang: bugun bitta aniq narsa, qolgani ertaga.",
+            "O‘z muddatingizni kalendarda yordamdan oldin turadigan qilib qo‘ying.",
+            "O‘zgarish chiqsa, avval nima o‘zgarmaganini yozing, keyin yangi qadamni qo‘ying.",
+        ),
+        advice="Bugun yordam so‘rovidan bittasini qoldiring, o‘z ishingizga 25 daqiqa qo‘ying.",
         motivation=(
-            "Sizga keraklilik hissi va g‘amxo‘rlik qilgan odamlaringizning minnatdorligi kuch beradi. "
-            "Ammo qaytim faqat bir tomonga ketsa, charchoq va jim xafagarchilik to‘planadi. "
-            "O‘z hissangizni boshqalar aytishini kutmay, o‘zingiz sezishingiz muhim."
+            "Uydagilar yoki kursdosh kechqurun yordam so‘rasa, o‘z rejangiz surilishi mumkin. "
+            "Eslab qolgan mayda ishlar kun bo‘yi sizda yurishi mumkin. "
+            "Ularni bitta ro‘yxatga yozib, bugungi bittasini tanlasangiz, boshingiz yengillashishi mumkin."
         ),
         work=(
-            "Siz ozodasiz, boshlagan ishni oxiriga yetkazasiz va boshqalar unutadigan tafsilotlarni "
-            "yodda saqlaysiz. Qoidalarning keskin almashishi va tartibsizlik sizni ritmdan chiqaradi."
+            "Aniq topshiriq, tushunarli muddat va odamga aniq foydasi bor ish sizga qulayroq kelishi mumkin. "
+            "Jamoa kim nima qilishini yozsa, siz ortiqcha yuk olmasligingiz mumkin. "
+            "Har kuni qoida o‘zgarsa, xavotir oshishi mumkin."
         ),
         career=(
-            "Tibbiyot, ta’lim, ma’muriy ish, buxgalteriya, xizmat ko‘rsatish, HR — aniqlik va insoniy "
-            "munosabat qadrlanadigan sohalar mos. Bashoratlilik va jamoadagi hurmat muhim."
+            "Aniq kasb va’dasi emas. Sizga yengilroq kelishi mumkin bo‘lgan sharoit: "
+            "aniq topshiriq, barqaror muddat, kichik guruh, ko‘rinadigan yordam."
         ),
         friendship=(
-            "Siz tug‘ilgan kunlarni, kayfiyatlarni va yarim yil oldin aytilgan mayda gaplarni eslaysiz. "
-            "Do‘stlik siz uchun tasodifiy uchrashuvlar emas, uzun umumiy tarix."
+            "Do‘stning tug‘ilgan kunini yoki imtihonini eslash sizni ishonchli qiladi. "
+            "Lekin har safar yetib borish shart emas. «Bugun konspekt yuboraman, qolganini ertaga» deng."
         ),
         relationship=(
-            "Sizga barqarorlik, minnatdorlik va sizga ham g‘amxo‘rlik qilinishiga ishonch kerak. "
-            "Ogohlantirishsiz o‘zgarish o‘zgarishning o‘zidan ko‘ra ko‘proq xavotir tug‘diradi."
+            "Yaqin odam sizning yordamingizni odat deb qabul qilmasin. O‘z charchoqlingizni ham ayting. "
+            "«Bugun men ham dam olaman» degan jumla munosabatni buzmasligi, aniqlashtirishi mumkin."
         ),
         compatible=(
-            "Minnatdorlikni ochiq aytadigan odamlar. Rejada kutilmagan o‘zgarish bo‘lsa, oldindan xabar beradigan hamkorlar."
+            "Xafa bo‘lsangiz, yordamni to‘xtatib jim yurmang. Bitta jumla ayting: «bu safar og‘ir bo‘ldi». "
+            "Keyin nima o‘zgarsin deb xohlayotganingizni qo‘shing."
         ),
-        difficult=(
-            "Ziddiyat, sovuqlik va to‘g‘ridan-to‘g‘ri iltimos o‘rniga ishora qilish og‘ir kechadi. "
-            "Siz «yo‘q» deyishdan ko‘ra ortiqcha ish qilishni tanlaysiz."
+        difficult=_use(
+            "O‘z muddatingiz qolib, boshqaning ishini olasiz. Yechim: bugun faqat bitta yordamni qoldiring.",
+            "Mayda va’dalar boshda yuradi. Yechim: ularni ro‘yxatga yozib, bittasini tanlang.",
+            "Reja birdan o‘zgarsa, qotib qolasiz. Yechim: nima o‘zgarmaganini yozib, bitta yangi qadam qo‘ying.",
         ),
-        plan=(
-            "1-hafta: har kuni bitta ishni faqat o‘zingiz uchun qiling. "
-            "2-hafta: bir marta uzoq oqlanmasdan rad eting va munosabat bundan buzilmaganini ko‘ring."
-        ),
+        plan="1-kun: yordamni bitta narsa bilan cheklang. 7-kun: o‘z muddatingiz saqlangan kunni belgilang.",
     ),
     "ISTJ": _entry(
-        title="Tartibli va mas’uliyatli ijrochi",
-        summary="Siz uchun qoidalar, aniq vazifalar va oldindan bilinadigan natija muhim.",
+        title="Siz — so‘zida turib, tartib bilan ishlaydigan odamsiz.",
+        summary=(
+            "Sizda aytgan vaqtda ishni topshirish va qoidani aniq saqlash odat bo‘lishi mumkin. "
+            "Tafsilotni ko‘rasiz va xatoni erta ushlashingiz mumkin. "
+            "Reja buzilsa, avval nima noto‘g‘ri ketganini tuzatmoqchi bo‘lasiz. "
+            "Boshqalar erkinroq yursa, siz shoshilishingiz mumkin.\n\n"
+            "Masalan, laboratoriya hisobotida jadvalni o‘zingiz to‘ldirasiz, chunki guruh kechikadi. "
+            "Hisobot toza chiqadi, lekin siz guruhga ishonish qiyinlashadi."
+        ),
         strengths=[
-            "Tartib va rejalashtirish",
-            "Ishonchlilik",
-            "Amaliy tajriba",
+            "So‘z. Belgilangan muddatni ushlashga intilishingiz mumkin.",
+            "Tafsilot. Xatoni hisobot yoki ro‘yxatda erta ko‘rishingiz mumkin.",
+            "Tartib. Chalkash ishni qadam-baqadam yopishingiz mumkin.",
         ],
         challenges=[
-            "Kutilmagan o‘zgarishga qarshilik",
-            "Moslashuvchanlik yetishmasligi",
+            "Reja buzilganda butun ish to‘xtadi deb his qilish",
+            "Boshqaning erkin usulini xato deb o‘qish",
         ],
-        others="Sizni jiddiy, ishonchli va so‘zining ustidan chiqadigan inson deb ko‘rishadi.",
-        advice="Rejada kichik zaxira qoldiring — hammasi boshqacha ketgan holat uchun.",
+        others=_use(
+            "Muddatni ushlaganingizni guruhga namuna qiling, hammasini o‘zingiz yopmang.",
+            "Xatoni topganingizda bitta joyini yozing, butun ishni qayta boshlamang.",
+            "Buzilgan kunga sodda yechim qo‘ying: asosiy qism bugun, qolgani ertaga.",
+        ),
+        advice="Bugun buzilgan bitta qismga sodda yechim tanlang va qolganini ertaga yozing.",
         motivation=(
-            "Sizni aniq majburiyatlar va qilingan ishga hurmat harakatga keltiradi. Sizni turtkilash "
-            "kamdan-kam kerak bo‘ladi, ammo kelishuvlar har hafta o‘zgaradigan joyda qiziqish yo‘qoladi. "
-            "Tayyorlik mezoni aniq bo‘lishi — sizning asosiy energiya manbangiz."
+            "Jadval o‘z joyida bo‘lsa, imtihon oldi tinchroq o‘tishi mumkin. "
+            "Guruh kechki payt yangi talab yuborsa, siz butun kuni qayta boshlamoqchi bo‘lishingiz mumkin. "
+            "Asosiy qismni saqlab, yangi talabni ertangi ro‘yxatga qo‘yish kifoya qilishi mumkin."
         ),
         work=(
-            "Avval reja, keyin harakat, qadam-baqadam. Siz muddatni ham, sifatni ham ushlaysiz, "
-            "lekin yangi talabni qabul qilishga vaqt kerak — bu rad etish emas, aynan vaqt."
+            "Aniq qoida, tekshiriladigan natija va barqaror muddat bor ish sizga qulayroq kelishi mumkin. "
+            "Jamoa o‘zgarishni oldindan yozsa, siz moslasha olasiz. "
+            "Har soatda yangi buyruq kelsa, tartib foyda o‘rniga to‘siq bo‘lishi mumkin."
         ),
         career=(
-            "Moliya, huquq, logistika, ma’muriyat, muhandislik, sifat nazorati, davlat tuzilmalari mos. "
-            "Tushunarli qoidalar va barqaror yuklama muhim."
+            "Aniq kasb va’dasi emas. Sizga yengilroq kelishi mumkin bo‘lgan sharoit: "
+            "aniq qoida, tekshiriladigan natija, barqaror muddat, yozma topshiriq."
         ),
         friendship=(
-            "Siz tez tanishmaysiz, ammo sizga yillar davomida suyanish mumkin. Yordamingiz aniq: "
-            "yetib borish, tushunib olish, qilib berish."
+            "Va’dada turish sizni ishonchli do‘st qiladi. "
+            "Do‘st rejani o‘zgartirsa, avval nima uchun o‘zgarganini so‘rang, keyin yangi vaqtni yozing."
         ),
         relationship=(
-            "Sizga bashoratlilik, bajarilgan va’dalar hamda tartibingizga hurmat kerak. "
-            "So‘z siz uchun ishdan kamroq ma’no beradi — his-tuyg‘uni ham amal bilan ko‘rsatasiz."
+            "Yaqin odam erkinroq yashasa, buni hurmatsizlik deb o‘qimang. Bitta muhim qoidani ayting, qolganini qo‘yib bering. "
+            "«Menga muddat muhim, qolgan joyda sen tanla» desangiz, nazorat kamayishi mumkin."
         ),
         compatible=(
-            "Vaqt va kelishuvlarni hurmat qiladigan odamlar. Ba’zan yengilroq va spontan reja taklif qiladiganlar ham foydali bo‘lishi mumkin."
+            "Tuzatishdan oldin bitta to‘g‘ri qilingan joyini ayting. "
+            "Keyin xatoni ko‘rsating. Shunda gap hujum emas, yordam bo‘lib eshitilishi mumkin."
         ),
-        difficult=(
-            "Kechikish, ogohlantirmay muddatni surish va «yurib turib» qabul qilingan qarorlar charchatadi. "
-            "Yonidagi impulsivlik sizdan ishning o‘zidan ko‘ra ko‘proq kuch oladi."
+        difficult=_use(
+            "Guruh kechikadi, siz hammasini o‘zingiz yopasiz. Yechim: o‘z qismingizni yoping, qolganiga muddat yozing.",
+            "Reja buzilsa, kun to‘xtaydi. Yechim: asosiy qismni bugun, qolganini ertangi ro‘yxatga qo‘ying.",
+            "Xatoni ko‘rib, odamni tuzatasiz. Yechim: avval bitta yaxshi joyini ayting.",
         ),
-        plan=(
-            "1-hafta: kunning bitta bandini ataylab rejasiz qoldiring. "
-            "2-hafta: odatiy vazifani yangi usulda bajaring va natijani eskisi bilan solishtiring."
-        ),
+        plan="1-kun: buzilgan qismga sodda yechim qo‘ying. 7-kun: qaysi ishni boshqaga qoldirganingizni yozing.",
     ),
     "ISTP": _entry(
-        title="Amaliy muammolarni qo‘li bilan hal qiluvchi",
-        summary="Siz qo‘l mehnatini, tez tahlilni va harakatdagi mustaqillikni yoqtirasiz.",
+        title="Siz — muammoni joyida yechadigan odamsiz.",
+        summary=(
+            "Sizda uzoq muhokamadan ko‘ra buzilgan narsani joyida tuzatish odat bo‘lishi mumkin. "
+            "Qo‘lingiz tegadigan ishda tez yo‘l topishingiz mumkin. "
+            "Nima qilganingizni tushuntirishni keyinga qoldirishingiz mumkin. "
+            "Tez qaror to‘g‘ri chiqsa ham, katta xaridda shoshilish xavfli bo‘lishi mumkin.\n\n"
+            "Masalan, guruh chatida printer buzilgani haqida bahs ketadi. "
+            "Siz borib qog‘ozni to‘g‘rilaysiz. Muammo yopiladi, lekin hisobotda nima bo‘lgani yozilmaydi."
+        ),
         strengths=[
-            "Tez qaror va amal",
-            "Texnik tafakkur",
-            "Bosim ostida xotirjamlik",
+            "Joyida yechish. Buzilgan narsani gapirishdan oldin tuzatishingiz mumkin.",
+            "Tinch qo‘l. Shoshilinch vaziyatda ortiqcha shovqinsiz ishlashingiz mumkin.",
+            "Sinash. Nazariyani emas, ishlaydigan usulni tekshirishingiz mumkin.",
         ],
         challenges=[
-            "Uzoq munosabatda his-tuyg‘uni ifodalash qiyinligi",
-            "Ortiqcha qoidalardan charchash",
+            "Qilgan ishni tushuntirmasdan keyingi odamga qoldirish",
+            "Katta qarorni sinab ko‘rmasdan tez qabul qilish",
         ],
-        others="Sizni xotirjam, mustaqil va og‘ir vaziyatda ishonchli inson deb bilishadi.",
-        advice="Muhim qarorlarni yozib qo‘ying va biroz keyinroq ularga qayting.",
+        others=_use(
+            "Yechimdan keyin uchta qator yozing: nima buzilgan, nima qildingiz, nima qoldi.",
+            "Guruh bahsida avval muammoni yoping, keyin bir jumla xulosa tashlang.",
+            "Katta xariddan oldin bir kecha kutib, ertalab narxni qayta o‘qing.",
+        ),
+        advice="Bugun yechgan bitta muammo haqida uchta qator yozuv qoldiring.",
         motivation=(
-            "Sizni olib hal qilsa bo‘ladigan aniq vazifa yoqadi. Uzoq yig‘ilishlar va mavhum maqsadlar "
-            "qiziqishni hammasidan tez so‘ndiradi. Usulni tanlash erkinligi siz uchun natija uchun "
-            "beriladigan mukofotdan muhimroq."
+            "Laboratoriya yoki usta ishida qo‘l tekkanda vaqt sezilmasligi mumkin. "
+            "Uzun yig‘ilishda esa telefonni ochib, ishdan chiqib ketishingiz mumkin. "
+            "Yig‘ilishga «oxirida nima qaror bo‘ladi» deb bir savol qo‘ysangiz, o‘tirish foydaliroq bo‘lishi mumkin."
         ),
         work=(
-            "Siz yo‘riqnoma bo‘yicha emas, ish davomida tushunib olasiz va inqirozda ko‘pchilikdan "
-            "xotirjamroq harakat qilasiz. Bir xillik va ortiqcha hisobot energiyani yuvib ketadi."
+            "Qo‘l tegadigan, natijasi darrov ko‘rinadigan va ortiqcha yig‘ilishi kam ish sizga qulayroq kelishi mumkin. "
+            "Jamoa yechimni qisqa yozishni so‘rasa, keyingi odam ham tushunadi. "
+            "Faqat gapiriladigan ish sizni tez charchatishi mumkin."
         ),
         career=(
-            "Texnika va ta’mirlash, IT infratuzilma, muhandislik, sport, favqulodda xizmatlar, "
-            "«dala»dagi har qanday ish mos. Mustaqillik va minimal rasmiyatchilik muhim."
+            "Aniq kasb va’dasi emas. Sizga yengilroq kelishi mumkin bo‘lgan sharoit: "
+            "qo‘l tegadigan ish, darrov ko‘rinadigan natija, kam yig‘ilish, qisqa yozuv."
         ),
         friendship=(
-            "Siz kamgapsiz, lekin ortiqcha savolsiz yordamga kelasiz. "
-            "Do‘stlar sizni uzun suhbat uchun emas, amal uchun qadrlashadi."
+            "Do‘stga yordam ko‘pincha gap emas, ish bo‘lishi mumkin. "
+            "Shundan keyin ham bitta xabar yozing, aks holda yaqinlik faqat muammo chiqqanda ko‘rinadi."
         ),
         relationship=(
-            "Sizga shaxsiy makon va jimligingizni uzoqlashish deb o‘qimaydigan juft kerak. "
-            "Hech bo‘lmaganda ba’zan his-tuyg‘uni so‘zga aylantirish foydali — aks holda yaqin odam "
-            "o‘zi taxmin qiladi va ko‘pincha xato qiladi."
+            "Yaqin odam nima bo‘lganini eshitmoqchi bo‘lsa, yechim yetarli emas. Uchta qator unga ham kerak. "
+            "Tez javob berib, keyin jimib ketmaslik uchun «hozir bandman» deb ayting."
         ),
         compatible=(
-            "Hissiy bosim qilmasdan aniq gapiradigan odamlar. Tashkilotchilikni o‘z zimmasiga oladigan hamkorlar ba’zan yukni yengillashtiradi."
+            "Bahs cho‘zilsa, muammoni bitta jumlada ayting va nima sinab ko‘rganingizni qo‘shing. "
+            "«Keling, shuni tekshiramiz» desangiz, gap aylanib o‘tirmasligi mumkin."
         ),
-        difficult=(
-            "Nazorat, uzun nasihat va hissiyot ustida munosabat oydinlashtirishni og‘ir ko‘tarasiz. "
-            "Javoban shunchaki suhbatdan chiqib ketasiz."
+        difficult=_use(
+            "Muammo yopiladi, yozuv qolmaydi. Yechim: yechimdan keyin uchta qator yozing.",
+            "Yig‘ilish cho‘zilsa, chiqib ketasiz. Yechim: oxiridagi qarorni so‘rab, shu qarorni yozing.",
+            "Katta xaridni darrov qilasiz. Yechim: bir kecha kutib, ertalab narxni qayta o‘qing.",
         ),
-        plan=(
-            "1-hafta: impulsiv qarordan oldin bir soat tanaffus qiling. "
-            "2-hafta: kuniga bir marta yaqiningizga holatingiz haqida bitta jumla ayting."
-        ),
+        plan="1-kun: bitta yechimga uchta qator yozing. 7-kun: qaysi qarorni kechiktirganingiz foyda berganini belgilang.",
     ),
     "ENFP": _entry(
-        title="Ilhomlantiruvchi g‘oyalar odami",
-        summary="Sizni yangilik, odamlar va ochiq imkoniyatlar quvvatlantiradi.",
+        title="Siz — yangi g‘oyaga tez isinadigan odamsiz.",
+        summary=(
+            "Sizda yangi imkoniyatni ko‘rib, odamlarni unga tortish odat bo‘lishi mumkin. "
+            "Suhbatda kayfiyatni ko‘tarishingiz mumkin. "
+            "Bir haftada bir nechta ish ochilsa, oxiri chala qolishi mumkin. "
+            "Qiziqish tushsa, boshlagan narsani keyinga surishingiz mumkin.\n\n"
+            "Masalan, dushanbada yangi to‘garak, chorshanbada loyiha, juma kuni esa do‘stingizga yordam va’da qilasiz. "
+            "Yakshanba hech biri oxiriga yetmaganini ko‘rasiz."
+        ),
         strengths=[
-            "Ijodiy energiya",
-            "Muloqotdagi iliqlik",
-            "Yangi loyihani boshlashdagi yengillik",
+            "Boshlash. Yangi ishga odamni tez qo‘shib yuborishingiz mumkin.",
+            "Aloqa. Turli odamlar orasida umumiy nuqta topishingiz mumkin.",
+            "Kayf. Qiyin kunda ham bitta yo‘l ko‘rsatishingiz mumkin.",
         ],
         challenges=[
-            "Yakunlash bosqichida diqqatni yo‘qotish",
-            "Ishlar ko‘payib ketishidan zo‘riqish",
+            "Bir nechta ishni birdan ochib, oxirini qoldirish",
+            "Qiziqish tushganda boshlangan ishni surish",
         ],
-        others="Sizni quvnoq, ochiq va ilhomlantiruvchi inson deb bilishadi.",
-        advice="Bir vaqtda kamroq loyiha oling — va ularni oxirigacha yetkazing.",
+        others=_use(
+            "Yangi g‘oyani alohida ro‘yxatga yozing, bugungi ochiq ishni yopmaguncha boshlamang.",
+            "Odam yig‘ganingizda bitta muddat va bitta mas’ulni ham yozing.",
+            "Qiziqish tushsa, ishni tashlamang: 15 daqiqalik eng kichik qismni yoping.",
+        ),
+        advice="Bugun ochiq ishlardan bittasini tanlang, yangi g‘oyani alohida ro‘yxatga yozing.",
         motivation=(
-            "Sizni yangilik va oldinda ko‘p variant borligi hissi ko‘taradi. Motivatsiya murakkablikdan "
-            "emas, bir xillikdan pasayadi. Zerikarli yakuniy bosqichni mukofoti bor alohida kichik "
-            "maqsadga aylantirish yordam beradi."
+            "Yangi to‘garak e’lonini ko‘rsangiz, darrov yozilishingiz mumkin. "
+            "Eski topshiriq esa jildsiz qolib, kayf tushishi mumkin. "
+            "Yangi narsani ro‘yxatga yozib, bugun eskisining bitta sahifasini yopsangiz, ikkalasi ham saqlanadi."
         ),
         work=(
-            "Siz g‘oyani yaxshi ko‘tarasiz va boshqalarni ham jalb qilasiz; kundalik tafsilot va "
-            "yakunlash bosqichi esa tashqi tartib yoki kichik qadamlar bilan yengillashtirilishi mumkin."
+            "Yangi odam, yangi mavzu va erkin taklif bor ish sizga qulayroq kelishi mumkin. "
+            "Jamoa yakun uchun bitta mas’ul va bitta muddat qo‘ysa, g‘oya chala qolmasligi mumkin. "
+            "Har kuni yangi yo‘nalish ochilsa, hech biri tugamasligi mumkin."
         ),
         career=(
-            "Marketing, ijodiy sohalar, o‘qitish, psixologiya, startaplar, ommaviy kommunikatsiya mos. "
-            "Vazifalar xilma-xilligi va jonli muloqot muhim."
+            "Aniq kasb va’dasi emas. Sizga yengilroq kelishi mumkin bo‘lgan sharoit: "
+            "yangi odam, yangi mavzu, erkin taklif, bitta aniq yakun."
         ),
         friendship=(
-            "Do‘stlaringiz ko‘p va juda turlicha; oson yaqinlashasiz va so‘z bilan qo‘llab-quvvatlay olasiz. "
-            "Ba’zan o‘zingizni begona hikoyalarda eritib yubormayotganingizni tekshirib turing."
+            "Ko‘p odam bilan tez chiqishasiz. Yaqinlik uchun haftada bitta odamga alohida vaqt qo‘ying. "
+            "Va’dani kalendarga yozsangiz, kayf o‘tgach ham uchrashuv qoladi."
         ),
         relationship=(
-            "Sizga hissiy ochiqlik, birga olingan taassurotlar va qattiq ramkalardan erkinlik kerak. "
-            "Zerikish va sovuqlik sizni ochiq ziddiyatdan ko‘ra qattiqroq yaralaydi."
+            "Yaqin odam barqaror vaqt kutsa, har safar yangi reja taklif qilmang. "
+            "Bitta kichik odat, masalan payshanba kechki qo‘ng‘iroq, ishonchni ushlashi mumkin."
         ),
         compatible=(
-            "Chuqurlik va tuzilma qo‘shadigan, lekin erkinligingizni cheklamaydigan odamlar. G‘oyani kichik qadamlarda amalga oshirishga yordam beradiganlar."
+            "Bahsda yangi yo‘lni aytishdan oldin hozirgi ishning bitta ochiq joyini yoping. "
+            "«Bu g‘oyani ro‘yxatga yozdim, bugun eskisini tugatamiz» desangiz, suhbat ham, ish ham yurishi mumkin."
         ),
-        difficult=(
-            "Befarqlik, mayda-chuydaga tirishish va qattiq nazorat og‘ir kechadi. "
-            "Xafagarchilikni tez unutasiz, lekin o‘sha lahzada juda o‘tkir reaksiya berasiz."
+        difficult=_use(
+            "Bir haftada uchta ish ochiladi. Yechim: yangisini ro‘yxatga yozing, bugun bittasini yoping.",
+            "Qiziqish tushsa, topshiriq yotadi. Yechim: 15 daqiqada eng kichik qismni bajaring.",
+            "Va’da kayf bilan beriladi, keyin unutiladi. Yechim: va’dani darrov kalendarga qo‘ying.",
         ),
-        plan=(
-            "1-hafta: bitta loyihani tanlab, qolganini chetga surib, uni to‘liq yoping. "
-            "2-hafta: har oqshom nima kuch berganini va nima kuch olganini yozing, haftada bir marta "
-            "ro‘yxatni qayta o‘qing."
-        ),
+        plan="1-kun: ochiq ishlardan bittasini tanlang. 7-kun: yopilgan ish va ro‘yxatdagi g‘oyani ajrating.",
     ),
     "ENFJ": _entry(
-        title="Odamlarni birlashtiradigan yetakchi",
-        summary="Siz uchun yoningizdagi odamlarning o‘sishi va umumiy ma’noli maqsadlar muhim.",
+        title="Siz — odamlarni bir joyga yig‘adigan odamsiz.",
+        summary=(
+            "Sizda guruhdagi odamni ko‘rib, ularni umumiy ishga chorlash odat bo‘lishi mumkin. "
+            "Kimning kayfi tushganini sezishingiz mumkin. "
+            "Maslahatni odam so‘ramasdan berib yuborishingiz mumkin. "
+            "Hamma yaxshi bo‘lsin deb, o‘z damingizni unutishingiz mumkin.\n\n"
+            "Masalan, kursdoshlar janjallashadi. Siz yarashtirasiz, keyin ikkalasining topshirig‘iga ham qaraysiz. "
+            "Kechqurun o‘zingizga vaqt qolmaydi."
+        ),
         strengths=[
-            "Xarizmatik muloqot",
-            "Guruhni ilhomlantira olish",
-            "Empatiya",
+            "Yig‘ish. Tarqalgan guruhni bitta ish atrofida tutishingiz mumkin.",
+            "Sezish. Kim chetda qolganini payqab, uni gapga qo‘shishingiz mumkin.",
+            "Mas’ul kayf. Qiyin kunda odamga aniq keyingi qadam aytishingiz mumkin.",
         ],
         challenges=[
-            "O‘z ehtiyojini unutish",
-            "Hamma uchun haddan tashqari mas’uliyat hissi",
+            "So‘ralmagan maslahat berib, odamni siqish",
+            "Hamma tinch bo‘lsin deb o‘z kuchingizni tugatish",
         ],
-        others="Sizni g‘ayratli, g‘amxo‘r va ortidan ergashtiradigan inson deb ko‘rishadi.",
-        advice="Faqat boshqalarga yordamni emas, tiklanish vaqtini ham rejalashtiring.",
+        others=_use(
+            "Maslahatdan oldin «hozir eshitaymi yoki yo‘l aytaymi?» deb so‘rang.",
+            "Guruh ishida o‘z qismingizni ham yozing, faqat boshqani boshlamang.",
+            "Kechki damni bitta uchrashuv bilan to‘ldirmang.",
+        ),
+        advice="Bugun maslahat berishdan oldin «eshitaymi yoki yo‘l aytaymi?» deb so‘rang.",
         motivation=(
-            "Sizga yoningizdagi odamlarning ko‘zga ko‘rinadigan o‘sishi va umumiy maqsad hissi kuch beradi. "
-            "Sa’y-harakat tan olinmaganda yoki jamoa bo‘lingan bo‘lsa, ish hajmidan ko‘ra tezroq "
-            "«kuyib» qolasiz. Muvaffaqiyatni faqat begona natijalar bilan o‘lchamaslik muhim."
+            "Guruh tarqalsa, siz yig‘ishga kuch sarflab, o‘z topshirig‘ingiz kechikishi mumkin. "
+            "Do‘st xafa bo‘lsa, kechagacha yonida o‘tirib, ertalab darsga charchab borishingiz mumkin. "
+            "Yordamga soat qo‘yish sizni ham, do‘stni ham saqlashi mumkin."
         ),
         work=(
-            "Siz muvofiqlashtirishni tabiiy ravishda o‘z zimmangizga olasiz va jamoadagi muhitni ushlaysiz. "
-            "Xavf shundaki, hech kimni qiyin ahvolda qoldirmaslik uchun begona vazifalarni ham o‘zingizga olasiz."
+            "Odamlar bilan, aniq maqsadli va rollari yozilgan ish sizga qulayroq kelishi mumkin. "
+            "Jamoa sizdan ham yakun kutsa, faqat ruhlantirish emas, natija ham chiqadi. "
+            "Cheksiz g‘amxo‘rlik muddatni yeyishi mumkin."
         ),
         career=(
-            "O‘qitish, HR, jamoa boshqaruvi, psixologiya, jamoat loyihalari, insoniy yuzli savdo mos. "
-            "Tashkilot qadriyatlari sizniki bilan mos kelishi muhim."
+            "Aniq kasb va’dasi emas. Sizga yengilroq kelishi mumkin bo‘lgan sharoit: "
+            "odam bilan ish, aniq maqsad, yozilgan rol, o‘z damingiz saqlanadigan jadval."
         ),
         friendship=(
-            "Og‘ir damda birinchi bo‘lib sizga qo‘ng‘iroq qilishadi. Do‘stligingiz saxiy va to‘liq "
-            "kirishgan — aynan shuning uchun ba’zan resurssiz bo‘lishga ham o‘zingizga ruxsat bering."
+            "Do‘stlar sizni yig‘uvchi deb bilishi mumkin. Ba’zan o‘zingiz ham chaqirilishingiz kerak. "
+            "Haftada bitta uchrashuvni boshqa odam tashkil qilsin, siz faqat boring."
         ),
         relationship=(
-            "Sizga o‘zaro javob, iliq so‘z va sizni ham o‘ylashlariga ishonch kerak. "
-            "Juftingizning jim masofasini siz rad etish sifatida boshdan kechirasiz."
+            "Yaqin odamning kayfini tuzatish sizning asosiy ishingiz emas. "
+            "«Bugun men ham charchadim» desangiz, munosabat tengroq turishi mumkin."
         ),
         compatible=(
-            "Yordamingiz haqiqatan kerak bo‘lgan odamlar. O‘z ehtiyojingizni ham ayta oladigan, ikki tomonlama muloqotni qadrlaydiganlar."
+            "Nizo chiqsa, ikki tomonni emas, bitta keyingi qadamni ayting. "
+            "«Hozir kim nima qiladi?» deb so‘rasangiz, yarashtirish sizda qolmasligi mumkin."
         ),
-        difficult=(
-            "Sovuqlik, qadrsizlantirish va yaqin doiradagi ziddiyat og‘ir. Siz hammani yarashtirishga "
-            "urinasiz, hatto bu sizning mas’uliyatingiz bo‘lmaganda ham."
+        difficult=_use(
+            "So‘ralmagan maslahat odamni siqadi. Yechim: avval eshitish yoki yo‘l aytishni so‘rang.",
+            "Hamma ishini o‘zingiz ushlaysiz. Yechim: o‘z qismingizni yozib, qolganiga mas’ul qo‘ying.",
+            "Kechqurun ham yig‘asiz. Yechim: bitta kechki soatni bo‘sh qoldiring.",
         ),
-        plan=(
-            "1-hafta: har kuni faqat o‘zingiz uchun, boshqalarga foydasiz biror ish qiling. "
-            "2-hafta: bitta begona vazifani egasiga qaytaring va u o‘zi qanday uddalashini kuzating."
-        ),
+        plan="1-kun: maslahatdan oldin savol bering. 7-kun: o‘zingiz dam olgan bitta kechqurunni belgilang.",
     ),
     "ENTJ": _entry(
-        title="Qat’iyatli strateg va tashkilotchi",
-        summary="Siz samaradorlik, aniq maqsad va natijaga yo‘naltirilgansiz.",
+        title="Siz — maqsad qo‘yib, ishni siljitadigan odamsiz.",
+        summary=(
+            "Sizda natijani ko‘rib, odamlarni shu natija tomon yurgizish odat bo‘lishi mumkin. "
+            "Qaror tez chiqishi mumkin. "
+            "Ohang qattiq bo‘lsa, to‘g‘ri gap ham og‘ir eshitilishi mumkin. "
+            "Boshqaning sekin usulini vaqt yo‘qotish deb o‘qishingiz mumkin.\n\n"
+            "Masalan, tadbirgacha ikki kun bor. Siz ro‘yxat yuborasiz va kechikkan kursdoshga qisqa yozasiz. "
+            "Ish siljiydi, lekin u xabar sizni qo‘pol deb o‘qishi mumkin."
+        ),
         strengths=[
-            "Yetakchilik",
-            "Uzoq muddatli rejalashtirish",
-            "Tez qaror qabul qilish",
+            "Maqsad. Natijani oldindan qo‘yib, qadamni shunga bog‘lashingiz mumkin.",
+            "Siljitish. To‘xtab qolgan ishni qayta yurgizishingiz mumkin.",
+            "Qaror. Variant ko‘p bo‘lsa, bittasini tanlab olishingiz mumkin.",
         ],
         challenges=[
-            "Atrofdagilarning his-tuyg‘usini kam baholash",
-            "Muloqotdagi haddan tashqari qat’iy ohang",
+            "To‘g‘ri gapni qattiq ohangda aytish",
+            "Sekinroq odamni susaygan deb o‘qish",
         ],
-        others="Sizni kuchli, maqsadli va ishonchli inson deb bilishadi.",
-        advice="Jamoani tinglash uchun alohida vaqt ajrating.",
+        others=_use(
+            "Topshiriq yuborishdan oldin bitta yaxshi qadamni ham yozing.",
+            "Qarorni aytgach, 10 daqiqa e’tiroz uchun qoldiring.",
+            "Sekin odamga uning qismini va muddatini aniq bering, sur’atini o‘zingiznikiga tenglamang.",
+        ),
+        advice="Bugun bitta topshiriqdan oldin yaxshi qilingan joyini bir jumla qilib yozing.",
         motivation=(
-            "Sizni katta maqsad va yakuniy natijaga ta’sir qilish imkoni harakatga keltiradi. "
-            "O‘sish yo‘qligi sizni ortiqcha yuklamadan ko‘ra kuchliroq so‘ndiradi. Eng yaxshi rejim — "
-            "muddati aniq va mustaqil qaror qabul qilish huquqi bor yirik vazifa."
+            "Tadbir yoki musobaqa yaqin bo‘lsa, siz kechasi ham ro‘yxat yuborishingiz mumkin. "
+            "Oddiy dars esa «natija yo‘q» bo‘lib, qo‘ldan kelmasligi mumkin. "
+            "Oddiy darsga ham bitta ko‘rinadigan natija qo‘ysangiz, u ham siljishi mumkin."
         ),
         work=(
-            "Siz tez tuzilma qurasiz, rollarni taqsimlaysiz va natija talab qilasiz — avvalo o‘zingizdan. "
-            "Zaif joyingiz: jamoa har doim ham ko‘tara olmaydigan sur’at."
+            "Aniq natija, qisqa qaror va mas’uliyati yozilgan ish sizga qulayroq kelishi mumkin. "
+            "Jamoa e’tiroz uchun vaqt qoldirsa, odamlar siz bilan yurishi osonroq bo‘ladi. "
+            "Faqat tezlik so‘raladigan joyda sifat va munosabat tushishi mumkin."
         ),
         career=(
-            "Rahbarlik, biznes, konsalting, huquqshunoslik, loyiha boshqaruvi, tadbirkorlik mos. "
-            "Vazifalar ko‘lami va real vakolat muhim."
+            "Aniq kasb va’dasi emas. Sizga yengilroq kelishi mumkin bo‘lgan sharoit: "
+            "aniq natija, qisqa qaror, yozilgan mas’uliyat, e’tiroz uchun vaqt."
         ),
         friendship=(
-            "Do‘stni qulaylik bo‘yicha emas, hurmat bo‘yicha tanlaysiz va ularga vaqt hamda aloqalaringizni "
-            "sarflaysiz. To‘g‘ridan-to‘g‘ri gapirish — sizning g‘amxo‘rlik ko‘rsatish usulingiz."
+            "Do‘stni maqsadga tortish yaxshi, lekin har uchrashuv reja bo‘lmasin. "
+            "Haftada bitta uchrashuvni natijasiz qoldiring: shunchaki yuring."
         ),
         relationship=(
-            "Sizga o‘z pozitsiyasi bor, bahslashishdan qo‘rqmaydigan juft kerak. Shu bilan birga yaqinlar "
-            "sizdan faqat baho emas, e’tirof ham eshitishi kerak — buni ovoz chiqarib aytish arziydi."
+            "Yaqin odam yechimdan oldin eshitilishni xohlashi mumkin. "
+            "Avval «eshitdim» deng, keyin qadamni ayting. Aks holda g‘amxo‘rlik buyruqdek tuyuladi."
         ),
         compatible=(
-            "To‘g‘ridan-to‘g‘ri gapiradigan va vakolatni aniq bo‘lishadigan odamlar. Sur’atingizni yumshatishga yordam beradigan, tinch eshitadigan hamkorlar."
+            "Qattiq xabardan oldin bitta aniq yaxshi joyni yozing. "
+            "«Ro‘yxat kerak, lekin kechagi qisming to‘g‘ri edi» desangiz, ish ham, ohang ham turadi."
         ),
-        difficult=(
-            "Noaniq javoblar, bajarilmagan va’dalar va qarorsiz muhokamalar asabiylashtiradi. "
-            "Javoban siz o‘zingiz xohlaganingizdan keskinroq bo‘lib qolasiz."
+        difficult=_use(
+            "Qisqa xabar qo‘pol eshitiladi. Yechim: oldiga bitta yaxshi jumla qo‘ying.",
+            "Qarorni darrov yopasiz. Yechim: 10 daqiqa e’tiroz uchun qoldiring.",
+            "Sekin odamga jahlingiz chiqadi. Yechim: uning qismi va muddatini yozing, sur’atini tenglamang.",
         ),
-        plan=(
-            "1-hafta: har suhbatda avval oxirigacha eshiting, keyin javob bering. "
-            "2-hafta: kuniga bir marta birovning hissasini aniq jumla bilan qayd eting — oxirida «lekin»siz."
-        ),
+        plan="1-kun: bitta xabarga yaxshi jumla qo‘shing. 7-kun: qaysi qarorga e’tiroz vaqti qolganini yozing.",
     ),
     "ENTP": _entry(
-        title="Yangi yo‘l izlashga moyil",
+        title="Siz — savol berib, boshqa yo‘l qidiradigan odamsiz.",
         summary=(
-            "Ko‘pincha yangi g‘oyalar va munozara sizga qiziqarli. Bir xil kundalik ish tez zerikarli "
-            "tuyulishi mumkin, lekin qiziqarli masala topilsa chuqur kirish ham xos."
+            "Sizda tayyor javobga savol qo‘yib, boshqa yo‘l qidirish odat bo‘lishi mumkin. "
+            "Bahsda tez javob topishingiz mumkin. "
+            "Yangi g‘oya eski ishning mayda qismini surib qo‘yishi mumkin. "
+            "Tafsilot zerikarli bo‘lsa, uni boshqaga qoldirishingiz mumkin.\n\n"
+            "Masalan, referatning kirish qismi sizga qiziq. Manba ro‘yxati esa qoladi. "
+            "Muhokamada g‘alaba qilasiz, lekin fayl kechasi ham ochiq turadi."
         ),
         strengths=[
-            "Yangi yechimlarni tez ko‘rib chiqish va solishtirish",
-            "Suhbatda fikr almashish va savol berish",
-            "Noaniq vaziyatda bir nechta variant ko‘rish",
+            "Savol. Tayyor javobning teshigini tez ko‘rishingiz mumkin.",
+            "Yo‘l. Tiqilib qolgan ishga boshqa variant taklif qilishingiz mumkin.",
+            "Muhokama. Qiyin mavzuni jonli qilib tushuntirishingiz mumkin.",
         ],
         challenges=[
-            "Boshlagan ishni yakunlash",
-            "Bahsdan oldin eshitish",
+            "Yangi g‘oya uchun boshlangan ishning oxirini qoldirish",
+            "Bahsda odamning gapini to‘liq olmaslik",
         ],
-        others=(
-            "Bu uslubda odam aqlli, tez javob beradigan va suhbati qiziqarli inson deb "
-            "qabul qilinishi mumkin."
+        others=_use(
+            "Yangi g‘oyani alohida ro‘yxatga yozing, bugungi mayda qismni yoping.",
+            "Bahsda javobdan oldin suhbatdoshning jumlasini bir marta qaytaring.",
+            "Manba, muddat, ism kabi mayda qismga 10 daqiqa alohida qo‘ying.",
         ),
-        advice="Bugun bitta ochiq ishning kichik qismini belgilab bajaring.",
+        advice="Bugun chala ishning bitta mayda qismini yoping, yangi g‘oyani ro‘yxatga yozing.",
         motivation=(
-            "Sizni chaqiriq va «boshqacha ham bo‘ladi» ekanini isbotlash imkoni yoqadi. Vazifa boshda "
-            "hal bo‘lishi bilan qiziqish tushadi — ijro zerikarli tuyuladi. Musobaqa elementi va "
-            "marrani ushlab turadigan hamkor yordam beradi."
+            "Munozara yoki yangi mavzu bo‘lsa, kechgacha o‘tirishingiz mumkin. "
+            "Manba ro‘yxati va jild esa ochiq qolishi mumkin. "
+            "Mayda qismga alohida 10 daqiqa qo‘ysangiz, qiziq qism ham, hujjat ham tugashi mumkin."
         ),
         work=(
-            "Siz noaniqlik sharoitida ajoyib ishlaysiz va boshqalar to‘xtab qolgan joyda aylanma yo‘l topasiz. "
-            "Reglament va bir xillik qaytimingizni hammasidan tez pasaytiradi."
+            "Savol qo‘yish, variant qidirish va qisqa muhokama bor ish sizga qulayroq kelishi mumkin. "
+            "Jamoa yakun uchun mayda ro‘yxatni alohida qadam qilsa, g‘oya qog‘ozda qoladi. "
+            "Cheksiz bahs muddatni yeyishi mumkin."
         ),
         career=(
-            "Tez o‘zgaradigan vazifalar, qisqa loyihalar va erkin muloqotli muhit ko‘pincha qulayroq. "
-            "Katta tashkilotning bitta bo‘limida bir hafta kichik vazifa bilan sinab ko‘ring — "
-            "kun tartibi va vazifalar sizga mos kelishini kuzating."
+            "Aniq kasb va’dasi emas. Sizga yengilroq kelishi mumkin bo‘lgan sharoit: "
+            "ochiq savol, qisqa muhokama, yangi variant, alohida yoziladigan mayda qism."
         ),
         friendship=(
-            "Oson tanishasiz va fikr almashishni yoqtirasiz. Do‘stlar siz bilan g‘oya va yangilik "
-            "mavzularida gaplashishni qadrlashi mumkin."
+            "Do‘st bilan bahslashish sizga o‘yindek kelishi mumkin. "
+            "U xafa bo‘lsa, avval uning jumlasini qaytaring, keyin hazil qiling."
         ),
         relationship=(
-            "Sizga aqliy qiziqish, hazil va erkinlik muhim. Yaqqol «ha-yo‘q» talab qilmasdan, "
-            "suhbat va kelishuv odatlari ochiq bo‘lgan munosabat sizga yengilroq tuyuladi."
+            "Yaqin odam har gapingizni sinov deb o‘qimasin. Muhim mavzuda «hozir jiddiy aytayapman» deb boshlang. "
+            "Yangi reja taklif qilishdan oldin bugungi va’dani yoping."
         ),
         compatible=(
-            "G‘oyangizni tinglab, keyin aniq qadam taklif qiladigan odamlar. Bahsni shaxsiy "
-            "hujum deb emas, fikr almashinuv deb ko‘radiganlar."
+            "E’tirozni aytishdan oldin bitta kuchli joyni tan oling. "
+            "«Bu joy ishlaydi, mana bu joy teshik» desangiz, bahs yopilishi mumkin."
         ),
-        difficult=(
-            "Tushuntirishsiz taqiqlar va uzoq byurokratik kutish og‘ir tuyulishi mumkin. "
-            "Agar sizda ham shunday bo‘lsa, muhim mavzuda avval tinglash va keyin javob berish yordam beradi."
+        difficult=_use(
+            "Yangi g‘oya eski ishni suradi. Yechim: g‘oyani ro‘yxatga yozing, bugun mayda qismni yoping.",
+            "Bahsda odamni bo‘lib yuborasiz. Yechim: javobdan oldin uning jumlasini qaytaring.",
+            "Manba ro‘yxati ochiq qoladi. Yechim: unga alohida 10 daqiqa qo‘ying.",
         ),
-        plan="",
+        plan="1-kun: mayda qismni yoping. 7-kun: ro‘yxatdagi g‘oya bilan yopilgan ishni ajrating.",
     ),
     "ESFP": _entry(
-        title="Hozirgi lahzaning jonli odami",
-        summary="Sizga odamlar, taassurotlar va iliq, yengil muhit energiya beradi.",
+        title="Siz — hozirgi lahzani jonlantiradigan odamsiz.",
+        summary=(
+            "Sizda odamlar orasida kayfni ko‘tarish va hozirgi vaziyatga tez qo‘shilish odat bo‘lishi mumkin. "
+            "Amaliy ishni darrov boshlashingiz mumkin. "
+            "Keyingi kunning mayda ro‘yxati esa qolib ketishi mumkin. "
+            "His kuchli bo‘lsa, xabar yoki qaror shoshilinch chiqishi mumkin.\n\n"
+            "Masalan, do‘stlar to‘satdan choyxona taklif qiladi. Siz borasiz va hamma kayfini ko‘tarasiz. "
+            "Ertasi kuni topshiriq ochilmaganini ko‘rasiz."
+        ),
         strengths=[
-            "Ijtimoiy energiya",
-            "Moslashuvchanlik",
-            "Amaliy yordam",
+            "Hozirgi lahza. Yangi joyda odamni tez erkin qilishingiz mumkin.",
+            "Boshlash. Muhokama cho‘zilsa, ishni qo‘lga olishingiz mumkin.",
+            "Kayf. Qiyin kunda ham bitta yengil qadam topishingiz mumkin.",
         ],
         challenges=[
-            "Uzoq muddatli rejalashtirish",
-            "Tanqidga sezgirlik",
+            "Bugungi kayf ertangi mayda ishni surib qo‘yishi",
+            "Kuchli his bilan shoshilinch xabar yozish",
         ],
-        others="Sizni ochiq, samimiy va yorqin inson deb ko‘rishadi.",
-        advice="Yirik qarorlardan oldin qisqa yozma reja tuzing.",
+        others=_use(
+            "Chiqishdan oldin ertangi bitta ishni 15 daqiqaga qo‘ying.",
+            "Kuchli hisda xabarni qoralab, 20 daqiqadan keyin yuboring.",
+            "Kuniga uchta ishdan bittasini ertalab yozing.",
+        ),
+        advice="Bugun chiqishdan oldin ertangi bitta ishga 15 daqiqa qo‘ying.",
         motivation=(
-            "Sizni odamlarning javobi va darhol ko‘rinadigan natija quvvatlantiradi. Oraliq quvonchsiz "
-            "uzoq maqsadlar ko‘zdan yo‘qoladi. Katta ishni har biri yoqimli yakuni bor qisqa bosqichlarga "
-            "bo‘lish yaxshi ishlaydi."
+            "Do‘stlar chaqirsa, siz darrov qo‘shilib, kechasi quvnoq qaytishingiz mumkin. "
+            "Ertasi kuni esa jadval bo‘sh bo‘lib, ish og‘ir tuyulishi mumkin. "
+            "Chiqish oldidan 15 daqiqa qo‘yish ertalabki og‘irlikni yumshatishi mumkin."
         ),
         work=(
-            "Siz tez kirishasiz, odamlar bilan oson ishlaysiz va atrofdagi kayfiyatni yaxshi his qilasiz. "
-            "Eng qiyini — jimjitlikdagi uzoq qog‘oz ishi."
+            "Odam bor, harakat bor va natijasi ko‘rinadigan ish sizga qulayroq kelishi mumkin. "
+            "Jamoa ertalabki uchta ishni yozsa, kayf ishni yeb qo‘ymasligi mumkin. "
+            "Uzoq yolg‘iz hisobot sizni tez charchatishi mumkin."
         ),
         career=(
-            "Savdo, tadbirlar, xizmat ko‘rsatish, sahna va media, turizm, sport, bolalar bilan ishlash — "
-            "jonli va harakatdagi hamma soha mos."
+            "Aniq kasb va’dasi emas. Sizga yengilroq kelishi mumkin bo‘lgan sharoit: "
+            "odam bor joy, ko‘rinadigan harakat, qisqa natija, ertalabki kichik ro‘yxat."
         ),
         friendship=(
-            "Siz odamlarni atrofingizga yig‘asiz va kayfiyat ko‘tara olasiz. Do‘stlar sizning e’tibor va "
-            "vaqtga saxiyligingizni qadrlashadi."
+            "Do‘stlar sizni chaqirishni yaxshi ko‘radi. Siz ham ba’zan rejani o‘zingiz yozing, aks holda kunlar tasodif bo‘lib qoladi. "
+            "Bitta yaqin odamga alohida vaqt qo‘ying, hammasi katta davrada qolmasin."
         ),
         relationship=(
-            "Sizga iliqlik, e’tibor va birga olingan taassurotlar kerak. Uzoq sovuqlik yoki jim "
-            "xafagarchilik sizga juda og‘ir botadi."
+            "Yaqin odam tinch kechqurun kutsa, har safar yangi joy taklif qilmang. "
+            "Haftada bitta oddiy uy kechasi ham yaqinlikni ushlashi mumkin."
         ),
         compatible=(
-            "Muammoni yig‘ib yurmasdan ochiq aytadigan odamlar. Ba’zan tartib va reja qo‘shadigan, lekin kayfiyatingizni bosmaydiganlar."
+            "Xafa bo‘lganingizda xabarni darrov yubormang. 20 daqiqa kutib, bitta aniq jumla yozing. "
+            "«Hozir og‘ir, kechroq gaplashamiz» desangiz, kayf gapni buzmasligi mumkin."
         ),
-        difficult=(
-            "Keskin tanqid, ayniqsa boshqalar oldida, sizni uzoq muvozanatdan chiqaradi. "
-            "Qiyin suhbatda javobdan oldin qisqa tanaffus qilish yordam beradi."
+        difficult=_use(
+            "Chiqish ertangi ishni yeydi. Yechim: chiqishdan oldin 15 daqiqa qo‘ying.",
+            "His bilan xabar ketadi. Yechim: qoralang, 20 daqiqadan keyin yuboring.",
+            "Kun bo‘sh qoladi. Yechim: ertalab uchta ishdan bittasini yozing.",
         ),
-        plan=(
-            "1-hafta: har tong kunning uchta vazifasini yozing, oqshom bajarilganini belgilang. "
-            "2-hafta: bitta muhim qarorni bir kunga qoldiring va birinchi hissiyotni yakuniy tanlov "
-            "bilan solishtiring."
-        ),
+        plan="1-kun: chiqish oldidan 15 daqiqa qo‘ying. 7-kun: qaysi ish shu 15 daqiqada yopilganini belgilang.",
     ),
     "ESFJ": _entry(
-        title="Jamoa ruhining posboni",
-        summary="Siz uchun jamiyat, an’analar va yaqinlaringizning farovonligi muhim.",
+        title="Siz — guruh kayfini ushlab turadigan odamsiz.",
+        summary=(
+            "Sizda odam o‘zini qulay sezishi uchun mayda narsani eslab, guruhni bir joyda tutish odat bo‘lishi mumkin. "
+            "Mehmon, guruh ishi yoki oila yig‘inida tartib sizdan chiqishi mumkin. "
+            "Hamma rozi bo‘lsin deb, o‘z charchog‘ingizni yashirishingiz mumkin. "
+            "Minnatdorlik sezilmasa, kajingiz chiqishi mumkin.\n\n"
+            "Masalan, tug‘ilgan kun dasturxoni uchun ro‘yxat, joy va kim nima olib kelishini siz yozasiz. "
+            "Kechqurun hamma rahmat deydi, siz esa idish yuvib charchaysiz."
+        ),
         strengths=[
-            "Xayrixohlik",
-            "Tashkilotchilik qobiliyati",
-            "Munosabatlarda sodiqlik",
+            "Eslab qolish. Guruhga nima kerakligini oldindan yozib qo‘yishingiz mumkin.",
+            "Mehmondo‘stlik. Yangi odamni davraga qo‘shishingiz mumkin.",
+            "Tartib. Tarqalgan tayyorgarlikni bitta ro‘yxatga yig‘ishingiz mumkin.",
         ],
         challenges=[
-            "Tanqiddan qo‘rquv",
-            "O‘z ehtiyojini unutish",
+            "Hamma rozi bo‘lsin deb o‘z yukingizni oshirish",
+            "Rahmat eshitilmasa, ichingizda qolish",
         ],
-        others="Sizni g‘amxo‘r, ishonchli va doim yordamga tayyor inson deb ko‘rishadi.",
-        advice="Yordam so‘rash ham sog‘lom munosabatning bir qismi.",
+        others=_use(
+            "Ro‘yxat tuzganingizda o‘zingizdan boshqa ikki kishiga ham qator yozing.",
+            "Charchaganingizni kechqurun ayting, idish ustida jim yurmang.",
+            "Bitta iltimosni rad etish uchun oldindan tayyor jumla yozing.",
+        ),
+        advice="Bugun guruh ishidan bitta qatorni boshqa odamning yoniga yozing.",
         motivation=(
-            "Sizga minnatdorlik va foydali ekanlik hissi kuch beradi. Ammo ma’qullash yagona yoqilg‘iga "
-            "aylansa, har qanday tanbeh juda qattiq uradi. Qilgan ishingizga o‘zingiz baho bera olish "
-            "motivatsiyani barqarorroq qiladi."
+            "Yig‘in yaqin bo‘lsa, siz kechasi ham ro‘yxat yuborishingiz mumkin. "
+            "Hech kim qo‘shilmasa, kajingiz chiqib, keyingi safar hammasini yana o‘zingiz olishingiz mumkin. "
+            "Ikki kishiga aniq qator bersangiz, yuk bo‘linadi."
         ),
         work=(
-            "Siz jamoadagi muhitni ushlaysiz, kelishuvlarni eslab qolasiz va ishni yarim yo‘lda tashlamaysiz. "
-            "Ziddiyatli yoki sovuq muhitda ishlash sizga og‘ir."
+            "Odam bilan, aniq mehmon yoki mijoz bor, tartibi yoziladigan ish sizga qulayroq kelishi mumkin. "
+            "Jamoa rahmatni va mas’uliyatni ochiq aytsa, siz ortiqcha yuk olmasligingiz mumkin. "
+            "Hamma sizdan kutadigan joyda charchoq tez yig‘iladi."
         ),
         career=(
-            "Ta’lim, tibbiyot, HR, xizmat ko‘rsatish, ma’muriyat, tadbirlarni tashkil qilish, ijtimoiy ish mos. "
-            "Iliq jamoa va hissaning e’tirof etilishi muhim."
+            "Aniq kasb va’dasi emas. Sizga yengilroq kelishi mumkin bo‘lgan sharoit: "
+            "odam bilan ish, yozilgan ro‘yxat, bo‘lingan vazifa, ochiq rahmat."
         ),
         friendship=(
-            "Siz aloqalarni yillab saqlaysiz va kimdir yo‘qolib qolsa birinchi bo‘lib o‘zingiz yozasiz. "
-            "E’tiboringiz ham, uyingiz ham yaqinlar uchun deyarli doim ochiq."
+            "Do‘stlar sizni yig‘uvchi deb biladi. Siz ham ba’zan mehmon bo‘ling. "
+            "«Bu safar ro‘yxatni sen yoz» desangiz, do‘stlik tengroq turishi mumkin."
         ),
         relationship=(
-            "Sizga barqarorlik, iliq so‘z va umumiy kelajakka ishonch kerak. "
-            "Munosabatdagi noaniqlik sizni ochiq ziddiyatdan ko‘ra ko‘proq xavotirga soladi."
+            "Yaqin odam sizning mehnatingizni ko‘rmasligi mumkin, chunki siz jim qilasiz. "
+            "Bitta ishni ayting: «bugun men shuni qildim, endi dam olaman»."
         ),
         compatible=(
-            "G‘amxo‘rlikni o‘z-o‘zidan kutmaydigan, minnat va aniq gapiradigan odamlar. O‘z ehtiyojingizni ham aytishingiz mumkin bo‘lgan yaqinlar."
+            "Ichkarida qolgan kajni kechki xabarda ayting. "
+            "«Yordam kerak edi, jim qoldim» desangiz, keyingi safar yuk bo‘linishi mumkin."
         ),
-        difficult=(
-            "Begonalar oldidagi tanqid, sovuqlik va ortiqcha vasiylikda ayblash og‘ir. "
-            "Siz ko‘nglini olishga urinasiz, keyin esa o‘zingizni ishlatilgandek his qilasiz."
+        difficult=_use(
+            "Hammasini o‘zingiz qilasiz. Yechim: ro‘yxatda ikki kishiga qator yozing.",
+            "Rahmat yo‘q, ichingizda qolasiz. Yechim: kechqurun bitta jumla ayting.",
+            "Rad eta olmaysiz. Yechim: «bu safar sig‘maydi» degan jumlani oldindan yozib qo‘ying.",
         ),
-        plan=(
-            "1-hafta: har kuni o‘zingiz uchun biror ish qiling va bu haqda hech kimga hisobot bermang. "
-            "2-hafta: yaqiningizdan bir marta aniq yordam so‘rang — oqlanmasdan."
-        ),
+        plan="1-kun: bitta qatorni boshqaga yozing. 7-kun: o‘zingiz dam olgan yig‘inni belgilang.",
     ),
     "ESTJ": _entry(
-        title="Tartib va natija odami",
-        summary="Siz aniq qoidalar, mas’uliyat va samaradorlikni qadrlaysiz.",
+        title="Siz — mas’uliyatli va tartibli odamsiz.",
+        summary=(
+            "Sizda ish tarqasa, muddat va tartibni eslatish odat bo‘lishi mumkin. "
+            "Kim nima qilishini yozib qo‘ysangiz, guruh yurishi mumkin. "
+            "Tuzatishni maqtovdan oldin aytib yuborishingiz mumkin. "
+            "O‘z sur’atingizni boshqadan ham kutishingiz mumkin.\n\n"
+            "Masalan, umumiy hujjatda kursdosh o‘z qatorini to‘ldirmaydi. "
+            "Siz eslatma yozasiz va kechqurun o‘zingiz to‘ldirasiz. Hujjat chiqadi, lekin ichingizda kaj qoladi."
+        ),
         strengths=[
-            "Jarayonlarni tashkil qilish",
-            "Tez ijro",
-            "Aniqlik",
+            "Muddat. Topshiriq qachon tugashini ushlab turishingiz mumkin.",
+            "Tartib. Tarqalgan ishni qatorlarga bo‘lib berishingiz mumkin.",
+            "Mas’uliyat. Aytgan ishni o‘z bo‘yningizga olishingiz mumkin.",
         ],
         challenges=[
-            "Moslashuvchanlik yetishmasligi",
-            "Hissiy nozikliklarga e’tiborsizlik",
+            "Tuzatishni yaxshi tomondan oldin aytish",
+            "O‘z sur’atingizni hammaniniki deb kutish",
         ],
-        others="Sizni ishonchli, jiddiy va uyushqoq inson deb bilishadi.",
-        advice="O‘zgarishlarni jamoa bilan oldindan muhokama qiling.",
+        others=_use(
+            "Eslatmadan oldin bitta to‘g‘ri qilingan joyini yozing.",
+            "O‘zingiz yopmang: qatorni odamning yoniga yozib, muddat qo‘ying.",
+            "Sur’ati boshqacha odamga uning qismini kichikroq bering.",
+        ),
+        advice="Bugun tuzatish yozishdan oldin bitta aniq yaxshi narsani ayting.",
         motivation=(
-            "Sizni aniq maqsad, o‘lchanadigan natija va tushunarli mas’uliyat doirasi harakatga keltiradi. "
-            "Tartibsizlik va noaniq rollar sizni katta yuklamadan ko‘ra ko‘proq asabiylashtiradi."
+            "Muddat yaqin bo‘lsa, siz ro‘yxat yuborib, guruhni yurgizishingiz mumkin. "
+            "Hech kim qatorini yozmasa, kechasi hammasini o‘zingiz yopishingiz mumkin. "
+            "Bitta yaxshi jumla va aniq muddat eslatmani yumshatib, ishni baribir siljitishi mumkin."
         ),
         work=(
-            "Siz istalgan jarayonda tartib o‘rnatasiz, vazifalarni taqsimlaysiz va muddatlarni kuzatasiz. "
-            "Xavf — boshqalardan ham xuddi o‘zingizdek sur’at va aniqlikni talab qilish."
+            "Aniq muddat, tekshiriladigan natija va bo‘lingan vazifa bor ish sizga qulayroq kelishi mumkin. "
+            "Jamoa sizning tartibingizni eshitsa, lekin ohangni ham ko‘rsa, odamlar yonida turadi. "
+            "Faqat nazorat so‘raladigan joyda kaj tez yig‘iladi."
         ),
         career=(
-            "Boshqaruv, ishlab chiqarish, logistika, moliya, huquq, davlat xizmati, operatsion rollar mos. "
-            "Aniq tuzilma va real vakolat muhim."
+            "Aniq kasb va’dasi emas. Sizga yengilroq kelishi mumkin bo‘lgan sharoit: "
+            "aniq muddat, bo‘lingan vazifa, tekshiriladigan natija, qisqa yozma eslatma."
         ),
         friendship=(
-            "Siz aniq maslahat yoki yordam uchun murojaat qilinadigan ishonchli do‘stsiz. G‘amxo‘rlikni "
-            "his-tuyg‘u haqida gapirish bilan emas, ish va tashkilotchilik bilan ko‘rsatasiz."
+            "Do‘stlar sizni ishonchli deb bilishi mumkin, chunki vaqtingizda kelasiz. "
+            "Ular kechiksa, avval sababini so‘rang, keyin keyingi aniq vaqtni yozing."
         ),
         relationship=(
-            "Sizga bashoratlilik, bajarilgan kelishuvlar va tartibingizga hurmat kerak. "
-            "Juftingiz sizdan faqat tanbeh emas, ma’qullash ham eshitishi muhim."
+            "Yaqin odam tartibni nazorat deb o‘qishi mumkin. Bitta muhim qoidani ayting, mayda joyini qo‘yib bering. "
+            "«Menga vaqt muhim, qolganini sen tanla» desangiz, ohang yumshashi mumkin."
         ),
         compatible=(
-            "Tartib va mas’uliyatni qadrlaydigan, to‘g‘ridan-to‘g‘ri muloqot qiladigan odamlar. Ohangni yumshatishga yordam beradigan hamkorlar."
+            "Tuzatish xabarida avval yaxshi joy, keyin o‘zgarish bo‘lsin. "
+            "«Jadval to‘g‘ri, mana bu qator bo‘sh» desangiz, odam yopilib qolmasligi mumkin."
         ),
-        difficult=(
-            "Mas’uliyatsizlik, bahonalar va dalilsiz qarorlar asabiylashtiradi. "
-            "Bunday paytda ohangingiz kerak bo‘lganidan qattiqroq bo‘lib ketadi."
+        difficult=_use(
+            "Eslatma qattiq chiqadi. Yechim: oldiga bitta yaxshi jumla qo‘ying.",
+            "Bo‘sh qatorni o‘zingiz yopasiz. Yechim: qatorni odamga yozib, muddat qo‘ying.",
+            "Sekin odamga jahlingiz chiqadi. Yechim: uning qismini kichikroq qilib bering.",
         ),
-        plan=(
-            "1-hafta: odamni tuzatishdan oldin avval u nimani yaxshi qilganini ayting. "
-            "2-hafta: bitta jarayonni boshqasiga to‘liq topshiring va natijagacha aralashmang."
-        ),
+        plan="1-kun: tuzatishdan oldin yaxshi jumla yozing. 7-kun: o‘zingiz yopmagan bitta qatorni belgilang.",
     ),
     "ESTP": _entry(
-        title="Harakat va imkoniyat odami",
-        summary="Sizga tez qarorlar, harakat va yangi tajriba kuch beradi.",
+        title="Siz — vaziyatni kechiktirmay hal qiladigan odamsiz.",
+        summary=(
+            "Sizda muammo chiqsa, kutmasdan yo‘l qidirish odat bo‘lishi mumkin. "
+            "Harakat bor joyda tez ochilishingiz mumkin. "
+            "Zerikarli mayda qism sizni to‘xtatishi mumkin. "
+            "Katta qarorda ham shu tezlikni ishlatsangiz, keyin tuzatish ko‘p bo‘lishi mumkin.\n\n"
+            "Masalan, guruh kechikib, zalni bron qilolmaydi. Siz boshqa joyni darrov topasiz. "
+            "Yig‘ilish bo‘ladi, lekin kim to‘laydi va qanday boriladi yozilmaydi."
+        ),
         strengths=[
-            "Tez reaksiya",
-            "Amaliy yechimlar",
-            "Ijtimoiy joziba",
+            "Tezlik. To‘xtab qolgan vaziyatda yo‘l topishingiz mumkin.",
+            "Jasorat. Yangi joyda birinchi bo‘lib gapirish yoki sinash mumkin.",
+            "Amaliyot. Nazariya cho‘zilsa, ishlaydigan variantni tekshirishingiz mumkin.",
         ],
         challenges=[
-            "Uzoq muddatli rejalar",
-            "Sabr talab qiladigan vazifalar",
+            "Mayda shartni yozmasdan keyingi ishga o‘tish",
+            "Katta qarorni bir kecha kutmasdan yopish",
         ],
-        others="Sizni jasur, ochiq va energiyali inson deb ko‘rishadi.",
-        advice="Muhim loyihalar uchun qisqa muddat va oraliq deadline qo‘ying.",
+        others=_use(
+            "Tez yechimdan keyin kim, qachon, qancha deb uchta qator yozing.",
+            "Zerikarli qismga 20 daqiqa qo‘ying va shu vaqtni boshqa ish bilan almashtirmang.",
+            "Katta xariddan oldin bir kecha kutib, ertalab raqamlarni qayta o‘qing.",
+        ),
+        advice="Bugun tez yechgan ishning uchta shartini yozing: kim, qachon, qancha.",
         motivation=(
-            "Sizni qiziqish, musobaqa va ayni damdagi qo‘lga ilinadigan natija yoqadi. Harakatsiz uzoq "
-            "tayyorgarlik qiziqishni so‘ndiradi. Hisobi ko‘rinib turadigan qisqa siljishlar yaxshi ishlaydi."
+            "Musobaqa yoki shoshilinch ish bo‘lsa, siz darrov joyidasiz. "
+            "Oddiy forma va mayda shart esa ochiq qolishi mumkin. "
+            "Ularga 20 daqiqa qo‘ysangiz, tez yechim ham tugagan hisoblanadi."
         ),
         work=(
-            "Inqirozda siz ko‘pchilikdan samaraliroqsiz: tez hal qilasiz va o‘zingizni yo‘qotmaysiz. "
-            "Zaif joyingiz — tafsilotlarni sabr bilan yetkazish kerak bo‘lgan bosqich."
+            "Harakat, tez natija va ozgina musobaqa bor ish sizga qulayroq kelishi mumkin. "
+            "Jamoa mayda shartni sizdan yozma so‘rasa, keyingi odam ham tushunadi. "
+            "Uzoq tayyorgarlik va cheksiz hujjat sizni chiqarib yuborishi mumkin."
         ),
         career=(
-            "Savdo, muzokaralar, sport, favqulodda xizmatlar, tadbirkorlik, qurilish — "
-            "dinamik va tez natijali hamma soha mos."
+            "Aniq kasb va’dasi emas. Sizga yengilroq kelishi mumkin bo‘lgan sharoit: "
+            "tez natija, harakat, qisqa qaror, yozib qo‘yiladigan mayda shart."
         ),
         friendship=(
-            "Siz odamlar bilan oson chiqishasiz va atrofingizda harakat yaratasiz. Do‘stlar biladi: "
-            "shoshilinch harakat kerak bo‘lsa, siz allaqachon ishdasiz."
+            "Do‘stlar shoshilinch paytda sizni chaqirishi mumkin. "
+            "Oddiy kunda ham bitta xabar yozing, yaqinlik faqat muammoga bog‘lanib qolmasin."
         ),
         relationship=(
-            "Sizga jonlilik, halollik va mayda nazoratning yo‘qligi kerak. Juftingiz uchun sizning "
-            "e’tiboringiz faqat yorqin lahzalarda emas, oddiy kunlarda ham muhim."
+            "Yaqin odam reja va tinch vaqt kutsa, har safar yangi sarguzasht taklif qilmang. "
+            "Bitta oldindan yozilgan kechqurun ishonchni ushlashi mumkin."
         ),
         compatible=(
-            "Ishonchli va barqaror hamkorlar. Sur’atingizni yoqtirmay, lekin ochiq gapiradigan va katta qarordan oldin to‘xtashni qo‘llab-quvvatlaydigan odamlar."
+            "Qattiq javobdan oldin bir nafas oling va nima kerakligini raqam bilan ayting. "
+            "«Bugun shu summa, ertaga qolgani» desangiz, shoshilish adashishga aylanmasligi mumkin."
         ),
-        difficult=(
-            "Uzun nasihatlar, tushuntirishsiz xafagarchilik va ma’nosiz qoidalar og‘ir. Siz keskin javob "
-            "berasiz, so‘ng tez soviysiz — buni yaqinlaringizga oldindan aytib qo‘ygan ma’qul."
+        difficult=_use(
+            "Joy topiladi, shart yozilmaydi. Yechim: kim, qachon, qancha deb uchta qator yozing.",
+            "Zerikarli forma ochiq qoladi. Yechim: unga 20 daqiqa qo‘ying.",
+            "Katta xarid darrov bo‘ladi. Yechim: bir kecha kutib, ertalab raqamni qayta o‘qing.",
         ),
-        plan=(
-            "1-hafta: har bir yirik qarordan oldin bir kunlik tanaffus oling. "
-            "2-hafta: bitta zerikarli ishni oxiriga yetkazing va u aslida qancha vaqt olganini belgilang."
-        ),
+        plan="1-kun: uchta shartni yozing. 7-kun: kechiktirilgan katta qaror foyda berdimi, belgilang.",
     ),
 }
 
@@ -887,7 +1055,7 @@ def get_result_copy(personality_type: str) -> ResultCopy:
     areas = PERSONALITY_GROWTH_UZ[key]
     merged: ResultCopy = {
         **base,
-        "challenges": [areas[0]["name"], areas[1]["name"]],
         "action_plan": format_action_plan(areas[0]),
+        "daily_tips": list(areas[0]["steps"][:3]),
     }
     return merged

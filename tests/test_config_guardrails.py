@@ -7,6 +7,8 @@ from app.config import PLACEHOLDER_SECRET_KEYS, Settings
 # Ishlab chiqarish uchun yaroqli minimal toʻplam; har test undan bitta qiymatni buzadi.
 PRODUCTION_SETTINGS = {
     "debug": False,
+    "dev_mode": False,
+    "telegram_webapp_only": False,
     "secret_key": "kuchli-tasodifiy-kalit-" + "x" * 32,
     "admin_username": "operator",
     "admin_password": "",
@@ -57,6 +59,11 @@ def test_no_credentials_at_all_is_refused_in_production():
 def test_local_public_base_url_is_refused_in_production():
     with pytest.raises(RuntimeError, match="PUBLIC_BASE_URL"):
         _settings(public_base_url="http://127.0.0.1:8000")
+
+
+def test_dev_mode_refused_when_debug_false():
+    with pytest.raises(RuntimeError, match="DEV_MODE"):
+        _settings(dev_mode=True)
 
 
 def test_debug_mode_only_warns_and_generates_a_session_key(caplog):

@@ -9,12 +9,28 @@ import pytest
 from sqlalchemy import select
 
 from app.config import settings
+from app.models.enums import NotificationStatus
+from app.models.notification import NotificationOutbox
 from app.models.payment_request import PaymentRequest
 from app.routers import admin
 from app.services.premium_payment_service import PremiumPaymentService
+from app.services.premium_telegram_delivery import latest_user_approved_outbox_row
 from tests.helpers import admin_login, complete_session, db_session, session_by_token
 
 BOT_TOKEN = "123456:test-token"
+
+
+async def _fake_deliver_one(_bot, factory, row_id: int) -> str:
+    """Haqiqiy Telegramga chiqmasdan outboxni test bazasida SENT qiladi."""
+    db = factory()
+    try:
+        row = db.get(NotificationOutbox, row_id)
+        assert row is not None, "worker test bazasidagi notification_outboxni ko‘rmadi"
+        row.status = NotificationStatus.SENT.value
+        db.commit()
+        return NotificationStatus.SENT.value
+    finally:
+        db.close()
 
 
 class _FakeGetFileResponse:
@@ -82,18 +98,30 @@ def payment(client):
     return token, payment_id
 
 
-def test_admin_can_approve_a_payment_from_the_panel(client, payment):
+def test_admin_can_approve_a_payment_from_the_panel(client, payment, monkeypatch):
     token, payment_id = payment
     admin_login(client)
 
+    # Delivery worker request DB bindidan ochilishi kerak; Telegram tarmog'iga chiqilmasin.
+    monkeypatch.setattr(settings, "bot_token", BOT_TOKEN)
+    monkeypatch.setattr(
+        "app.services.premium_telegram_delivery.deliver_one",
+        _fake_deliver_one,
+    )
+
     response = client.post(f"/admin/premium-requests/{payment_id}/approve", follow_redirects=False)
     assert response.status_code == 303
-    assert response.headers["location"] == "/admin/premium-requests"
+    # Muvaffaqiyatli yetkazishdan keyin flash=premium_ok (bare path emas).
+    assert response.headers["location"] == "/admin/premium-requests?flash=premium_ok"
 
     with db_session(client) as db:
-        assert session_by_token(db, token).is_premium is True
+        session = session_by_token(db, token)
+        assert session.is_premium is True
         # Endi aniq kim tasdiqlagani yoziladi, "web-admin" degan umumiy nom emas.
         assert db.get(PaymentRequest, payment_id).approved_by == f"web:{settings.admin_username}"
+        outbox = latest_user_approved_outbox_row(db, session.id)
+        assert outbox is not None
+        assert outbox.status == NotificationStatus.SENT.value
 
 
 def test_admin_can_reject_a_payment_from_the_panel(client, payment):

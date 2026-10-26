@@ -1,0 +1,79 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Foydalanuvchi fikrlari{% endblock %}
+{% set active_nav = 'feedback' %}
+
+{% block content %}
+<h1 class="h4 mb-3">Foydalanuvchi fikrlari</h1>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body py-3">
+        <div class="text-muted small">Jami feedback</div>
+        <div class="fs-4 fw-semibold">{{ stats.total }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body py-3">
+        <div class="text-muted small">{{ rating_label('positive') }}</div>
+        <div class="fs-5">{{ stats.positive }} <span class="text-muted small">({{ stats.percent(stats.positive) }}%)</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body py-3">
+        <div class="text-muted small">{{ rating_label('partial') }}</div>
+        <div class="fs-5">{{ stats.partial }} <span class="text-muted small">({{ stats.percent(stats.partial) }}%)</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body py-3">
+        <div class="text-muted small">{{ rating_label('negative') }}</div>
+        <div class="fs-5">{{ stats.negative }} <span class="text-muted small">({{ stats.percent(stats.negative) }}%)</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-sm table-striped align-middle">
+    <thead>
+      <tr>
+        <th>Sana</th>
+        <th>Telegram</th>
+        <th>Telegram ID</th>
+        <th>Rating</th>
+        <th>Tip</th>
+        <th>Comment</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td class="text-nowrap">{{ row.created_at.strftime('%Y-%m-%d %H:%M') if row.created_at else '—' }}</td>
+        <td>
+          {% if row.telegram_username %}
+          @{{ row.telegram_username }}
+          {% else %}
+          —
+          {% endif %}
+        </td>
+        <td>{{ row.telegram_id or '—' }}</td>
+        <td>{{ rating_label(row.rating) }}</td>
+        <td>{{ row.result_type or '—' }}</td>
+        <td style="max-width: 320px; white-space: pre-wrap;">{{ row.comment or '—' }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="6" class="text-muted">Hali feedback yo‘q.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+<section class="mbti-user-feedback" id="user-feedback" aria-labelledby="user-feedback-heading">
+  {% if user_feedback_submitted %}
+  <div class="mbti-user-feedback__success" role="status">
+    <p class="mbti-user-feedback__success-title">{{ t('feedback.user.success_title') }}</p>
+    <p class="mbti-user-feedback__success-body">{{ t('feedback.user.success_body') }}</p>
+  </div>
+  {% else %}
+  <h2 id="user-feedback-heading" class="mbti-section-title">{{ t('feedback.user.title') }}</h2>
+  <div class="mbti-user-feedback__form" data-user-feedback-form data-submit-url="/personality/result/{{ token }}/user-feedback">
+    <div class="mbti-user-feedback__ratings" role="radiogroup" aria-label="{{ t('feedback.user.title') }}">
+      <button type="button" class="mbti-user-feedback__rating" data-rating="positive" aria-pressed="false">
+        <span class="mbti-user-feedback__emoji" aria-hidden="true">👍</span>
+        <span>{{ t('feedback.user.positive') }}</span>
+      </button>
+      <button type="button" class="mbti-user-feedback__rating" data-rating="partial" aria-pressed="false">
+        <span class="mbti-user-feedback__emoji" aria-hidden="true">🤔</span>
+        <span>{{ t('feedback.user.partial') }}</span>
+      </button>
+      <button type="button" class="mbti-user-feedback__rating" data-rating="negative" aria-pressed="false">
+        <span class="mbti-user-feedback__emoji" aria-hidden="true">👎</span>
+        <span>{{ t('feedback.user.negative') }}</span>
+      </button>
+    </div>
+    <div class="mbti-user-feedback__comment-wrap is-hidden" data-comment-wrap hidden>
+      <p class="mbti-user-feedback__comment-title">{{ t('feedback.user.comment_title') }}</p>
+      <textarea
+        class="mbti-user-feedback__textarea"
+        rows="4"
+        maxlength="2000"
+        data-comment
+        placeholder="{{ t('feedback.user.comment_placeholder') }}"
+      ></textarea>
+      <button type="button" class="ref-cta ref-cta--primary mbti-user-feedback__submit" data-submit
+              data-error-text="{{ t('feedback.user.error') }}" disabled>
+        {{ t('feedback.user.submit') }}
+      </button>
+      <p class="mbti-user-feedback__error is-hidden" data-error role="alert" hidden></p>
+    </div>
+  </div>
+  {% endif %}
+</section>

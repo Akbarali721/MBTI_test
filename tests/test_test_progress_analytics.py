@@ -5,8 +5,6 @@ from __future__ import annotations
 from datetime import timedelta
 
 from app.models.enums import PersonalitySessionStatus
-from app.repositories.personality_repository import PersonalityRepository
-from app.services.personality_service import PersonalityService
 from app.services.test_funnel_analytics_service import SessionTestFunnelAnalyticsService
 from app.timeutils import utcnow
 from tests.helpers import admin_login, answer_question, db_session, session_by_token, start_session

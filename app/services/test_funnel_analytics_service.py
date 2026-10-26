@@ -89,11 +89,7 @@ class SessionTestFunnelAnalyticsService:
         )
 
     def _count_started(self) -> int:
-        stmt = (
-            select(func.count())
-            .select_from(PersonalityTestSession)
-            .where(*self._base_started_filter())
-        )
+        stmt = select(func.count()).select_from(PersonalityTestSession).where(*self._base_started_filter())
         return int(self.db.scalar(stmt) or 0)
 
     def _count_completed(self) -> int:
@@ -108,7 +104,6 @@ class SessionTestFunnelAnalyticsService:
         return int(self.db.scalar(stmt) or 0)
 
     def _count_reached_at_least(self, question_number: int) -> int:
-        total_default = SESSION_QUESTION_COUNT
         stmt = (
             select(func.count())
             .select_from(PersonalityTestSession)
@@ -128,10 +123,7 @@ class SessionTestFunnelAnalyticsService:
         rows: list[QuestionDropOffRow] = []
         for q in range(1, total + 1):
             reached = self._count_reached_at_least(q)
-            if q < total:
-                continued = self._count_reached_at_least(q + 1)
-            else:
-                continued = self._count_completed()
+            continued = self._count_reached_at_least(q + 1) if q < total else self._count_completed()
             drop = max(reached - continued, 0)
             pct = round(drop / reached * 100, 1) if reached else 0.0
             rows.append(

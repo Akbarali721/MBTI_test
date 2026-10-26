@@ -52,7 +52,6 @@ def referrer_row(client, token: str) -> PersonalityTestSession:
 def test_the_result_page_shows_a_referral_link_with_the_share_code(client):
     token = complete_session(client)
     code = share_code(client, token)
-    required = settings.referral_required_completions
 
     page = client.get(f"/personality/result/{token}")
     assert f"/personality?ref={code}" in page.text

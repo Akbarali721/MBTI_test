@@ -1,0 +1,50 @@
+warning: in the working copy of 'app/config.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/i18n.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/main.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/models/__init__.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/models/personality.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/personality/session_binding.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/routers/admin.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/routers/personality.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/seed/growth_guidance_schema.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/seed/personality_questions_uz.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/seed/personality_results_ru.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/static/css/personality-marketing.css', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/static/js/result-focus.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/templates/admin/base_admin.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/templates/personality/result.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/conftest.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/test_config_guardrails.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/test_growth_guidance.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/test_personality_result_session.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/test_personality_routes.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/test_result_content_quality.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/test_routing_fix.py', LF will be replaced by CRLF the next time Git touches it
+ app/config.py                            |   30 [32m+[m[31m-[m
+ app/i18n.py                              |   78 [32m++[m[31m-[m
+ app/main.py                              |   53 [32m+[m[31m-[m
+ app/models/__init__.py                   |    2 [32m+[m
+ app/models/personality.py                |   39 [32m++[m
+ app/personality/analytics_constants.py   |    2 [32m+[m
+ app/personality/session_binding.py       |   17 [32m+[m
+ app/routers/admin.py                     |   21 [32m+[m
+ app/routers/personality.py               |   91 [32m++[m[31m-[m
+ app/seed/growth_guidance_schema.py       |    3 [32m+[m[31m-[m
+ app/seed/personality_guidance_uz.py      |  456 [32m++++++[m[31m------[m
+ app/seed/personality_questions_uz.py     |  260 [32m++++[m[31m---[m
+ app/seed/personality_results_ru.py       |   17 [32m+[m[31m-[m
+ app/seed/personality_results_uz.py       | 1122 [32m+++++++++++++++++[m[31m-------------[m
+ app/services/premium_presentation.py     |   70 [32m+[m[31m-[m
+ app/static/css/personality-marketing.css |   86 [32m+++[m
+ app/static/js/result-focus.js            |   57 [32m+[m[31m-[m
+ app/templates/admin/base_admin.html      |    1 [32m+[m
+ app/templates/personality/result.html    |  105 [32m+[m[31m--[m
+ tests/conftest.py                        |    1 [32m+[m
+ tests/test_config_guardrails.py          |    7 [32m+[m
+ tests/test_growth_guidance.py            |   32 [32m+[m[31m-[m
+ tests/test_personality_result_session.py |   10 [32m+[m[31m-[m
+ tests/test_personality_routes.py         |    9 [32m+[m[31m-[m
+ tests/test_result_content_quality.py     |    7 [32m+[m
+ tests/test_routing_fix.py                |    5 [32m+[m[31m-[m
+ tests/test_session_analytics.py          |   30 [32m+[m[31m-[m
+ 27 files changed, 1512 insertions(+), 1099 deletions(-)

@@ -23,6 +23,12 @@ from app.observability import (
     init_sentry,
 )
 from app.paths import STATIC_DIR
+from app.personality.webapp_access import (
+    LocalDevBrowserMiddleware,
+    allows_personality_path,
+    local_dev_entry_redirect,
+    telegram_webapp_gate_enabled,
+)
 from app.routers import admin, personality, relationship, share, team
 from app.templating import render_template_or_none
 
@@ -32,6 +38,42 @@ configure_logging()
 init_sentry()
 
 HOME_URL = "/"
+
+
+class TelegramWebAppGateMiddleware:
+    """TELEGRAM_WEBAPP_ONLY: test/natijani faqat WebApp bog‘langan sessiyalar ochadi."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        path = scope.get("path") or ""
+        if not path.startswith("/personality"):
+            await self.app(scope, receive, send)
+            return
+
+        from starlette.requests import Request
+
+        request = Request(scope, receive)
+        if not telegram_webapp_gate_enabled(request):
+            await self.app(scope, receive, send)
+            return
+
+        allowed = allows_personality_path(request, path)
+        if allowed:
+            await self.app(scope, receive, send)
+            return
+
+        from app.i18n import resolve_lang, t
+
+        lang = resolve_lang(request)
+        message = t("errors.message_webapp_only", lang)
+        response = error_response(request, 404, message)
+        await response(scope, receive, send)
 
 
 class SecurityHeadersMiddleware:
@@ -74,6 +116,11 @@ def _security_headers() -> dict[str, str]:
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     # Sxema "alembic upgrade head", kontent esa "python -m app.seed" orqali boshqariladi.
+    if settings.dev_mode_active:
+        logger.warning(
+            "DEV_MODE faol: brauzer orqali lokal test (telegram_user_id=%s, source=dev-browser)",
+            settings.dev_browser_telegram_id,
+        )
     logger.info("MBTI platformasi ishga tushdi")
     yield
 
@@ -92,6 +139,8 @@ app.state.limiter = admin.login_limiter
 
 # add_middleware oxirgi qo'shilganni eng tashqi qatlamga qo'yadi: proxy sarlavhalari
 # avval o'qilishi, sessiya esa eng ichkarida bo'lishi kerak.
+app.add_middleware(TelegramWebAppGateMiddleware)
+app.add_middleware(LocalDevBrowserMiddleware)
 app.add_middleware(
     SessionMiddleware,
     secret_key=settings.secret_key,
@@ -246,7 +295,9 @@ def sitemap() -> Response:
 
 
 @app.get("/")
-def root() -> RedirectResponse:
+def root(request: Request) -> RedirectResponse:
+    if local_dev_entry_redirect(request):
+        return RedirectResponse(url="/personality/instructions", status_code=303)
     return RedirectResponse(url="/personality", status_code=303)
 
 

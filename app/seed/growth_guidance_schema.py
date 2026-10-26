@@ -27,10 +27,8 @@ def format_action_plan(area: GrowthArea) -> str:
     """DB va premium uchun yagona matn manbai — 1–7 kun."""
     parts: list[str] = []
     for day in area["week_plan"]:
-        parts.append(
-            f"{day['day']}-kun: {day['task']} ({day['minutes']}). "
-            f"Mezon: {day['success']}."
-        )
+        success = day["success"].rstrip(".")
+        parts.append(f"{day['day']}-kun: {day['task']} ({day['minutes']}). {success}.")
     return " ".join(parts)
 
 

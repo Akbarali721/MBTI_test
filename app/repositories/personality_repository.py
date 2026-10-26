@@ -138,7 +138,9 @@ class PersonalityRepository:
         )
         return int(self.db.scalar(stmt) or 0)
 
-    def _apply_answer_analytics(self, session: PersonalityTestSession, *, question_index: int | None = None) -> None:
+    def _apply_answer_analytics(
+        self, session: PersonalityTestSession, *, question_index: int | None = None
+    ) -> None:
         now = datetime.now(timezone.utc)
         count = self.count_answers(session.id)
         session.answered_questions = count
